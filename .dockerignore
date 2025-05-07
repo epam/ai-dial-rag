@@ -1,0 +1,45 @@
+# Exclude everything
+*
+
+# Include project files and folders
+# Include all the files, because missing files will flag repository as dirty
+!aidial_rag
+!config
+!docker_compose_local
+!docs
+!eval
+!helm
+!tests
+!.dockerignore
+!.gitignore
+!.gitlab
+!.gitlab-ci.yml
+!Dockerfile
+!README.md
+!collect_repository_digest.py
+!download_model.py
+!noxfile.py
+!poetry.lock
+!poetry.toml
+!pyproject.toml
+
+
+# Include git repository to collect repository digest
+!.git
+
+
+# Exclude files within included folders
+**/.vscode
+**/.pytest_cache
+**/.env
+**/.venv
+**/.aws
+**/.ssh
+**/.flake8
+**/.DS_Store
+**/.nox
+**/coverage
+**/env
+**/venv
+**/__pycache__
+**/*.pyc

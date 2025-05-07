@@ -1,0 +1,17 @@
+request:
+  indexing:
+    multimodal_index: null
+    description_index:
+      llm:
+        deployment_name: gemini-1.5-flash-002
+        max_prompt_tokens: 0  # No limits since history is not used for description generation
+      estimated_task_tokens: 1000
+  qa_chain:
+    chat_chain:
+      llm:
+        deployment_name: gemini-1.5-pro-002
+        max_prompt_tokens: 16000
+    query_chain:
+      llm:
+        deployment_name: gemini-1.5-pro-002
+        max_prompt_tokens: 8000

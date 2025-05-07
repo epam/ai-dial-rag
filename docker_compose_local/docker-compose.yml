@@ -1,0 +1,77 @@
+---
+version: '3'
+
+services:
+  themes:
+    image: epam/ai-dial-chat-themes:0.3.0
+    ports:
+      - "3001:8080"
+
+  chat:
+    ports:
+      - "3000:3000"
+    image: epam/ai-dial-chat:0.7.2
+    depends_on:
+      - themes
+      - core
+    environment:
+      NEXTAUTH_SECRET: "secret"
+      THEMES_CONFIG_HOST: "http://themes:8080"
+      DIAL_API_HOST: "http://core:8080"
+      DIAL_API_KEY: "dial_api_key"
+      ENABLED_FEATURES: "conversations-section,prompts-section,top-settings,top-clear-conversation,top-chat-info,top-chat-model-settings,empty-chat-settings,header,footer,request-api-key,report-an-issue,likes,input-files,attachments-manager"
+
+  redis:
+    image: redis:7.2.4-alpine3.19
+    restart: always
+    ports:
+      - "6379:6379"
+    mem_limit: 1200M
+    command: >
+      redis-server --maxmemory 1000mb --maxmemory-policy volatile-lfu --save "" --appendonly no --loglevel warning
+
+  core:
+    ports:
+      - "8080:8080"
+    image: epam/ai-dial-core:0.8.1
+    environment:
+      - AIDIAL_SETTINGS=/opt/settings/settings.json
+      - JAVA_OPTS=-Dgflog.config=/opt/settings/gflog.xml
+      - aidial.config.files=["/opt/config/config.json"]
+      - aidial.redis.singleServerConfig.address=redis://redis:6379
+      - DIAL_RAG_URL=${DIAL_RAG_URL:-http://host.docker.internal:5000}
+      - REMOTE_DIAL_URL=${REMOTE_DIAL_URL}
+      - REMOTE_DIAL_API_KEY=${REMOTE_DIAL_API_KEY}
+      - DEPLOY_DIAL_RAG=${DEPLOY_DIAL_RAG}
+    depends_on:
+      - redis
+    volumes:
+      - ./dial_conf/settings:/opt/settings
+      - ./dial_conf/core:/opt/config
+      - core-logs:/app/log
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: [ "/opt/config/config.sh && exec docker-entrypoint.sh" ]
+
+
+  adapter-dial:
+    image: "epam/ai-dial-adapter-dial:0.1.0"
+    environment:
+      DIAL_URL: "http://core:8080"
+      LOG_LEVEL: "INFO"
+
+  dial-rag:
+    ports:
+      - "5000:5000"
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    environment:
+      - DIAL_URL=http://core:8080
+      - DIAL_API_KEY=dial_api_key
+      - DIAL_RAG_URL=${DIAL_RAG_URL:-http://host.docker.internal:5000}
+    deploy:
+      replicas: ${DEPLOY_DIAL_RAG}
+
+
+volumes:
+  core-logs:

@@ -1,0 +1,16 @@
+request:
+  indexing:
+    description_index: null
+    multimodal_index:
+      embeddings_model: amazon.titan-embed-image-v1
+      metric: cosine_sim
+      estimated_task_tokens: 75
+  qa_chain:
+    chat_chain:
+      llm:
+        deployment_name: anthropic.claude-v3-5-sonnet-v2
+        max_prompt_tokens: 64000  # We do not have tokenizer for claude, so limit is set in characters
+    query_chain:
+      llm:
+        deployment_name: anthropic.claude-v3-5-sonnet-v2
+        max_prompt_tokens: 32000  # We do not have tokenizer for claude, so limit is set in characters

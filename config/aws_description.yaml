@@ -1,0 +1,17 @@
+request:
+  indexing:
+    multimodal_index: null
+    description_index:
+      llm:
+        deployment_name: anthropic.claude-v3-haiku
+        max_prompt_tokens: 0  # No limits since history is not used for description generation
+      estimated_task_tokens: 1500
+  qa_chain:
+    chat_chain:
+      llm:
+        deployment_name: anthropic.claude-v3-5-sonnet-v2
+        max_prompt_tokens: 64000  # We do not have tokenizer for claude, so limit is set in characters
+    query_chain:
+      llm:
+        deployment_name: anthropic.claude-v3-5-sonnet-v2
+        max_prompt_tokens: 32000  # We do not have tokenizer for claude, so limit is set in characters

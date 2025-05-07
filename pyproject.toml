@@ -1,0 +1,131 @@
+[tool.poetry]
+name = "aidial-rag"
+version = "0.26.0"
+description = "The Dial RAG answers user questions using information from the documents provided by user."
+authors = ["EPAM RAIL <SpecialEPM-DIALDevTeam@epam.com>"]
+homepage = "https://epam-rail.com"
+documentation = "https://epam-rail.com/dial_api"
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["ai"]
+classifiers = [
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+repository = "https://github.com/epam/ai-dial-rag"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+fastapi = "^0.115.8"
+uvicorn = "0.22.0"
+openai = "^1.42.0"
+docarray = "0.39.1"
+langchain = "^0.3.21"
+langchain-community = "^0.3.20"
+langchain-openai = "^0.3.11"
+aidial-sdk = {extras = ["telemetry"], version = "^0.21.0"}
+pypdf = "^5.3.0"
+beautifulsoup4 = "4.12.2"
+rank-bm25 = "0.2.2"
+sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
+tiktoken = "^0.7.0"
+cachetools = "5.3.1"
+unstructured = {version = "0.16.14", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
+libmagic = "1.0"
+python-magic-bin = {version = "^0.4.14", platform = "win32"}
+nltk = "^3.9.1"
+humanfriendly = "10.0"
+pyinstrument = "4.6.1"
+more-itertools = "10.1.0"
+tqdm = "^4.67.1"
+torch = "2.5.1"
+torchvision = "0.20.1"
+onnx = "^1.17.0"
+jinja2 = "^3.1.6"
+aiohttp = "^3.11.18"
+cryptography = "^44.0.1"
+python-multipart = "^0.0.20"
+transformers = "4.48.0"
+openvino = "2024.6.0"
+starlette = "0.45.0"
+virtualenv = "^20.29.3"
+langchain-huggingface = "^0.1.2"
+langchain-unstructured = "^0.1.6"
+pydantic-settings = "^2.8.1"
+deepmerge = "^2.0"
+
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "epm-rtc-python"
+url = "https://nexus.deltixhub.com/repository/epm-rtc-python/simple"
+priority = "explicit"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.2.0"
+pytest-asyncio = "^0.24.0"
+coverage = {extras = ["toml"], version = "^7.3.4"}
+pytest-cov = "^4.1.0"
+
+[tool.poetry.group.doc.dependencies]
+settings-doc = "^4.3.2"
+
+[tool.poetry.group.nox.dependencies]
+nox = "^2024.3.2"
+
+[tool.poetry.group.eval]
+optional = true
+
+[tool.poetry.group.eval.dependencies]
+aidial-rag-eval = {version = "^0.1.4", source = "epm-rtc-python"}
+
+[tool.poetry.group.lint.dependencies]
+pyright = "^1.1.400"
+ruff = "^0.11.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+log_level = "INFO"
+
+
+[tool.ruff]
+target-version = "py311"
+line-length = 80
+
+[tool.ruff.lint]
+select = [
+    "B", "B9",  # flake8-bugbear
+    "C",        # McCabe complexity
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # flake8-isort
+    "S",        # flake8-bandit
+]
+ignore = [
+    "E501",     # E501 string literal is too long
+    "E203",     # E203 whitespace before ':' (triggered on list slices like xs[i : i + 5])
+    "S101",     # S101 checks for uses of the `assert` keyword.
+]
+
+
+[tool.pyright]
+typeCheckingMode = "basic"
+reportUnusedVariable = "error"
+reportIncompatibleMethodOverride = "error"
+exclude = [
+    ".git",
+    ".venv",
+    ".nox",
+    "**/__pycache__"
+]

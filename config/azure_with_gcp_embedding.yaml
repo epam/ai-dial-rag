@@ -1,0 +1,16 @@
+request:
+  indexing:
+    description_index: null
+    multimodal_index:
+      embeddings_model: multimodalembedding@001
+      metric: sqeuclidean_dist
+      estimated_task_tokens: 500
+  qa_chain:
+    chat_chain:
+      llm:
+        deployment_name: gpt-4o-2024-05-13
+        max_prompt_tokens: 16000
+    query_chain:
+      llm:
+        deployment_name: gpt-4o-2024-05-13
+        max_prompt_tokens: 8000

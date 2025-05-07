@@ -1,0 +1,9 @@
+.DS_Store
+.venv
+.env
+.nox
+.history
+__pycache__
+dist
+docker_compose_local/dial_conf/core/config.json
+eval/out

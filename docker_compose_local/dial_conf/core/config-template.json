@@ -1,0 +1,332 @@
+{
+  "routes": {
+    "route-rate": {
+      "paths": [
+        "/+v1/rate"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "response": {
+        "status": 200
+      }
+    }
+  },
+  "applications": {
+    "dial-rag" : {
+      "displayName": "Dial RAG",
+      "description": "RAG (Retrieval Augmented Generation)",
+      "endpoint": "${DIAL_RAG_URL}/openai/deployments/dial-rag/chat/completions",
+      "maxInputAttachments": 10,
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    }
+  },
+  "models": {
+    "azure-ai-vision-embeddings": {
+      "type": "embedding",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/azure-ai-vision-embeddings/embeddings",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/azure-ai-vision-embeddings/embeddings",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ]
+    },
+    "gpt-4-turbo-2024-04-09": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4-turbo-2024-04-09/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4-turbo-2024-04-09/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4 Turbo",
+      "displayVersion": "2024-04-09",
+      "iconUrl": "gpt4.svg"
+    },
+    "gpt-4-turbo": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4-turbo/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4-turbo/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4 Turbo",
+      "displayVersion": "Latest",
+      "iconUrl": "gpt4.svg"
+    },
+    "gpt-4o-2024-05-13": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4o-2024-05-13/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4o-2024-05-13/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4o (Omni)",
+      "displayVersion": "2024-05-13",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-4o-2024-08-06": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4o-2024-08-06/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4o-2024-08-06/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4o (Omni)",
+      "displayVersion": "2024-08-06",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-4o-2024-11-20": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4o-2024-11-20/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4o-2024-11-20/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4o (Omni)",
+      "displayVersion": "2024-11-20",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-4o-mini-2024-07-18": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4o-mini-2024-07-18/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4o-mini-2024-07-18/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4o mini",
+      "displayVersion": "2024-07-18",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-4-32k": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4-32k/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4-32k/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4",
+      "displayVersion": "32K Latest",
+      "description": "Alias for latest stable version (0613)",
+      "iconUrl": "gpt4.svg"
+    },
+    "gpt-4-32k-0613": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4-32k-0613/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4-32k-0613/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4",
+      "displayVersion": "32K 0613",
+      "iconUrl": "gpt4.svg"
+    },
+    "gemini-1.5-pro-001": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-pro-001/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-pro-001/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Gemini 1.5 Pro",
+      "iconUrl": "Gemini-Pro-Vision.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gemini-1.5-pro-002": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-pro-002/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-pro-002/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Gemini 1.5 Pro",
+      "iconUrl": "Gemini-Pro-Vision.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gemini-1.5-flash-001": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-flash-001/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-flash-001/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Gemini 1.5 Flash",
+      "iconUrl": "Gemini-Pro-Vision.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gemini-1.5-flash-002": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-flash-002/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-flash-002/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Gemini 1.5 Flash",
+      "iconUrl": "Gemini-Pro-Vision.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "multimodalembedding@001": {
+      "type": "embedding",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/multimodalembedding@001/embeddings",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/multimodalembedding@001/embeddings",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ]
+    },
+    "amazon.titan-embed-image-v1": {
+      "type": "embedding",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/amazon.titan-embed-image-v1/embeddings",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/amazon.titan-embed-image-v1/embeddings",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ]
+    },
+    "anthropic.claude-v3-haiku": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/anthropic.claude-v3-haiku/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/anthropic.claude-v3-haiku/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Anthropic Claude",
+      "displayVersion": "3 Haiku",
+      "iconUrl": "anthropic.svg",
+      "inputAttachmentTypes": [
+        "image/*"
+      ]
+    },
+    "anthropic.claude-v3-sonnet": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/anthropic.claude-v3-sonnet/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/anthropic.claude-v3-sonnet/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Anthropic Claude",
+      "displayVersion": "3 Sonnet",
+      "iconUrl": "anthropic.svg",
+      "inputAttachmentTypes": [
+        "image/*"
+      ]
+    },
+    "anthropic.claude-v3-5-sonnet": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/anthropic.claude-v3-5-sonnet/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/anthropic.claude-v3-5-sonnet/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Anthropic Claude 3.5 Sonnet",
+      "displayVersion": "V1",
+      "iconUrl": "anthropic.svg",
+      "inputAttachmentTypes": [
+        "image/*"
+      ]
+    },
+    "anthropic.claude-v3-5-sonnet-v2": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/anthropic.claude-v3-5-sonnet-v2/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/anthropic.claude-v3-5-sonnet-v2/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Anthropic Claude 3.5 Sonnet",
+      "displayVersion": "V2",
+      "iconUrl": "anthropic.svg",
+      "inputAttachmentTypes": [
+        "image/*"
+      ]
+    }
+  },
+  "keys": {
+    "dial_api_key": {
+      "project": "demo",
+      "role": "default"
+    }
+  },
+  "roles": {
+    "default": {
+      "limits": {
+        "azure-ai-vision-embeddings": {},
+        "gpt-4-turbo-2024-04-09": {},
+        "gpt-4-turbo": {},
+        "gpt-4o-2024-05-13": {},
+        "gpt-4o-2024-08-06": {},
+        "gpt-4o-2024-11-20": {},
+        "gpt-4o-mini-2024-07-18": {},
+        "gpt-4-32k": {},
+        "gpt-4-32k-0613": {},
+        "gemini-1.5-pro-001": {},
+        "gemini-1.5-pro-002": {},
+        "gemini-1.5-flash-001": {},
+        "gemini-1.5-flash-002": {},
+        "multimodalembedding@001": {},
+        "amazon.titan-embed-image-v1": {},
+        "anthropic.claude-v3-opus": {},
+        "anthropic.claude-v3-haiku": {},
+        "anthropic.claude-v3-sonnet": {},
+        "anthropic.claude-v3-5-sonnet": {},
+        "anthropic.claude-v3-5-sonnet-v2": {},
+        "dial-rag": {}
+      }
+    }
+  }
+}

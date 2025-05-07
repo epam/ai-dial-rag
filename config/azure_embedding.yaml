@@ -1,0 +1,16 @@
+request:
+  indexing:
+    description_index: null
+    multimodal_index:
+      embeddings_model: azure-ai-vision-embeddings
+      metric: cosine_sim
+      estimated_task_tokens: 1
+  qa_chain:
+    chat_chain:
+      llm:
+        deployment_name: gpt-4o-2024-05-13
+        max_prompt_tokens: 16000
+    query_chain:
+      llm:
+        deployment_name: gpt-4o-2024-05-13
+        max_prompt_tokens: 8000
