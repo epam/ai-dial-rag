@@ -22,7 +22,7 @@ def get_repository_digest() -> RepositoryDigest:
     # git status should be run before git describe, because git describe --dirty may use stale data
 
     # git describe returns a string like "<tag>-<commits_since_tag>-g<commit_hash>[-<dirty>]"
-    version = _run_command(["git", "describe", "--tags", "--dirty", "--broken", "--long"])
+    version = _run_command(["git", "describe", "--tags", "--dirty", "--broken", "--long", "--always"])
 
     return RepositoryDigest(version=version, status=status)
 
