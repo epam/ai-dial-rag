@@ -7,4 +7,6 @@ on:
 jobs:
   run_tests:
     uses: epam/ai-dial-ci/.github/workflows/python_docker_pr.yml@6ff561da55c553451d03126efef5868f8ba26023 # https://github.com/epam/ai-dial-ci/pull/211
+    with:
+      maximize-build-space: true
     secrets: inherit
