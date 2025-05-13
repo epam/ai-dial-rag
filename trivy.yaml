@@ -12,3 +12,4 @@ db:
     - ghcr.io/aquasecurity/trivy-java-db:1
 misconfiguration:
   checks-bundle-repository: mirror.gcr.io/aquasec/trivy-checks:1
+timeout: 15m # HACK: Heavy images require more time to scan
