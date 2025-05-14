@@ -5,10 +5,10 @@ POETRY ?= poetry
 DOCKER ?= docker
 LIBREOFFICE_UBUNTU_VERSION ?= 4:24.2.7-0ubuntu0.24.04.4
 ARGS ?=
-# Detect OS
-OS := $(shell uname -s 2>/dev/null || echo "Windows")
+
 # Check for CI environment
-CI ?= false
+# Empty string means false in Makefile
+CI ?=
 
 .PHONY: all install build serve clean install_nox docs lint format install_libreoffice test docker_build docker_serve docker_test help
 
@@ -42,30 +42,10 @@ format: install_nox
 
 install_libreoffice:
 	@echo "Installing LibreOffice..."
-ifeq ($(OS),Linux)
 	sudo apt-get update
 	sudo apt-get install --no-install-recommends -y libreoffice=$(LIBREOFFICE_UBUNTU_VERSION)
-else ifeq ($(OS),Darwin)
-	brew install --cask libreoffice
-else ifeq ($(OS),Windows)
-	@powershell.exe -Command "if (Get-Command winget -ErrorAction SilentlyContinue) { winget install -e --id TheDocumentFoundation.LibreOffice } else { Write-Host 'Error: winget not found. Please install LibreOffice manually from https://www.libreoffice.org/download/download/' }"
-else
-	@echo "Can't install LibreOffice automatically, please check https://www.libreoffice.org/download for manual installation."
-endif
 
-test: install_nox
-ifeq ($(CI),true)
-	@echo "CI environment detected"
-	$(MAKE) install_libreoffice
-else
-	@if command -v libreoffice >/dev/null 2>&1 || [ "$(OS)" = "Windows" ] && (powershell.exe -Command "if (Get-Command soffice -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"); then \
-		echo "LibreOffice found, proceeding with tests..."; \
-	else \
-		echo "ERROR: LibreOffice not found. Tests require LibreOffice for document processing."; \
-		echo "Please run 'make install_libreoffice' or install manually."; \
-		exit 1; \
-	fi
-endif
+test: install_nox $(if $(CI), install_libreoffice)
 	$(POETRY) run nox -s test $(ARGS)
 
 docker_build:
@@ -85,7 +65,7 @@ help:
 	@echo "  make serve        - Run the development server"
 	@echo "  make clean        - Clean build artifacts and environments"
 	@echo "  make install_nox  - Install nox dependencies"
-	@echo "  make install_libreoffice - Install LibreOffice for document processing"
+	@echo "  make install_libreoffice - Install LibreOffice for CI"
 	@echo "  make docs         - Update documentation"
 	@echo "  make lint         - Run linters"
 	@echo "  make format       - Format code"
