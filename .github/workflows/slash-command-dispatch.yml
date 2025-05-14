@@ -5,6 +5,7 @@ on:
 jobs:
   slashCommandDispatch:
     runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request }}
     steps:
       - name: Slash Command Dispatch
         id: scd
@@ -16,7 +17,6 @@ jobs:
             [
               {
                 "command": "deploy-review",
-                "permission": "write",
                 "issue_type": "pull-request",
                 "repository": "epam/ai-dial-ci",
                 "static_args": [
