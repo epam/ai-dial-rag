@@ -14,3 +14,4 @@ jobs:
     secrets: inherit
     with:
       trivy-bypassed: true # HACK: Bypass trivy scan for now, WIP
+      maximize-build-space: true
