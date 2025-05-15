@@ -4,7 +4,13 @@ on:
   pull_request:
     branches: [development, release-*]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   run_tests:
-    uses: epam/ai-dial-ci/.github/workflows/python_docker_pr.yml@1.12.1
+    uses: epam/ai-dial-ci/.github/workflows/python_docker_pr.yml@2.1.0
+    with:
+      maximize-build-space: true
     secrets: inherit

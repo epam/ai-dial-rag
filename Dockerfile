@@ -14,7 +14,7 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y \
         ca-certificates \
         # Libreoffice is required for MS office documents
-        libreoffice=4:24.2.7-0ubuntu0.24.04.3 \
+        libreoffice=4:24.2.7-0ubuntu0.24.04.4 \
         libmagic1 \
         # Dependency for opencv library
         libgl1 \
@@ -84,7 +84,7 @@ WORKDIR /opt/aidial_rag_repo
 RUN python collect_repository_digest.py /opt/repository-digest.json
 
 
-FROM builder_repo_digest as test
+FROM builder_repo_digest AS test
 
 COPY --from=builder_download_nltk /usr/share/nltk_data /usr/share/nltk_data
 COPY --from=builder_download_model "$BGE_EMBEDDINGS_MODEL_PATH" "$BGE_EMBEDDINGS_MODEL_PATH"
@@ -99,7 +99,7 @@ WORKDIR /
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
-RUN adduser -u 1666 --disabled-password --gecos "" appuser
+RUN adduser -u 1001 --disabled-password --gecos "" appuser
 USER appuser
 
 COPY --from=builder --chown=appuser /opt/uv/python /opt/uv/python
