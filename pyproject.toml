@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aidial-rag"
-version = "0.27.0rc"
+version = "0.27.0"
 description = "The Dial RAG answers user questions using information from the documents provided by user."
 authors = ["EPAM RAIL <SpecialEPM-DIALDevTeam@epam.com>"]
 homepage = "https://epam-rail.com"
