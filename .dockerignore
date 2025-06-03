@@ -8,20 +8,25 @@
 !docker_compose_local
 !docs
 !eval
-!helm
 !tests
 !.dockerignore
+!.env.example
+!.github
 !.gitignore
-!.gitlab
-!.gitlab-ci.yml
+!.vscode/extensions.json
+!CONTRIBUTING.md
 !Dockerfile
+!LICENSE
+!Makefile
 !README.md
+!SECURITY.md
 !collect_repository_digest.py
 !download_model.py
 !noxfile.py
 !poetry.lock
 !poetry.toml
 !pyproject.toml
+!trivy.yaml
 
 
 # Include git repository to collect repository digest
@@ -29,7 +34,6 @@
 
 
 # Exclude files within included folders
-**/.vscode
 **/.pytest_cache
 **/.env
 **/.venv
