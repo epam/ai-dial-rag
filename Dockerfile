@@ -18,16 +18,6 @@ RUN apt-get update && \
         libmagic1 \
         # Dependency for opencv library
         libgl1 \
-        # Install security fixes
-        libc-bin=2.39-0ubuntu8.4 \
-        libc6=2.39-0ubuntu8.4 \
-        libgnutls30t64=3.8.3-1.1ubuntu3.3 \
-        libtasn1-6=4.19.0-3ubuntu0.24.04.1 \
-        libraptor2-0=2.0.16-3ubuntu0.1 \
-        libgssapi-krb5-2=1.20.1-6ubuntu2.5 \
-        libk5crypto3=1.20.1-6ubuntu2.5 \
-        libkrb5-3=1.20.1-6ubuntu2.5 \
-        libkrb5support0=1.20.1-6ubuntu2.5 \
         && \
     # Cleanup apt cache in the same command to reduce size
     apt-get clean && rm -rf /var/lib/apt/lists/*
