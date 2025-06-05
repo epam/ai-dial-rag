@@ -5,7 +5,7 @@ from typing import Iterable, List
 
 from docarray import DocList
 
-from aidial_rag.app_config import IndexingConfig
+from aidial_rag.app_config import RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.content_stream import StreamWithPrefix, SupportsWriteStr
 from aidial_rag.converter import convert_document_if_needed
@@ -46,7 +46,9 @@ class FailStageException(Exception):
 
 
 async def check_document_access(
-    request_context: RequestContext, attachment_link: AttachmentLink
+    request_context: RequestContext,
+    attachment_link: AttachmentLink,
+    config: RequestConfig,
 ):
     # Try to load document metadata to check the access to the document for the documents in the Dial filesystem.
     if not attachment_link.is_dial_document:
@@ -57,7 +59,9 @@ async def check_document_access(
         f"Access document '{attachment_link.display_name}'",
     ) as access_stage:
         try:
-            await load_dial_document_metadata(request_context, attachment_link)
+            await load_dial_document_metadata(
+                request_context, attachment_link, config.check_access
+            )
         except InvalidDocumentError as e:
             access_stage.append_content(e.message)
             raise
@@ -85,7 +89,7 @@ async def load_document_impl(
     attachment_link: AttachmentLink,
     io_stream: SupportsWriteStr,
     index_settings: IndexSettings,
-    index_config: IndexingConfig,
+    config: RequestConfig,
 ) -> DocumentRecord:
     absolute_url = attachment_link.absolute_url
     headers = (
@@ -95,7 +99,9 @@ async def load_document_impl(
     )
 
     file_name, content_type, original_doc_bytes = await load_attachment(
-        attachment_link, headers
+        attachment_link,
+        headers,
+        download_config=config.download,
     )
     logger.debug(f"Successfully loaded document {file_name} of {content_type}")
     attachment_mime_type, _ = parse_content_type(content_type)
@@ -112,6 +118,7 @@ async def load_document_impl(
         StreamWithPrefix(io_stream, "Converter: "),
     )
 
+    index_config = config.indexing
     async with asyncio.TaskGroup() as tg:
         multimodal_index_task = None
         if index_config.multimodal_index is not None:
@@ -189,14 +196,14 @@ async def load_document(
     request_context: RequestContext,
     attachment_link: AttachmentLink,
     index_storage: IndexStorage,
-    index_config: IndexingConfig,
+    config: RequestConfig,
 ) -> DocumentRecord:
     with convert_and_log_exceptions(logger):
-        index_settings = index_config.collect_fields_that_rebuild_index()
+        index_settings = config.indexing.collect_fields_that_rebuild_index()
 
         choice = request_context.choice
 
-        await check_document_access(request_context, attachment_link)
+        await check_document_access(request_context, attachment_link, config)
 
         doc_record = None
         # aidial-sdk does not allow to do stage.close(Status.FAILED) inside with-statement
@@ -225,7 +232,7 @@ async def load_document(
                         attachment_link,
                         io_stream,
                         index_settings,
-                        index_config,
+                        config,
                     )
                 except InvalidDocumentError as e:
                     doc_stage.append_content(e.message)
@@ -247,12 +254,12 @@ async def load_documents(
     request_context: RequestContext,
     attachment_links: Iterable[AttachmentLink],
     index_storage: IndexStorage,
-    index_config: IndexingConfig,
+    config: RequestConfig,
 ) -> List[DocumentRecord | BaseException]:
     return await asyncio.gather(
         *[
             load_document(
-                request_context, attachment_link, index_storage, index_config
+                request_context, attachment_link, index_storage, config
             )
             for attachment_link in attachment_links
         ],

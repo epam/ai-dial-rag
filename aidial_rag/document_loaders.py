@@ -30,14 +30,22 @@ from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.utils import format_size, get_bytes_length, timed_block
 
 
-class DownloadConfig(BaseConfig):
+class HttpClientConfig(BaseConfig):
     timeout_seconds: int = Field(
         default=30,
-        description="HTTP client timeout for downloading the content of the document.",
+        description="Timeout for the whole request. Includes connection establishment, sending the request, and receiving the response.",
+    )
+    connect_timeout_seconds: int = Field(
+        default=30,
+        description="Timeout for establishing a connection to the server.",
     )
 
     def get_client_timeout(self) -> aiohttp.ClientTimeout:
-        return aiohttp.ClientTimeout(self.timeout_seconds)
+        return aiohttp.ClientTimeout(
+            total=self.timeout_seconds,
+            connect=self.connect_timeout_seconds,
+            sock_connect=self.connect_timeout_seconds,
+        )
 
 
 class ParserConfig(BaseConfig):
@@ -65,7 +73,7 @@ class ParserConfig(BaseConfig):
 
 
 async def download_attachment(
-    url, headers, download_config: DownloadConfig
+    url, headers, download_config: HttpClientConfig
 ) -> tuple[str, bytes]:
     async with aiohttp.ClientSession() as session:
         async with session.get(
@@ -103,6 +111,7 @@ def add_pdf_source_metadata(
 async def load_dial_document_metadata(
     request_context: RequestContext,
     attachment_link: AttachmentLink,
+    config: HttpClientConfig,
 ) -> dict:
     if not attachment_link.is_dial_document:
         raise ValueError("Not a Dial document")
@@ -111,7 +120,9 @@ async def load_dial_document_metadata(
     assert metadata_url is not None
 
     headers = request_context.get_file_access_headers(metadata_url)
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(
+        timeout=config.get_client_timeout()
+    ) as session:
         async with session.get(metadata_url, headers=headers) as response:
             if not response.ok:
                 error_message = f"{response.status} {response.reason}"
@@ -122,10 +133,10 @@ async def load_dial_document_metadata(
 async def load_attachment(
     attachment_link: AttachmentLink,
     headers: dict,
-    download_config: DownloadConfig | None = None,
+    download_config: HttpClientConfig | None = None,
 ) -> tuple[str, str, bytes]:
     if download_config is None:
-        download_config = DownloadConfig()
+        download_config = HttpClientConfig()
     absolute_url = attachment_link.absolute_url
     file_name = attachment_link.display_name
     content_type, attachment_bytes = await download_attachment(

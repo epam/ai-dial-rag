@@ -116,11 +116,29 @@ Ignore errors during document loading. Used for Web RAG for the request with mul
 
 Use profiler to collect performance metrics for the request.
 
-##### `DIAL_RAG__REQUEST__INDEXING__DOWNLOAD__TIMEOUT_SECONDS`
+##### `DIAL_RAG__REQUEST__DOWNLOAD__TIMEOUT_SECONDS`
 
 *Optional*, default value: `30`
 
-HTTP client timeout for downloading the content of the document.
+Timeout for the whole request. Includes connection establishment, sending the request, and receiving the response.
+
+##### `DIAL_RAG__REQUEST__DOWNLOAD__CONNECT_TIMEOUT_SECONDS`
+
+*Optional*, default value: `30`
+
+Timeout for establishing a connection to the server.
+
+##### `DIAL_RAG__REQUEST__CHECK_ACCESS__TIMEOUT_SECONDS`
+
+*Optional*, default value: `30`
+
+Timeout for the whole request. Includes connection establishment, sending the request, and receiving the response.
+
+##### `DIAL_RAG__REQUEST__CHECK_ACCESS__CONNECT_TIMEOUT_SECONDS`
+
+*Optional*, default value: `30`
+
+Timeout for establishing a connection to the server.
 
 ##### `DIAL_RAG__REQUEST__INDEXING__PARSER__MAX_DOCUMENT_TEXT_SIZE`
 
@@ -142,7 +160,7 @@ Enables MultimodalRetriever which uses multimodal embedding models for pages ima
 
 ##### `DIAL_RAG__REQUEST__INDEXING__DESCRIPTION_INDEX`
 
-*Optional*, default value: `llm=LlmConfig(deployment_name='gpt-4o-mini-2024-07-18', max_prompt_tokens=0, max_retries=3) estimated_task_tokens=4000 time_limit_multiplier=1.5 min_time_limit_sec=300`
+*Optional*, default value: `llm=LlmConfig(deployment_name='gpt-4o-mini-2024-07-18', max_prompt_tokens=0, max_retries=1000000000) estimated_task_tokens=4000 time_limit_multiplier=1.5 min_time_limit_sec=300`
 
 Enables DescriptionRetriever which uses vision model to generate page images descriptions and perform search on them.
 
