@@ -295,7 +295,7 @@ class DialRAGApplication(ChatCompletion):
                 request_context,
                 attachment_links,
                 self.index_storage,
-                index_config=request_config.indexing,
+                config=request_config,
             )
             document_records, loading_errors = process_load_errors(
                 docs_and_errors, attachment_links

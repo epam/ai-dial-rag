@@ -4,7 +4,7 @@ import pytest
 from aidial_sdk.chat_completion import Choice, Stage
 from pydantic import SecretStr
 
-from aidial_rag.app_config import IndexingConfig
+from aidial_rag.app_config import IndexingConfig, RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_record import DocumentRecord
@@ -15,7 +15,9 @@ from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from tests.utils.user_limits_mock import user_limits_mock
 
-index_config = IndexingConfig(multimodal_index=None, description_index=None)
+request_config = RequestConfig(
+    indexing=IndexingConfig(multimodal_index=None, description_index=None),
+)
 
 
 @pytest.fixture
@@ -94,12 +96,12 @@ async def test_load_document_success(
         request_context,
         attachment_link,
         index_storage,
-        index_config=index_config,
+        config=request_config,
     )
     assert isinstance(doc_record, DocumentRecord)
     assert doc_record.document_bytes == b"This is a test byte array."
 
-    index_settings = index_config.collect_fields_that_rebuild_index()
+    index_settings = request_config.indexing.collect_fields_that_rebuild_index()
 
     # Read stored value
     doc = await index_storage.load(
@@ -136,5 +138,5 @@ async def test_load_document_invalid_document(
             request_context,
             attachment_link,
             index_storage,
-            index_config=index_config,
+            config=request_config,
         )

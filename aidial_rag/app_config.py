@@ -13,7 +13,10 @@ from aidial_rag.base_config import (
     IndexRebuildTrigger,
     collect_fields_with_trigger,
 )
-from aidial_rag.document_loaders import DownloadConfig, ParserConfig
+from aidial_rag.document_loaders import (
+    HttpClientConfig,
+    ParserConfig,
+)
 from aidial_rag.document_record import IndexSettings
 from aidial_rag.index_storage import IndexStorageConfig
 from aidial_rag.llm import LlmConfig
@@ -28,8 +31,6 @@ from aidial_rag.retrievers.multimodal_retriever import MultimodalIndexConfig
 
 class IndexingConfig(BaseConfig):
     """Configuration for the document indexing."""
-
-    download: DownloadConfig = Field(default=DownloadConfig())
 
     # pyright does not understand default values for Annotated fields
     parser: ParserConfig = Field(default=ParserConfig())  # type: ignore
@@ -73,6 +74,16 @@ class RequestConfig(BaseConfig):
     use_profiler: bool = Field(
         default=False,
         description="Use profiler to collect performance metrics for the request.",
+    )
+
+    download: HttpClientConfig = Field(
+        default=HttpClientConfig(),
+        description="Configuration for downloading the attached documents.",
+    )
+
+    check_access: HttpClientConfig = Field(
+        default=HttpClientConfig(),
+        description="Configuration for checking access to the documents in the Dial.",
     )
 
     indexing: IndexingConfig = Field(default=IndexingConfig())
