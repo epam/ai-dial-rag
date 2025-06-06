@@ -12,7 +12,6 @@ def test_multimodal_index_settings():
 
     index_settings = config.request.indexing.collect_fields_that_rebuild_index()
     assert index_settings.indexes == {
-        "download": {},
         "multimodal_index": {
             "embeddings_model": "multimodalembedding@001",
         },
@@ -27,7 +26,6 @@ def test_description_index_settings():
 
     index_settings = config.request.indexing.collect_fields_that_rebuild_index()
     assert index_settings.indexes == {
-        "download": {},
         "description_index": {},
         "parser": {
             "unstructured_chunk_size": 1000,
