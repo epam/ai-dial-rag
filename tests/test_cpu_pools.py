@@ -1,10 +1,7 @@
 import pytest
 from aidial_sdk import HTTPException
 
-from aidial_rag.resources.cpu_pools import (
-    UnpicklableExceptionError,
-    run_in_indexing_cpu_pool,
-)
+from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 
 
 class TestException(Exception):
@@ -34,12 +31,9 @@ async def test_picklable_exception():
 
 @pytest.mark.asyncio
 async def test_unpicklable_exception():
-    with pytest.raises(UnpicklableExceptionError) as exc_info:
+    with pytest.raises(TestException) as exc_info:
         await run_in_indexing_cpu_pool(function_with_unpicklable_exception)
-
-    assert isinstance(exc_info.value, UnpicklableExceptionError)
-    assert "Unpicklable exception raised in subprocess" in str(exc_info.value)
-    assert "This exception is not picklable" in str(exc_info.value.__cause__)
+    assert exc_info.value.message == "This exception is not picklable"
 
 
 @pytest.mark.asyncio
