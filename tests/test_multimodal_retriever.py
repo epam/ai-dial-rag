@@ -129,6 +129,7 @@ async def run_test_retrievers(
         description_embeddings_index=None,
         document_bytes=buffer,
         mime_type=mime_type,
+        colpali_embeddings_index=None,
     )
     doc_records = [doc_record]
 

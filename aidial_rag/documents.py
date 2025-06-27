@@ -27,8 +27,12 @@ from aidial_rag.image_processor.extract_pages import is_image
 from aidial_rag.index_storage import IndexStorage
 from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
+from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
+from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
+    ColpaliRetriever,
+)
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionRetriever,
 )
@@ -89,6 +93,7 @@ async def load_document_impl(
     attachment_link: AttachmentLink,
     io_stream: SupportsWriteStr,
     index_settings: IndexSettings,
+    colpali_model_resource: ColpaliModelResource,
     config: RequestConfig,
 ) -> DocumentRecord:
     absolute_url = attachment_link.absolute_url
@@ -146,6 +151,18 @@ async def load_document_impl(
                 )
             )
 
+        colpali_index_task = None
+        if index_config.colpali_index is not None:
+            colpali_index_task = tg.create_task(
+                ColpaliRetriever.build_index(
+                    model_resource=colpali_model_resource,
+                    colpali_index_config=index_config.colpali_index,
+                    stageio=StreamWithPrefix(io_stream, "ColpaliRetriever: "),
+                    mime_type=mime_type,
+                    original_document=doc_bytes,
+                )
+            )
+
         # TODO: try to move is_image check to the parse_document since another loader is not exposed here from the document_loaders.py
         if is_image(content_type):
             chunks_list = [get_default_image_chunk(attachment_link)]
@@ -178,6 +195,9 @@ async def load_document_impl(
     description_indexes = (
         description_index_task.result() if description_index_task else None
     )
+    colpali_indexes = (
+        colpali_index_task.result() if colpali_index_task else None
+    )
 
     return DocumentRecord(
         format_version=FORMAT_VERSION,
@@ -187,6 +207,7 @@ async def load_document_impl(
         embeddings_index=embeddings_index_task.result(),
         multimodal_embeddings_index=multimodal_index,
         description_embeddings_index=description_indexes,
+        colpali_embeddings_index=colpali_indexes,
         document_bytes=doc_bytes,
         mime_type=mime_type,
     )
@@ -196,6 +217,7 @@ async def load_document(
     request_context: RequestContext,
     attachment_link: AttachmentLink,
     index_storage: IndexStorage,
+    colpali_model_resource: ColpaliModelResource,
     config: RequestConfig,
 ) -> DocumentRecord:
     with convert_and_log_exceptions(logger):
@@ -232,6 +254,7 @@ async def load_document(
                         attachment_link,
                         io_stream,
                         index_settings,
+                        colpali_model_resource,
                         config,
                     )
                 except InvalidDocumentError as e:
@@ -254,12 +277,17 @@ async def load_documents(
     request_context: RequestContext,
     attachment_links: Iterable[AttachmentLink],
     index_storage: IndexStorage,
+    colpali_model_resource: ColpaliModelResource,
     config: RequestConfig,
 ) -> List[DocumentRecord | BaseException]:
     return await asyncio.gather(
         *[
             load_document(
-                request_context, attachment_link, index_storage, config
+                request_context,
+                attachment_link,
+                index_storage, 
+                colpali_model_resource,
+                config
             )
             for attachment_link in attachment_links
         ],

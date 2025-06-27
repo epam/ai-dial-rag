@@ -25,6 +25,9 @@ RUN apt-get update && \
 
 FROM base AS builder
 
+# Needed to install some dependencies from git repositories
+RUN apt-get update && apt-get install -y git
+
 # Getting uv from distroless docker
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -112,6 +115,7 @@ ENV UNSTRUCTURED_XY_CUT_BBOX_SHRINK_FACTOR=1.0
 ENV DIAL_RAG__CONFIG_PATH=/config/azure_description.yaml
 ENV DIAL_RAG__INDEX_STORAGE__USE_DIAL_FILE_STORAGE=False
 ENV ENABLE_DEBUG_COMMANDS=False
+ENV USE_COLPALI_INDEX=True
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 EXPOSE 5000

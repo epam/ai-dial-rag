@@ -52,6 +52,8 @@ langchain-huggingface = "^0.1.2"
 langchain-unstructured = "^0.1.6"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
+optimum-intel = { git = "https://github.com/huggingface/optimum-intel.git", rev = "303bc50fdeb34b427dc1b04be741bf4f11415b2d" }
+colpali-engine = "^0.3.10"
 
 
 [[tool.poetry.source]]

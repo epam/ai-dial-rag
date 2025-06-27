@@ -34,9 +34,16 @@ from aidial_rag.repository_digest import (
     read_repository_digest,
 )
 from aidial_rag.request_context import create_request_context
+from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.cpu_pools import init_cpu_pools
 from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
+from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
+    ColpaliIndexConfig,
+)
+from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
+    ColpaliRetriever,
+)
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionRetriever,
 )
@@ -120,6 +127,8 @@ def create_retriever(
     dial_config: DialConfig,
     document_records: List[DocumentRecord],
     multimodal_index_config: MultimodalIndexConfig | None,
+    colpali_model_resource: ColpaliModelResource | None,
+    colpali_index_config: ColpaliIndexConfig | None,
 ) -> BaseRetriever:
     def stage(retriever, name):
         if response_choice is not None:
@@ -171,6 +180,23 @@ def create_retriever(
             retrievers.append(description_retriever)
             weights.append(1.0)
 
+        if (
+            colpali_index_config is not None
+            and colpali_model_resource is not None
+            and ColpaliRetriever.has_index(document_records)
+        ):
+            colpali_retriever = stage(
+                ColpaliRetriever.from_doc_records(
+                    colpali_model_resource,
+                    colpali_index_config,
+                    document_records,
+                    2,
+                ),
+                "Colpali retriever",
+            )
+            retrievers.append(colpali_retriever)
+            weights.append(1.0)
+
         retriever = stage(
             EnsembleRetriever(
                 retrievers=retrievers,
@@ -219,6 +245,7 @@ class DialRAGApplication(ChatCompletion):
         self.index_storage = IndexStorage(
             self.app_config.dial_url, self.app_config.index_storage
         )
+        self.colpali_model_resource = ColpaliModelResource()
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)
         logger.info(
@@ -295,6 +322,7 @@ class DialRAGApplication(ChatCompletion):
                 request_context,
                 attachment_links,
                 self.index_storage,
+                self.colpali_model_resource,
                 config=request_config,
             )
             document_records, loading_errors = process_load_errors(
@@ -318,6 +346,8 @@ class DialRAGApplication(ChatCompletion):
                     request_context.dial_config,
                     document_records,
                     request_config.indexing.multimodal_index,
+                    self.colpali_model_resource,
+                    request_config.indexing.colpali_index,
                 )
 
             last_message_content = messages[-1].content
