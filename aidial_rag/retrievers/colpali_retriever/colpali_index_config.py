@@ -3,7 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from dial_rag.base_config import IndexRebuildTrigger
+from aidial_rag.base_config import IndexRebuildTrigger
 
 
 class ColpaliModelType(str, enum.Enum):
