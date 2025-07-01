@@ -4255,14 +4255,14 @@ pillow = "*"
 
 [[package]]
 name = "pdfminer-six"
-version = "20250506"
+version = "20231228"
 description = "PDF parser and analyzer"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "pdfminer_six-20250506-py3-none-any.whl", hash = "sha256:d81ad173f62e5f841b53a8ba63af1a4a355933cfc0ffabd608e568b9193909e3"},
-    {file = "pdfminer_six-20250506.tar.gz", hash = "sha256:b03cc8df09cf3c7aba8246deae52e0bca7ebb112a38895b5e1d4f5dd2b8ca2e7"},
+    {file = "pdfminer.six-20231228-py3-none-any.whl", hash = "sha256:e8d3c3310e6fbc1fe414090123ab01351634b4ecb021232206c4c9a8ca3e3b8f"},
+    {file = "pdfminer.six-20231228.tar.gz", hash = "sha256:6004da3ad1a7a4d45930cb950393df89b068e73be365a6ff64a838d37bcb08c4"},
 ]
 
 [package.dependencies]
@@ -4270,24 +4270,24 @@ charset-normalizer = ">=2.0.0"
 cryptography = ">=36.0.0"
 
 [package.extras]
-dev = ["atheris ; python_version < \"3.12\"", "black", "mypy (==0.931)", "nox", "pytest"]
+dev = ["black", "mypy (==0.931)", "nox", "pytest"]
 docs = ["sphinx", "sphinx-argparse"]
 image = ["Pillow"]
 
 [[package]]
 name = "pdfplumber"
-version = "0.11.7"
+version = "0.11.5"
 description = "Plumb a PDF for detailed information about each char, rectangle, and line."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "pdfplumber-0.11.7-py3-none-any.whl", hash = "sha256:edd2195cca68bd770da479cf528a737e362968ec2351e62a6c0b71ff612ac25e"},
-    {file = "pdfplumber-0.11.7.tar.gz", hash = "sha256:fa67773e5e599de1624255e9b75d1409297c5e1d7493b386ce63648637c67368"},
+    {file = "pdfplumber-0.11.5-py3-none-any.whl", hash = "sha256:a6e0921a57e0ef7356001a0fd811250b0e37a0b42630a922ee48f55cdd534070"},
+    {file = "pdfplumber-0.11.5.tar.gz", hash = "sha256:dadd81b62a0b23e078cdd89de26e013850d4daf5690fcf46dec396b07e6737d6"},
 ]
 
 [package.dependencies]
-"pdfminer.six" = "20250506"
+"pdfminer.six" = "20231228"
 Pillow = ">=9.1"
 pypdfium2 = ">=4.18.0"
 
@@ -7653,4 +7653,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "9d999f867a16ba12b77dd98b43f892205ed904d3cffeaa56f265ad1d5edd0b8b"
+content-hash = "8ba35a99a311a7dc73d14986a750ffc8ca949ead0ee4fd1a10443ea6edebff60"
