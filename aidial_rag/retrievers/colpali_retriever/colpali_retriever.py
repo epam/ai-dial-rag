@@ -6,26 +6,26 @@ from langchain.schema import BaseRetriever
 from langchain_core.documents import Document
 from torch import Tensor
 
-from dial_rag.content_stream import SupportsWriteStr
-from dial_rag.document_record import (
+from aidial_rag.content_stream import SupportsWriteStr
+from aidial_rag.document_record import (
     DocumentRecord,
     ItemEmbeddings,
     MultiEmbeddings,
 )
-from dial_rag.image_processor.base64 import pil_image_from_base64
-from dial_rag.index_record import RetrievalType, to_metadata_doc
-from dial_rag.resources.colpali_model_resource import ColpaliModelResource
-from dial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
-from dial_rag.retrievers.colpali_retriever.colpali_index_config import (
+from aidial_rag.image_processor.base64 import pil_image_from_base64
+from aidial_rag.index_record import RetrievalType, to_metadata_doc
+from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
+from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
+from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
-from dial_rag.retrievers.embeddings_index import (
+from aidial_rag.retrievers.embeddings_index import (
     EmbeddingsIndex,
     create_index_by_page,
     to_ndarray,
 )
-from dial_rag.retrievers.page_image_retriever_utils import extract_page_images
-from dial_rag.utils import timed_block
+from aidial_rag.retrievers.page_image_retriever_utils import extract_page_images
+from aidial_rag.utils import timed_block
 
 logger = logging.getLogger(__name__)
 
