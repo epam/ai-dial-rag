@@ -35,7 +35,7 @@ python-magic-bin = {version = "^0.4.14", platform = "win32"}
 nltk = "^3.9.1"
 humanfriendly = "10.0"
 pyinstrument = "4.6.1"
-more-itertools = "10.1.0"
+more-itertools = "10.5.0"
 tqdm = "^4.67.1"
 torch = "^2.7.0"
 torchvision = "^0.22.0"
@@ -45,15 +45,14 @@ aiohttp = "^3.11.18"
 cryptography = "^44.0.1"
 python-multipart = "^0.0.20"
 transformers = "^4.51.3"
-openvino = "^2025.1.0"
+openvino = "^2025.2.0"
 starlette = "0.45.0"
 virtualenv = "^20.29.3"
 langchain-huggingface = "^0.1.2"
 langchain-unstructured = "^0.1.6"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
-optimum-intel = { git = "https://github.com/huggingface/optimum-intel.git", rev = "303bc50fdeb34b427dc1b04be741bf4f11415b2d" }
-colpali-engine = "^0.3.10"
+colpali-engine = { git = "https://github.com/illuin-tech/colpali.git", rev = "6f126a136c22d2230a5557eb809dd9134277e1f6" }
 
 
 [[tool.poetry.source]]
@@ -65,10 +64,6 @@ name = "pytorch"
 url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
-[[tool.poetry.source]]
-name = "epm-rtc-python"
-url = "https://nexus.deltixhub.com/repository/epm-rtc-python/simple"
-priority = "explicit"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.2.0"
@@ -86,7 +81,7 @@ nox = "^2024.3.2"
 optional = true
 
 [tool.poetry.group.eval.dependencies]
-aidial-rag-eval = {version = "^0.1.4", source = "epm-rtc-python"}
+aidial-rag-eval = "^0.2.0"
 
 [tool.poetry.group.lint.dependencies]
 pyright = "^1.1.400"
