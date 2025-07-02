@@ -4,9 +4,10 @@ from email.policy import EmailPolicy
 from typing import Iterable, List
 
 from docarray import DocList
+from pydantic import BaseModel, ConfigDict
 
-from aidial_rag.app_config import RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag.content_stream import StreamWithPrefix, SupportsWriteStr
 from aidial_rag.converter import convert_document_if_needed
 from aidial_rag.dial_config import DialConfig
@@ -250,18 +251,58 @@ async def load_document(
         return doc_record
 
 
+class DocumentIndexingResult(BaseModel):
+    attachment_link: AttachmentLink
+    exception: Exception | None = None
+    doc_record: DocumentRecord | None = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+def has_document_loading_errors(
+    indexing_results: List[DocumentIndexingResult],
+) -> bool:
+    """Check if there are any errors in the document loading results."""
+    return any(result.exception is not None for result in indexing_results)
+
+
+async def load_document_task(
+    request_context: RequestContext,
+    attachment_link: AttachmentLink,
+    index_storage: IndexStorage,
+    config: RequestConfig,
+) -> DocumentIndexingResult:
+    doc_record = None
+    exception = None
+    try:
+        doc_record = await load_document(
+            request_context, attachment_link, index_storage, config
+        )
+    except Exception as e:
+        logger.exception(
+            f"Failed to load document {attachment_link.display_name}: {e}"
+        )
+        exception = e
+    return DocumentIndexingResult(
+        attachment_link=attachment_link,
+        doc_record=doc_record,
+        exception=exception,
+    )
+
+
 async def load_documents(
     request_context: RequestContext,
     attachment_links: Iterable[AttachmentLink],
     index_storage: IndexStorage,
     config: RequestConfig,
-) -> List[DocumentRecord | BaseException]:
+) -> List[DocumentIndexingResult]:
+    # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
+    # if ignore_document_loading_errors is not set in the config
     return await asyncio.gather(
         *[
-            load_document(
+            load_document_task(
                 request_context, attachment_link, index_storage, config
             )
             for attachment_link in attachment_links
         ],
-        return_exceptions=True,
     )

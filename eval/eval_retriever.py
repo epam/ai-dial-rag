@@ -14,8 +14,8 @@ from aidial_rag_eval.evaluate import evaluate
 from langchain.schema.runnable import RunnablePassthrough
 from pydantic import SecretStr
 
-from aidial_rag.app import create_retriever
-from aidial_rag.app_config import IndexingConfig
+from aidial_rag.retireval_chain import create_retriever
+from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.documents import load_document_impl

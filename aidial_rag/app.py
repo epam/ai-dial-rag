@@ -4,16 +4,17 @@ from contextlib import asynccontextmanager
 from typing import List, Tuple
 
 from aidial_sdk import DIALApp, HTTPException
-from aidial_sdk.chat_completion import ChatCompletion, Choice, Request, Response
-from langchain.retrievers import EnsembleRetriever
-from langchain.schema import BaseRetriever, Document
-from langchain_core.retrievers import RetrieverLike
-from pydantic import ValidationError
+from aidial_sdk.chat_completion import (
+    ChatCompletion,
+    Message,
+    Request,
+    Response,
+)
+from langchain.schema import Document
 
-from aidial_rag.app_config import AppConfig, RequestConfig
+from aidial_rag.app_config import AppConfig
 from aidial_rag.attachment_link import (
     AttachmentLink,
-    format_document_loading_errors,
     get_attachment_links,
 )
 from aidial_rag.base_config import merge_config
@@ -23,29 +24,34 @@ from aidial_rag.commands import (
     process_commands,
 )
 from aidial_rag.config_digest import ConfigDigest
-from aidial_rag.dial_config import DialConfig
+from aidial_rag.configuration_endpoint import (
+    Configuration,
+    RequestType,
+    get_configuration,
+)
+from aidial_rag.document_loading_error import (
+    create_document_loading_exception,
+    format_document_loading_errors,
+)
 from aidial_rag.document_record import Chunk, DocumentRecord
-from aidial_rag.documents import load_documents
+from aidial_rag.documents import (
+    DocumentIndexingResult,
+    has_document_loading_errors,
+    load_documents,
+)
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.index_storage import IndexStorage
 from aidial_rag.qa_chain import generate_answer
+from aidial_rag.query_chain import create_get_query_chain
 from aidial_rag.repository_digest import (
     RepositoryDigest,
     read_repository_digest,
 )
-from aidial_rag.request_context import create_request_context
+from aidial_rag.request_context import RequestContext, create_request_context
 from aidial_rag.resources.cpu_pools import init_cpu_pools
-from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
-from aidial_rag.retrievers.bm25_retriever import BM25Retriever
-from aidial_rag.retrievers.description_retriever.description_retriever import (
-    DescriptionRetriever,
-)
-from aidial_rag.retrievers.multimodal_retriever import (
-    MultimodalIndexConfig,
-    MultimodalRetriever,
-)
-from aidial_rag.retrievers.semantic_retriever import SemanticRetriever
+from aidial_rag.retireval_chain import create_retrieval_chain
 from aidial_rag.stages import RetrieverStage
+from aidial_rag.transform_history import transform_history
 from aidial_rag.utils import profiler_if_enabled, timed_stage
 
 APP_NAME = "dial-rag"
@@ -90,122 +96,57 @@ def doc_to_attach(
     }
 
 
-def process_load_errors(
-    docs_and_errors: List[DocumentRecord | BaseException],
-    attachment_links: List[AttachmentLink],
-) -> Tuple[List[DocumentRecord], List[Tuple[BaseException, AttachmentLink]]]:
-    document_records: List[DocumentRecord] = []
-    loading_errors: List[Tuple[BaseException, AttachmentLink]] = []
-
-    for doc_or_error, link in zip(
-        docs_and_errors, attachment_links, strict=True
-    ):
-        if isinstance(doc_or_error, DocumentRecord):
-            document_records.append(doc_or_error)
-        elif isinstance(doc_or_error, Exception):
-            loading_errors.append((doc_or_error, link))
-        else:
-            # If the error is BaseException, but not Exception:
-            # GeneratorExit, KeyboardInterrupt, SystemExit etc.
-            raise HTTPException(
-                message=f"Internal error during document loading: {str(doc_or_error)}",
-                status_code=500,
-            ) from doc_or_error
-
-    return document_records, loading_errors
-
-
-def create_retriever(
-    response_choice: Choice | None,
-    dial_config: DialConfig,
-    document_records: List[DocumentRecord],
-    multimodal_index_config: MultimodalIndexConfig | None,
-) -> BaseRetriever:
-    def stage(retriever, name):
-        if response_choice is not None:
-            return RetrieverStage(
-                choice=response_choice,
-                stage_name=name,
-                document_records=document_records,
-                retriever=retriever,
-                doc_to_attach=doc_to_attach,
-            )
-        else:
-            return retriever
-
-    if not AllDocumentsRetriever.is_within_limit(document_records):
-        semantic_retriever = stage(
-            SemanticRetriever.from_doc_records(document_records, 7),
-            "Embeddings search",
-        )
-        retrievers: List[RetrieverLike] = [semantic_retriever]
-        weights = [1.0]
-
-        if BM25Retriever.has_index(document_records):
-            bm25_retriever = stage(
-                BM25Retriever.from_doc_records(document_records, 7),
-                "Keywords search",
-            )
-            retrievers.append(bm25_retriever)
-            weights.append(1.0)
-
-        if MultimodalRetriever.has_index(document_records):
-            assert multimodal_index_config
-            multimodal_retriever = stage(
-                MultimodalRetriever.from_doc_records(
-                    dial_config,
-                    multimodal_index_config,
-                    document_records,
-                    7,
-                ),
-                "Multimodal search",
-            )
-            retrievers.append(multimodal_retriever)
-            weights.append(1.0)
-
-        if DescriptionRetriever.has_index(document_records):
-            description_retriever = stage(
-                DescriptionRetriever.from_doc_records(document_records, 7),
-                "Page image search",
-            )
-            retrievers.append(description_retriever)
-            weights.append(1.0)
-
-        retriever = stage(
-            EnsembleRetriever(
-                retrievers=retrievers,
-                weights=weights,
-            ),
-            "Combined search",
-        )
-    else:
-        retriever = stage(
-            AllDocumentsRetriever.from_doc_records(document_records),
-            "All documents",
-        )
-
-    return retriever
-
-
-def get_configuration(request: Request) -> dict:
-    if (
-        request.custom_fields is None
-        or request.custom_fields.configuration is None
-    ):
-        return {}
-
-    custom_configuration_dict = request.custom_fields.configuration
-
-    # We want to validate the schema, but return the original dict to know which fields are not set
-    try:
-        RequestConfig.model_validate(custom_configuration_dict)  # type: ignore
-    except ValidationError as e:
+def _get_last_message(messages: List[Message]) -> str:
+    last_message_content = messages[-1].content
+    if last_message_content is None:
+        return ""
+    if not isinstance(last_message_content, str):
         raise HTTPException(
-            message=f"Invalid configuration: {e.errors()}",
+            message="Message content is not a string",
             status_code=400,
-        ) from e
+        )
+    return last_message_content
 
-    return custom_configuration_dict
+
+def _collect_document_records(
+    document_indexing_results: List[DocumentIndexingResult],
+) -> List[DocumentRecord]:
+    return [
+        result.doc_record
+        for result in document_indexing_results
+        if result.doc_record is not None
+    ]
+
+
+async def _run_retrieval(choice, retrieval_chain, chain_input):
+    retrieval_chain.pick("retrieval_results")
+    chain_results = await retrieval_chain.ainvoke(chain_input)
+    retrieval_results = chain_results["retrieval_results"]
+    choice.add_attachment(
+        title="Retrieval results",
+        type=retrieval_results.CONTENT_TYPE,
+        data=retrieval_results.model_dump_json(indent=2),
+    )
+
+
+async def _run_rag(
+    request_context, choice, request_config, retrieval_chain, chain_input
+):
+    reference_items = await generate_answer(
+        request_context=request_context,
+        request_config=request_config,
+        retrieval_chain=retrieval_chain,
+        chain_input=chain_input,
+        content_callback=choice.append_content,
+    )
+
+    document_records = chain_input["doc_records"]
+    # Answer has already been streamed to the user, so we don't need to do anything here.
+    for i, reference_item in enumerate(reference_items):
+        if attachment := doc_to_attach(
+            reference_item, document_records, index=(i + 1)
+        ):
+            choice.add_attachment(**attachment)
 
 
 class DialRAGApplication(ChatCompletion):
@@ -238,7 +179,11 @@ class DialRAGApplication(ChatCompletion):
     def _merge_config_sources(
         self, request: Request, commands: Commands
     ) -> ConfigDigest:
-        request_config = self.app_config.request
+        request_config = Configuration()
+        request_config = merge_config(
+            request_config,
+            self.app_config.request.model_dump(exclude_none=True),
+        )
 
         custom_configuration_dict = get_configuration(request)
         if custom_configuration_dict:
@@ -261,95 +206,142 @@ class DialRAGApplication(ChatCompletion):
             from_commands=commands_config_dict,
         )
 
+    async def _load_documents(
+        self,
+        request_context,
+        attachment_links: List[AttachmentLink],
+        config: Configuration,
+    ):
+        try:
+            return await load_documents(
+                request_context,
+                attachment_links,
+                self.index_storage,
+                config=config,
+            )
+        except BaseException as e:
+            # If the error is BaseException, but not Exception:
+            # GeneratorExit, KeyboardInterrupt, SystemExit etc.
+            raise HTTPException(
+                message=f"Internal error during document loading: {str(e)}",
+                status_code=500,
+            ) from e
+
+    async def _process_request_input(
+        self,
+        request: Request,
+        request_context: RequestContext,
+    ) -> Tuple[List[Message], Configuration]:
+        loop = asyncio.get_running_loop()
+        choice = request_context.choice
+        # Process request parameters here
+        messages, commands = await loop.run_in_executor(
+            None,
+            process_commands,
+            request.messages,
+            self.enable_debug_commands,
+        )
+        config_digest = self._merge_config_sources(request, commands)
+        request_config = config_digest.request_config
+
+        choice.set_state(
+            {
+                "repository_digest": self.repository_digest.model_dump(),
+                "config_digest": config_digest.model_dump(),
+            }
+        )
+
+        return messages, request_config
+
     async def chat_completion(
         self, request: Request, response: Response
     ) -> None:
-        loop = asyncio.get_running_loop()
         with create_request_context(
             self.app_config.dial_url, request, response
         ) as request_context:
             choice = request_context.choice
             assert choice is not None
 
-            messages, commands = await loop.run_in_executor(
-                None,
-                process_commands,
-                request.messages,
-                self.enable_debug_commands,
+            messages, request_config = await self._process_request_input(
+                request, request_context
             )
-            config_digest = self._merge_config_sources(request, commands)
-            request_config = config_digest.request_config
-
-            choice.set_state(
-                {
-                    "repository_digest": self.repository_digest.model_dump(),
-                    "config_digest": config_digest.model_dump(),
-                }
-            )
-
             attachment_links = list(
                 get_attachment_links(request_context, messages)
             )
 
-            docs_and_errors = await load_documents(
+            document_indexing_results = await self._load_documents(
                 request_context,
                 attachment_links,
-                self.index_storage,
                 config=request_config,
-            )
-            document_records, loading_errors = process_load_errors(
-                docs_and_errors, attachment_links
             )
 
             if (
-                len(loading_errors) > 0
+                has_document_loading_errors(document_indexing_results)
                 and not request_config.ignore_document_loading_errors
             ):
+                if request_config.request.type != RequestType.RAG:
+                    raise create_document_loading_exception(
+                        document_indexing_results
+                    )
                 choice.append_content(
-                    format_document_loading_errors(loading_errors)
+                    format_document_loading_errors(document_indexing_results)
                 )
                 return
 
-            with timed_stage(choice, "Prepare indexes for search"):
-                retriever = await loop.run_in_executor(
-                    None,
-                    create_retriever,
-                    request_context.choice,
-                    request_context.dial_config,
-                    document_records,
-                    request_config.indexing.multimodal_index,
-                )
-
-            last_message_content = messages[-1].content
-            if last_message_content is None:
+            if request_config.request.type == RequestType.INDEXING:
+                # TODO: Return indexing results as attachments
                 return
-            if not isinstance(last_message_content, str):
-                raise HTTPException(
-                    message="Message content is not a string",
-                    status_code=400,
-                )
+
+            last_message_content = _get_last_message(messages)
             if not last_message_content.strip():
                 return
 
-            with profiler_if_enabled(choice, request_config.use_profiler):
-                reference_items = await generate_answer(
-                    request_context=request_context,
-                    qa_chain_config=request_config.qa_chain,
-                    retriever=retriever,
-                    messages=messages,
-                    content_callback=choice.append_content,
+            document_records = _collect_document_records(
+                document_indexing_results
+            )
+
+            query_chain = create_get_query_chain(
+                request_context, request_config.qa_chain.query_chain
+            )
+
+            with timed_stage(choice, "Prepare indexes for search"):
+
+                def _make_stage(retriever, name):
+                    return RetrieverStage(
+                        choice=request_context.choice,
+                        stage_name=name,
+                        document_records=document_records,
+                        retriever=retriever,
+                        doc_to_attach=doc_to_attach,
+                    )
+
+                retrieval_chain = await create_retrieval_chain(
+                    dial_config=request_context.dial_config,
+                    request_config=request_config,
                     document_records=document_records,
+                    query_chain=query_chain,
+                    make_stage=_make_stage,
                 )
 
-            # Answer has already been streamed to the user, so we don't need to do anything here.
-            for i, reference_item in enumerate(reference_items):
-                if attachment := doc_to_attach(
-                    reference_item, document_records, index=(i + 1)
-                ):
-                    choice.add_attachment(**attachment)
+            with profiler_if_enabled(choice, request_config.use_profiler):
+                chain_input = {
+                    "chat_history": transform_history(messages),
+                    "chat_chain_config": request_config.qa_chain.chat_chain,
+                    "doc_records": document_records,
+                }
+                if request_config.request.type == RequestType.RETRIEVAL:
+                    await _run_retrieval(choice, retrieval_chain, chain_input)
+                elif request_config.request.type == RequestType.RAG:
+                    await _run_rag(
+                        request_context,
+                        choice,
+                        request_config,
+                        retrieval_chain,
+                        chain_input,
+                    )
 
     async def configuration(self, request):
-        return RequestConfig.model_json_schema()
+        return Configuration.model_json_schema()
 
 
 def lifespan(app_config: AppConfig):

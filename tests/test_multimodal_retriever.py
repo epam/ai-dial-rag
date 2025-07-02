@@ -6,7 +6,6 @@ import pytest
 from langchain.schema.runnable import RunnablePassthrough
 from pydantic import SecretStr
 
-from aidial_rag.app_config import IndexingConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.dial_user_limits import get_user_limits_for_model
@@ -17,6 +16,7 @@ from aidial_rag.document_record import (
     build_chunks_list,
 )
 from aidial_rag.documents import parse_content_type
+from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.multimodal_retriever import (
     Metric,
