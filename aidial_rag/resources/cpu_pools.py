@@ -1,9 +1,7 @@
 import asyncio
 import logging
 import os
-import pickle
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from multiprocessing import get_context
+from concurrent.futures import ThreadPoolExecutor
 
 from pydantic import Field
 
@@ -36,41 +34,17 @@ class CpuPoolsConfig(BaseConfig):
     )
 
 
-class UnpicklableExceptionError(RuntimeError):
-    pass
-
-
-def _run_in_process_wrapper(func, *args, **kwargs):
-    try:
-        return func(*args, **kwargs)
-    except Exception as e:
-        try:
-            # python has an issue if unpicklable exception will be passed between processes
-            # https://github.com/python/cpython/issues/120810
-            # The exception created with kwargs could cause the issue
-            pickle.loads(pickle.dumps(e))  # noqa: S301
-        except Exception as pe:
-            logger.exception(pe)
-            # Unpicklable exception could break the process pool and cause the following error:
-            # `concurrent.futures.process.BrokenProcessPool: A child process terminated abruptly, the process pool is not usable anymore`
-            # To avoid this, we raise a custom exception with the original traceback in the __cause__ attribute
-            raise UnpicklableExceptionError(
-                "Unpicklable exception raised in subprocess"
-            ) from e
-        raise
-
-
 class CpuPools:
-    indexing_cpu_pool: ProcessPoolExecutor
+    indexing_cpu_pool: ThreadPoolExecutor
     indexing_embeddings_pool: ThreadPoolExecutor
     query_embeddings_pool: ThreadPoolExecutor
 
     def __init__(self, config: CpuPoolsConfig) -> None:
-        # Using process pool for indexing to avoid GIL limitations
-        self.indexing_cpu_pool = ProcessPoolExecutor(
+        # Using ThreadPoolExecutor instead of ProcessPoolExecutor, because
+        # ProcessPoolExecutor can stuck with zombie processes
+        self.indexing_cpu_pool = ThreadPoolExecutor(
             max_workers=config.indexing_cpu_pool,
-            # Spawn is used to avoid inheriting the file descriptors from the parent process
-            mp_context=get_context("spawn"),
+            thread_name_prefix="indexing_cpu",
         )
 
         self.indexing_embeddings_pool = ThreadPoolExecutor(
@@ -90,13 +64,7 @@ class CpuPools:
         )
 
     def run_in_indexing_cpu_pool(self, func, *args, **kwargs):
-        return self._run_in_pool(
-            self.indexing_cpu_pool,
-            _run_in_process_wrapper,
-            func,
-            *args,
-            **kwargs,
-        )
+        return self._run_in_pool(self.indexing_cpu_pool, func, *args, **kwargs)
 
     def run_in_indexing_embeddings_pool(self, func, *args, **kwargs):
         return self._run_in_pool(
