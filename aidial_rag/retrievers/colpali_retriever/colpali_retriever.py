@@ -192,8 +192,8 @@ class ColpaliRetriever(BaseRetriever):
         async with timed_block("Building ColPali indexes", stageio):
             logger.debug("Building Colpali indexes.")
 
-            # TODO: Parametrize
-            extract_pages_kwargs = {"scaled_size": 104}
+            # TODO: Parametrize, now 224 is the working minimal size for testing
+            extract_pages_kwargs = {"scaled_size": 224}
 
             extracted_images = await extract_page_images(
                 mime_type,
