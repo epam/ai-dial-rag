@@ -193,7 +193,7 @@ class ColpaliRetriever(BaseRetriever):
             logger.debug("Building Colpali indexes.")
 
             # TODO: Parametrize, now 224 is the working minimal size for testing
-            extract_pages_kwargs = {"scaled_size": 224}
+            extract_pages_kwargs = {"scaled_size": 512}
 
             extracted_images = await extract_page_images(
                 mime_type,
