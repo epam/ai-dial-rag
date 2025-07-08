@@ -213,7 +213,10 @@ class CachedColpaliModelResource(ColpaliModelResource):
     when use_cache=False and replays them when use_cache=True.
     """
     
-    def __init__(self, use_cache: bool = True, cache_dir: str = "tests/cache/colpali_cache"):
+    def __init__(self, use_cache: bool = True, cache_dir: str = "tests/cache/test_colpali_retriever"):
+        # Ensure the cache directory exists
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         super().__init__()
         self.use_cache = use_cache
         self.cache_dir = Path(cache_dir)
