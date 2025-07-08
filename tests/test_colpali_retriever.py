@@ -76,7 +76,7 @@ async def test_colpali_retriever_simple(local_server):
     )
 
     # Test retrieval
-    results = retriever._get_relevant_documents("image of butterfly")
+    results = retriever._get_relevant_documents("what is the second image description where there is an image of butterfly")
     assert results, "No results returned"
     
     if use_cache:
