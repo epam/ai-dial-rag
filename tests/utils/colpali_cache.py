@@ -46,59 +46,29 @@ class RecordingModel:
             pickle.dump(cache_data, f)
 
 
-class RecordingProcessor:
-    """Wraps a real processor to record all method calls."""
+class RecordingScoreProcessor:
+    """Wraps a real processor to record only score calls."""
     
     def __init__(self, real_processor, cache_key: str, cache_dir: Path):
         self.real_processor = real_processor
         self.cache_key = cache_key
         self.cache_dir = cache_dir
-        self.recorded_calls = {
-            'process_queries': [],
-            'process_images': [],
-            'score': [],
-            'score_multi_vector': []
-        }
+        self.recorded_scores = []
         
     def process_queries(self, queries: List[str]):
-        # Call real processor
-        output = self.real_processor.process_queries(queries)
-        
-        # Record the call
-        self.recorded_calls['process_queries'].append({
-            'input': queries,
-            'output': output
-        })
-        
-        # Save to cache
-        self._save_recordings()
-        
-        return output
+        # Use real processor for queries processing (not mock)
+        return self.real_processor.process_queries(queries)
     
     def process_images(self, images: List[Any]):
-        # Call real processor
-        output = self.real_processor.process_images(images)
-        
-        # Record the call
-        self.recorded_calls['process_images'].append({
-            'input': images,
-            'output': output
-        })
-        
-        # Save to cache
-        self._save_recordings()
-        
-        return output
+        # Use real processor for images processing (not mock)
+        return self.real_processor.process_images(images)
     
     def score(self, query_embeddings: Tensor, image_embeddings: List[Tensor]):
-        # Call real processor
+        # Call real processor for scoring
         output = self.real_processor.score(query_embeddings, image_embeddings)
         
-        # Record the call
-        self.recorded_calls['score'].append({
-            'input': (query_embeddings, image_embeddings),
-            'output': output
-        })
+        # Record the score
+        self.recorded_scores.append(output)
         
         # Save to cache
         self._save_recordings()
@@ -106,14 +76,11 @@ class RecordingProcessor:
         return output
     
     def score_multi_vector(self, query_embeddings: Tensor, image_embeddings: List[Tensor]):
-        # Call real processor
+        # Call real processor for scoring
         output = self.real_processor.score_multi_vector(query_embeddings, image_embeddings)
         
-        # Record the call
-        self.recorded_calls['score_multi_vector'].append({
-            'input': (query_embeddings, image_embeddings),
-            'output': output
-        })
+        # Record the score
+        self.recorded_scores.append(output)
         
         # Save to cache
         self._save_recordings()
@@ -121,10 +88,38 @@ class RecordingProcessor:
         return output
     
     def _save_recordings(self):
-        """Save recorded calls to cache."""
-        cache_path = self.cache_dir / f"{self.cache_key}_processor.pkl"
+        """Save recorded scores to cache."""
+        cache_data = {
+            'scores': self.recorded_scores
+        }
+        cache_path = self.cache_dir / f"{self.cache_key}_scores.pkl"
         with open(cache_path, 'wb') as f:
-            pickle.dump(self.recorded_calls, f)
+            pickle.dump(cache_data, f)
+    
+    def _create_mock_batch(self, keys: List[str]):
+        """Create a mock batch with the specified keys."""
+        class MockBatch:
+            def __init__(self, keys):
+                self.data = {}
+                for key in keys:
+                    if key == 'input_ids':
+                        # input_ids should be integer tensors
+                        self.data[key] = torch.randint(0, 1000, (1, 10), dtype=torch.long)
+                    elif key == 'attention_mask':
+                        # attention_mask should be integer tensors (0s and 1s)
+                        self.data[key] = torch.randint(0, 2, (1, 10), dtype=torch.long)
+                    elif key == 'pixel_values':
+                        # pixel_values should be float tensors
+                        self.data[key] = torch.randn(1, 3, 224, 224, dtype=torch.float32)
+                    else:
+                        # Default to float tensors for other keys
+                        self.data[key] = torch.randn(1, 10, dtype=torch.float32)
+            
+            def to(self, device): return self
+            def keys(self): return self.data.keys()
+            def __getitem__(self, key): return self.data[key]
+        
+        return MockBatch(keys)
 
 
 class ReplayModel:
@@ -145,67 +140,67 @@ class ReplayModel:
             return self.recorded_outputs[0] if self.recorded_outputs else torch.zeros(1, 768)
 
 
-class ReplayProcessor:
-    """Replays recorded processor calls."""
+class ReplayScoreProcessor:
+    """Replays recorded scores with mock processing."""
     
-    def __init__(self, recorded_calls: Dict):
-        self.recorded_calls = recorded_calls
-        self.call_counts = {
-            'process_queries': 0,
-            'process_images': 0,
-            'score': 0,
-            'score_multi_vector': 0
-        }
+    def __init__(self, recorded_scores: List[Tensor]):
+        self.recorded_scores = recorded_scores
+        self.score_count = 0
         
     def process_queries(self, queries: List[str]):
-        calls = self.recorded_calls.get('process_queries', [])
-        if self.call_counts['process_queries'] < len(calls):
-            output = calls[self.call_counts['process_queries']]['output']
-            self.call_counts['process_queries'] += 1
-            return output
-        else:
-            # Fallback to mock if no recordings
-            return self._create_mock_batch(['input_ids', 'attention_mask'])
+        # Use mock for queries processing
+        return self._create_mock_batch(['input_ids', 'attention_mask'])
     
     def process_images(self, images: List[Any]):
-        calls = self.recorded_calls.get('process_images', [])
-        if self.call_counts['process_images'] < len(calls):
-            output = calls[self.call_counts['process_images']]['output']
-            self.call_counts['process_images'] += 1
-            return output
-        else:
-            # Fallback to mock if no recordings
-            return self._create_mock_batch(['input_ids', 'attention_mask', 'pixel_values'])
+        # Use mock for images processing
+        return self._create_mock_batch(['input_ids', 'attention_mask', 'pixel_values'])
     
     def score(self, query_embeddings: Tensor, image_embeddings: List[Tensor]):
-        calls = self.recorded_calls.get('score', [])
-        if self.call_counts['score'] < len(calls):
-            output = calls[self.call_counts['score']]['output']
-            self.call_counts['score'] += 1
+        # Replay recorded scores
+        if self.score_count < len(self.recorded_scores):
+            output = self.recorded_scores[self.score_count]
+            self.score_count += 1
             return output
         else:
-            # Fallback to mock scoring
-            num_images = len(image_embeddings) if isinstance(image_embeddings, list) else 1
-            return torch.rand(num_images, 1)
+            # If we run out of recordings, cycle back
+            self.score_count = 0
+            return self.recorded_scores[0] if self.recorded_scores else torch.rand(1, 1)
     
     def score_multi_vector(self, query_embeddings: Tensor, image_embeddings: List[Tensor]):
-        calls = self.recorded_calls.get('score_multi_vector', [])
-        if self.call_counts['score_multi_vector'] < len(calls):
-            output = calls[self.call_counts['score_multi_vector']]['output']
-            self.call_counts['score_multi_vector'] += 1
+        # Replay recorded scores
+        if self.score_count < len(self.recorded_scores):
+            output = self.recorded_scores[self.score_count]
+            self.score_count += 1
             return output
         else:
-            # Fallback to mock scoring
-            num_images = len(image_embeddings) if isinstance(image_embeddings, list) else 1
-            return torch.rand(num_images, 1)
+            # If we run out of recordings, cycle back
+            self.score_count = 0
+            return self.recorded_scores[0] if self.recorded_scores else torch.rand(1, 1)
     
     def _create_mock_batch(self, keys: List[str]):
         """Create a mock batch with the specified keys."""
         class MockBatch:
             def __init__(self, keys):
-                self.data = {key: torch.randn(1, 10) for key in keys}
+                self.data = {}
+                for key in keys:
+                    if key == 'input_ids':
+                        # input_ids should be integer tensors
+                        self.data[key] = torch.randint(0, 1000, (1, 10), dtype=torch.long)
+                    elif key == 'attention_mask':
+                        # attention_mask should be integer tensors (0s and 1s)
+                        self.data[key] = torch.randint(0, 2, (1, 10), dtype=torch.long)
+                    elif key == 'pixel_values':
+                        # pixel_values should be float tensors
+                        self.data[key] = torch.randn(1, 3, 224, 224, dtype=torch.float32)
+                    else:
+                        # Default to float tensors for other keys
+                        self.data[key] = torch.randn(1, 10, dtype=torch.float32)
             
-            def to(self, device): return self
+            def to(self, device): 
+                # Move all tensors to the specified device
+                for key in self.data:
+                    self.data[key] = self.data[key].to(device)
+                return self
             def keys(self): return self.data.keys()
             def __getitem__(self, key): return self.data[key]
         
@@ -214,7 +209,7 @@ class ReplayProcessor:
 
 class CachedColpaliModelResource(ColpaliModelResource):
     """
-    A cached version of ColpaliModelResource that records real model outputs
+    A cached version of ColpaliModelResource that records real model outputs and scores
     when use_cache=False and replays them when use_cache=True.
     """
     
@@ -235,24 +230,25 @@ class CachedColpaliModelResource(ColpaliModelResource):
         content = f"{model_name}_{model_type}"
         return hashlib.md5(content.encode()).hexdigest()
     
-    def _load_recordings(self, cache_key: str) -> Tuple[List[Tensor] | None, Dict | None]:
-        """Load recorded model outputs and processor calls."""
+    def _load_recordings(self, cache_key: str) -> Tuple[List[Tensor] | None, List[Tensor] | None]:
+        """Load recorded model outputs and scores."""
         model_cache_path = self.cache_dir / f"{cache_key}_model.pkl"
-        processor_cache_path = self.cache_dir / f"{cache_key}_processor.pkl"
+        scores_cache_path = self.cache_dir / f"{cache_key}_scores.pkl"
         
         model_outputs = None
-        processor_calls = None
+        recorded_scores = None
         
         if model_cache_path.exists():
             with open(model_cache_path, 'rb') as f:
                 model_data = pickle.load(f)
                 model_outputs = model_data.get('model_outputs', [])
         
-        if processor_cache_path.exists():
-            with open(processor_cache_path, 'rb') as f:
-                processor_calls = pickle.load(f)
+        if scores_cache_path.exists():
+            with open(scores_cache_path, 'rb') as f:
+                scores_data = pickle.load(f)
+                recorded_scores = scores_data.get('scores', [])
         
-        return model_outputs, processor_calls
+        return model_outputs, recorded_scores
     
     def get_model_processor_device(self, config: ColpaliIndexConfig) -> tuple[Any, Any, torch.device]:
         """Get model, processor, and device with recording/replay support."""
@@ -260,12 +256,12 @@ class CachedColpaliModelResource(ColpaliModelResource):
         
         if self.use_cache:
             # Replay mode: load and replay recorded outputs
-            model_outputs, processor_calls = self._load_recordings(cache_key)
+            model_outputs, recorded_scores = self._load_recordings(cache_key)
             
-            if model_outputs is not None and processor_calls is not None:
+            if model_outputs is not None and recorded_scores is not None:
                 print(f"Replaying recorded outputs for {config.model_name}")
                 self._replay_model = ReplayModel(model_outputs)
-                self._replay_processor = ReplayProcessor(processor_calls)
+                self._replay_processor = ReplayScoreProcessor(recorded_scores)
                 device = torch.device('cpu')  # Default for replay
                 return self._replay_model, self._replay_processor, device
             else:
@@ -278,7 +274,7 @@ class CachedColpaliModelResource(ColpaliModelResource):
             
             # Wrap with recording objects
             self._recording_model = RecordingModel(real_model, cache_key, self.cache_dir)
-            self._recording_processor = RecordingProcessor(real_processor, cache_key, self.cache_dir)
+            self._recording_processor = RecordingScoreProcessor(real_processor, cache_key, self.cache_dir)
             
             return self._recording_model, self._recording_processor, device
     
@@ -290,10 +286,10 @@ class CachedColpaliModelResource(ColpaliModelResource):
             return self._replay_model.recorded_outputs
         return []
     
-    def get_recorded_calls(self) -> Dict:
-        """Get the recorded processor calls for testing."""
+    def get_recorded_scores(self) -> List[Tensor]:
+        """Get the recorded scores for testing."""
         if self._recording_processor:
-            return self._recording_processor.recorded_calls
+            return self._recording_processor.recorded_scores
         elif self._replay_processor:
-            return self._replay_processor.recorded_calls
-        return {} 
+            return self._replay_processor.recorded_scores
+        return [] 

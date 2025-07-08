@@ -82,8 +82,8 @@ async def test_colpali_retriever_simple(local_server):
     if use_cache:
         # Verify we're using recorded outputs
         recorded_outputs = colpali_model_resource.get_recorded_outputs()
-        recorded_calls = colpali_model_resource.get_recorded_calls()
-        assert len(recorded_outputs) > 0 or len(recorded_calls) > 0, "Should have recorded data"
+        recorded_scores = colpali_model_resource.get_recorded_scores()
+        assert len(recorded_outputs) > 0 or len(recorded_scores) > 0, "Should have recorded data"
         
     # The expected page number for 'image of butterfly' is 13
     # Since we're using mock scores that prioritize page 13, this should work
