@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from unittest.mock import patch
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -80,8 +81,11 @@ def run_colpali_test(attachments, question, expected_text_list):
     # Use ColPali-only configuration
     app_config = create_colpali_only_config()
     
+    # Check if REFRESH is set to determine cache usage
+    use_cache = not os.environ.get('REFRESH', '').lower() == 'true'
+    
     # Patch the ColpaliModelResource at the module level where it's imported
-    with patch('aidial_rag.app.ColpaliModelResource', CachedColpaliModelResource):
+    with patch('aidial_rag.app.ColpaliModelResource', lambda: CachedColpaliModelResource(use_cache=use_cache)):
         app = create_app(app_config)
         client = TestClient(app)
         
@@ -111,7 +115,6 @@ def run_colpali_test(attachments, question, expected_text_list):
         
         content = response_data["choices"][0]["message"]["content"]
         assert content, "Empty content in response"
-        
         # Check if any expected text is in the response
         found_expected = any(
             check_expected_text(expected_text, content)
@@ -125,13 +128,12 @@ def run_colpali_test(attachments, question, expected_text_list):
 
 @pytest.mark.asyncio
 @e2e_test(filenames=["alps_wiki.pdf"])
-#@e2e_test(filenames=["test_image.png"])
-async def test_colpali_retrieval_butterfly(attachments):
+async def test_colpali_retrieval(attachments):
     """Test ColPali retrieval with a question about an image in the document."""
     # Patch the create_retriever function at the module level where it's imported
     with patch('aidial_rag.app.create_retriever', new=mock_create_retriever):
         run_colpali_test(
             attachments,
-            "What image is shown on page 13?",
-            ["butterfly|butterflies"],  # Expected to find butterfly image on page 13
+            "what is the second image description on page where there is an image of butterfly?",
+            ["Pre-historic petroglyphs from|Valcamonica"]
         )
