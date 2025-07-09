@@ -23,6 +23,7 @@ COLPALI_TEST_CONFIG = {
 
 DATA_DIR = "tests/data"
 PORT = 5010
+MIDDLEWARE_HOST = "http://localhost:8081"
 
 
 @pytest.fixture
@@ -51,22 +52,13 @@ async def load_document(name, port=PORT):
 
 
 def create_colpali_only_config():
-    """Create app configuration that uses only ColPali index."""
-    from aidial_rag.app_config import AppConfig, RequestConfig, IndexingConfig
+    """Create app configuration that uses Azure ColPali config."""
+    from aidial_rag.app_config import AppConfig
     
     return AppConfig(
-        dial_url="http://localhost:8081",
+        dial_url=MIDDLEWARE_HOST,
         enable_debug_commands=True,
-        request=RequestConfig(
-            indexing=IndexingConfig(
-                multimodal_index=None,  # Disable multimodal index
-                description_index=None,  # Disable description index
-                colpali_index=ColpaliIndexConfig(
-                    model_name="vidore/colpali-v1.3",
-                    model_type=ColpaliModelType.COLPALI
-                )
-            )
-        )
+        config_path="config/azure_colpali.yaml",
     )
 
 
@@ -161,11 +153,11 @@ async def test_colpali_retriever(local_server):
     text_chunks, buffer, mime_type = await load_document("alps_wiki.pdf")
     chunks_list = await build_chunks_list(text_chunks)
 
-    # Setup ColPali model and index
+    # Setup ColPali model and index using Azure config
     colpali_model_resource = CachedColpaliModelResource(use_cache=use_cache)
     colpali_index_config = ColpaliIndexConfig(
-        model_name="vidore/colpali-v1.3",
-        model_type=ColpaliModelType.COLPALI
+        model_name="vidore/colSmol-256M",
+        model_type=ColpaliModelType.COLIDEFICS
     )
 
     # Build index
