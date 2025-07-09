@@ -27,3 +27,15 @@ class ColpaliIndexConfig(BaseModel):
             default=ColpaliModelType.COLIDEFICS,
         ),
     ]
+    image_size: Annotated[
+        int,
+        IndexRebuildTrigger(),
+        Field(
+            default=512,
+            description=(
+                "Specifies the size to which page images are initially resized before embedding calculation."
+                "Note: Each model's processor may further resize images to the "
+                "dimensions required by that model."
+            ),
+        ),
+    ]
