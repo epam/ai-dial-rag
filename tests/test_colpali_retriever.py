@@ -17,7 +17,7 @@ from tests.utils.e2e_decorator import e2e_test
 # Test configuration
 COLPALI_TEST_CONFIG = {
     "query": "what is the caption of the image of butterfly?",
-    "expected_answer": "The alpine Apollo butterfly has adapted to|alpine conditions.",
+    "expected_answer": "The alpine Apollo butterfly has adapted to alpine conditions",
     "expected_page": 13,
 }
 
@@ -50,19 +50,6 @@ async def load_document(name, port=PORT):
     return text_chunks, buffer, mime_type
 
 
-def check_expected_text(expected_text, actual_text):
-    """
-    Check if expected text (or any of its alternatives separated by '|') 
-    is present in the actual text.
-    """
-    actual_text_lower = actual_text.lower()
-    if "|" in expected_text:
-        alternatives = expected_text.split("|")
-        return any(alt.lower() in actual_text_lower for alt in alternatives)
-    else:
-        return expected_text.lower() in actual_text_lower
-
-
 def create_colpali_only_config():
     """Create app configuration that uses only ColPali index."""
     from aidial_rag.app_config import AppConfig, RequestConfig, IndexingConfig
@@ -91,13 +78,30 @@ def mock_create_retriever(
     colpali_model_resource,
     colpali_index_config,
 ):
-    """Mock create_retriever to return only ColPali retriever."""
+    """Mock create_retriever to return only ColPali retriever with cached model."""
+    use_cache = not os.environ.get('REFRESH', '').lower() == 'true'
+    cached_model_resource = CachedColpaliModelResource(use_cache=use_cache)
+    
     return ColpaliRetriever.from_doc_records(
-        colpali_model_resource,
+        cached_model_resource,
         colpali_index_config,
         document_records,
         2,
     )
+
+
+def create_cached_app_config():
+    """Create app configuration that uses cached ColPali model resource."""
+    from aidial_rag.app import DialRAGApplication
+    
+    class CachedDialRAGApplication(DialRAGApplication):
+        def __init__(self, app_config):
+            super().__init__(app_config)
+            # Replace the real model resource with cached one
+            use_cache = not os.environ.get('REFRESH', '').lower() == 'true'
+            self.colpali_model_resource = CachedColpaliModelResource(use_cache=use_cache)
+    
+    return CachedDialRAGApplication
 
 
 def run_e2e_test(attachments, question, expected_text):
@@ -105,8 +109,14 @@ def run_e2e_test(attachments, question, expected_text):
     from aidial_rag.app import create_app
     from fastapi.testclient import TestClient
     
-    app = create_app(create_colpali_only_config())
-    client = TestClient(app)
+    # Create app with cached model resource
+    app_config = create_colpali_only_config()
+    cached_app_class = create_cached_app_config()
+    
+    # Patch the app creation to use cached model resource
+    with patch('aidial_rag.app.DialRAGApplication', new=cached_app_class):
+        app = create_app(app_config)
+        client = TestClient(app)
     
     response = client.post(
         "/openai/deployments/dial-rag/chat/completions",
@@ -131,8 +141,7 @@ def run_e2e_test(attachments, question, expected_text):
     content = json_response["choices"][0]["message"]["content"]
     
     # Check if expected text is in the response
-    found_expected = check_expected_text(expected_text, content)
-    
+    found_expected = expected_text.lower() in content.lower()
     if not found_expected:
         print(f"Expected one of: {expected_text}")
         print(f"Got: {content}")
@@ -144,8 +153,7 @@ def run_e2e_test(attachments, question, expected_text):
 @pytest.mark.asyncio
 async def test_colpali_retriever(local_server):
     """
-    Unit test for ColPali retriever with simple query using cached model.
-    Tests the retriever directly without going through the full app.
+    Unit test for ColPali retriever that checks if retrieved page number is correct.
     """
     use_cache = not os.environ.get('REFRESH', '').lower() == 'true'
 
@@ -189,18 +197,12 @@ async def test_colpali_retriever(local_server):
     results = retriever._get_relevant_documents(COLPALI_TEST_CONFIG["query"])
     assert results, "No results returned"
     
-    # Verify cache usage if applicable
-    if use_cache:
-        recorded_outputs = colpali_model_resource.get_recorded_outputs()
-        recorded_scores = colpali_model_resource.get_recorded_scores()
-        assert len(recorded_outputs) > 0 or len(recorded_scores) > 0, "Should have recorded data"
-        
     # Verify expected page number
     chunk_id = results[0].metadata.get("chunk_id")
-    if chunk_id is not None and chunk_id < len(text_chunks):
-        page_number = text_chunks[chunk_id].metadata.get("page_number")
-        expected_page = COLPALI_TEST_CONFIG["expected_page"]
-        assert page_number == expected_page, f"Expected page {expected_page}, got page {page_number}"
+    assert chunk_id is not None and chunk_id < len(text_chunks)
+    page_number = text_chunks[chunk_id].metadata.get("page_number")
+    expected_page = COLPALI_TEST_CONFIG["expected_page"]
+    assert page_number == expected_page, f"Expected page {expected_page}, got page {page_number}"
 
 
 @pytest.mark.asyncio

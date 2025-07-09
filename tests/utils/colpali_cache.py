@@ -49,29 +49,46 @@ class RecordingModel:
         self.real_model = real_model
         self.cache_key = cache_key
         self.cache_dir = cache_dir
-        self.recorded_outputs = []
-        self.call_count = 0
+        self.recorded_query_embeddings = []
+        self.recorded_image_embeddings = []
+        self.query_call_count = 0
+        self.image_call_count = 0
         
     def __call__(self, **kwargs):
         # Call the real model
         output = self.real_model(**kwargs)
         
-        # Record the output
-        self.recorded_outputs.append(output.detach().cpu())
-        self.call_count += 1
-        
-        # Save to cache after each call
-        self._save_recordings()
+        # Determine if this is a query or image call based on input keys
+        if 'pixel_values' in kwargs:
+            # Image embedding call
+            self.recorded_image_embeddings.append(output.detach().cpu())
+            self.image_call_count += 1
+            self._save_image_embeddings()
+        else:
+            # Query embedding call
+            self.recorded_query_embeddings.append(output.detach().cpu())
+            self.query_call_count += 1
+            self._save_query_embeddings()
         
         return output
     
-    def _save_recordings(self):
-        """Save recorded outputs to cache."""
+    def _save_query_embeddings(self):
+        """Save recorded query embeddings to cache."""
         cache_data = {
-            'model_outputs': self.recorded_outputs,
-            'call_count': self.call_count
+            'query_embeddings': self.recorded_query_embeddings,
+            'call_count': self.query_call_count
         }
-        cache_path = self.cache_dir / f"{self.cache_key}_model.pkl"
+        cache_path = self.cache_dir / f"{self.cache_key}_query_embeddings.pkl"
+        with open(cache_path, 'wb') as f:
+            pickle.dump(cache_data, f)
+    
+    def _save_image_embeddings(self):
+        """Save recorded image embeddings to cache."""
+        cache_data = {
+            'image_embeddings': self.recorded_image_embeddings,
+            'call_count': self.image_call_count
+        }
+        cache_path = self.cache_dir / f"{self.cache_key}_image_embeddings.pkl"
         with open(cache_path, 'wb') as f:
             pickle.dump(cache_data, f)
 
@@ -121,19 +138,33 @@ class RecordingScoreProcessor:
 class ReplayModel:
     """Replays recorded model outputs."""
     
-    def __init__(self, recorded_outputs: List[Tensor]):
-        self.recorded_outputs = recorded_outputs
-        self.call_count = 0
+    def __init__(self, recorded_query_embeddings: List[Tensor], recorded_image_embeddings: List[Tensor]):
+        self.recorded_query_embeddings = recorded_query_embeddings
+        self.recorded_image_embeddings = recorded_image_embeddings
+        self.query_call_count = 0
+        self.image_call_count = 0
         
     def __call__(self, **kwargs):
-        if self.call_count < len(self.recorded_outputs):
-            output = self.recorded_outputs[self.call_count]
-            self.call_count += 1
-            return output
+        if 'pixel_values' in kwargs:
+            # Image embedding call
+            if self.image_call_count < len(self.recorded_image_embeddings):
+                output = self.recorded_image_embeddings[self.image_call_count]
+                self.image_call_count += 1
+                return output
+            else:
+                # If we run out of recordings, cycle back
+                self.image_call_count = 0
+                return self.recorded_image_embeddings[0] if self.recorded_image_embeddings else torch.zeros(1, 768)
         else:
-            # If we run out of recordings, cycle back
-            self.call_count = 0
-            return self.recorded_outputs[0] if self.recorded_outputs else torch.zeros(1, 768)
+            # Query embedding call
+            if self.query_call_count < len(self.recorded_query_embeddings):
+                output = self.recorded_query_embeddings[self.query_call_count]
+                self.query_call_count += 1
+                return output
+            else:
+                # If we run out of recordings, cycle back
+                self.query_call_count = 0
+                return self.recorded_query_embeddings[0] if self.recorded_query_embeddings else torch.zeros(1, 768)
 
 
 class ReplayScoreProcessor:
@@ -173,7 +204,7 @@ class ReplayScoreProcessor:
 
 class CachedColpaliModelResource(ColpaliModelResource):
     """
-    A cached version of ColpaliModelResource that records real model outputs and scores
+    A cached version of ColpaliModelResource that records model outputs and scores
     when use_cache=False and replays them when use_cache=True.
     """
     
@@ -194,25 +225,32 @@ class CachedColpaliModelResource(ColpaliModelResource):
         content = f"{model_name}_{model_type}"
         return hashlib.md5(content.encode()).hexdigest()
     
-    def _load_recordings(self, cache_key: str) -> Tuple[Optional[List[Tensor]], Optional[List[Tensor]]]:
-        """Load recorded model outputs and scores."""
-        model_cache_path = self.cache_dir / f"{cache_key}_model.pkl"
+    def _load_recordings(self, cache_key: str) -> Tuple[Optional[List[Tensor]], Optional[List[Tensor]], Optional[List[Tensor]]]:
+        """Load recorded query embeddings, image embeddings, and scores."""
+        query_cache_path = self.cache_dir / f"{cache_key}_query_embeddings.pkl"
+        image_cache_path = self.cache_dir / f"{cache_key}_image_embeddings.pkl"
         scores_cache_path = self.cache_dir / f"{cache_key}_scores.pkl"
         
-        model_outputs = None
+        query_embeddings = None
+        image_embeddings = None
         recorded_scores = None
         
-        if model_cache_path.exists():
-            with open(model_cache_path, 'rb') as f:
-                model_data = pickle.load(f)
-                model_outputs = model_data.get('model_outputs', [])
+        if query_cache_path.exists():
+            with open(query_cache_path, 'rb') as f:
+                query_data = pickle.load(f)
+                query_embeddings = query_data.get('query_embeddings', [])
+        
+        if image_cache_path.exists():
+            with open(image_cache_path, 'rb') as f:
+                image_data = pickle.load(f)
+                image_embeddings = image_data.get('image_embeddings', [])
         
         if scores_cache_path.exists():
             with open(scores_cache_path, 'rb') as f:
                 scores_data = pickle.load(f)
                 recorded_scores = scores_data.get('scores', [])
         
-        return model_outputs, recorded_scores
+        return query_embeddings, image_embeddings, recorded_scores
     
     def get_model_processor_device(self, config: ColpaliIndexConfig) -> tuple[Any, Any, torch.device]:
         """Get model, processor, and device with recording/replay support."""
@@ -225,11 +263,11 @@ class CachedColpaliModelResource(ColpaliModelResource):
     
     def _get_replay_objects(self, config: ColpaliIndexConfig, cache_key: str) -> tuple[Any, Any, torch.device]:
         """Get replay objects for cached mode."""
-        model_outputs, recorded_scores = self._load_recordings(cache_key)
+        query_embeddings, image_embeddings, recorded_scores = self._load_recordings(cache_key)
         
-        if model_outputs is not None and recorded_scores is not None:
+        if query_embeddings is not None and image_embeddings is not None and recorded_scores is not None:
             print(f"Replaying recorded outputs for {config.model_name}")
-            self._replay_model = ReplayModel(model_outputs)
+            self._replay_model = ReplayModel(query_embeddings, image_embeddings)
             self._replay_processor = ReplayScoreProcessor(recorded_scores)
             device = torch.device('cpu')  # Default for replay
             return self._replay_model, self._replay_processor, device
@@ -248,18 +286,21 @@ class CachedColpaliModelResource(ColpaliModelResource):
         
         return self._recording_model, self._recording_processor, device
     
-    def get_recorded_outputs(self) -> List[Tensor]:
-        """Get the recorded model outputs for testing."""
+    def get_recorded_outputs(self) -> dict:
+        """Get recorded outputs for verification."""
         if self._recording_model:
-            return self._recording_model.recorded_outputs
-        elif self._replay_model:
-            return self._replay_model.recorded_outputs
-        return []
+            return {
+                'query_embeddings': len(self._recording_model.recorded_query_embeddings),
+                'image_embeddings': len(self._recording_model.recorded_image_embeddings),
+                'query_calls': self._recording_model.query_call_count,
+                'image_calls': self._recording_model.image_call_count
+            }
+        return {}
     
-    def get_recorded_scores(self) -> List[Tensor]:
-        """Get the recorded scores for testing."""
+    def get_recorded_scores(self) -> dict:
+        """Get recorded scores for verification."""
         if self._recording_processor:
-            return self._recording_processor.recorded_scores
-        elif self._replay_processor:
-            return self._replay_processor.recorded_scores
-        return [] 
+            return {
+                'scores': len(self._recording_processor.recorded_scores)
+            }
+        return {}
