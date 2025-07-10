@@ -19,7 +19,7 @@ from aidial_rag.app_config import IndexingConfig, RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.documents import load_document_impl
-from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import ColpaliIndexConfig
 from aidial_rag.retrievers_postprocess import get_text_chunks

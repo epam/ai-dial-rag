@@ -7,7 +7,7 @@ from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.document_loaders import load_attachment, parse_document
 from aidial_rag.document_record import FORMAT_VERSION, DocumentRecord, build_chunks_list, IndexSettings
 from aidial_rag.documents import parse_content_type
-from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from tests.utils.colpali_cache import CachedColpaliModelResource
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import ColpaliIndexConfig, ColpaliModelType
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import ColpaliRetriever

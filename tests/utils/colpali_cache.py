@@ -6,7 +6,7 @@ from typing import Any, List, Tuple, Optional
 import torch
 from torch import Tensor
 
-from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import ColpaliIndexConfig
 
 

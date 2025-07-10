@@ -14,7 +14,7 @@ from aidial_rag.document_record import (
 )
 from aidial_rag.image_processor.base64 import pil_image_from_base64
 from aidial_rag.index_record import RetrievalType, to_metadata_doc
-from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
