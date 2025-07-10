@@ -180,11 +180,8 @@ def create_retriever(
             retrievers.append(description_retriever)
             weights.append(1.0)
 
-        if (
-            colpali_index_config is not None
-            and colpali_model_resource is not None
-            and ColpaliRetriever.has_index(document_records)
-        ):
+        if ColpaliRetriever.has_index(document_records):
+            assert colpali_index_config is not None and colpali_model_resource is not None
             colpali_retriever = stage(
                 ColpaliRetriever.from_doc_records(
                     colpali_model_resource,
@@ -245,7 +242,7 @@ class DialRAGApplication(ChatCompletion):
         self.index_storage = IndexStorage(
             self.app_config.dial_url, self.app_config.index_storage
         )
-        self.colpali_model_resource = ColpaliModelResource()
+        self.colpali_model_resource = ColpaliModelResource(app_config.request.indexing.colpali_index)
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)
         logger.info(

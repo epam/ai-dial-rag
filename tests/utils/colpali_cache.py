@@ -208,8 +208,8 @@ class CachedColpaliModelResource(ColpaliModelResource):
     when use_cache=False and replays them when use_cache=True.
     """
     
-    def __init__(self, use_cache: bool = True, cache_dir: str = "tests/cache/test_colpali_retriever"):
-        super().__init__()
+    def __init__(self, colpali_config: ColpaliIndexConfig | None, use_cache: bool = True, cache_dir: str = "tests/cache/test_colpali_retriever"):
+        super().__init__(colpali_config)
         self.use_cache = use_cache
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -252,34 +252,36 @@ class CachedColpaliModelResource(ColpaliModelResource):
         
         return query_embeddings, image_embeddings, recorded_scores
     
-    def get_model_processor_device(self, config: ColpaliIndexConfig) -> tuple[Any, Any, torch.device]:
+    def get_model_processor_device(self) -> tuple[Any, Any, torch.device]:
         """Get model, processor, and device with recording/replay support."""
-        cache_key = self._get_cache_key(config.model_name, str(config.model_type))
+        if self.config is None:
+            raise ValueError("ColpaliIndexConfig is required")
+        cache_key = self._get_cache_key(self.config.model_name, str(self.config.model_type))
         
         if self.use_cache:
-            return self._get_replay_objects(config, cache_key)
+            return self._get_replay_objects(cache_key)
         else:
-            return self._get_recording_objects(config, cache_key)
+            return self._get_recording_objects(cache_key)
     
-    def _get_replay_objects(self, config: ColpaliIndexConfig, cache_key: str) -> tuple[Any, Any, torch.device]:
+    def _get_replay_objects(self, cache_key: str) -> tuple[Any, Any, torch.device]:
         """Get replay objects for cached mode."""
         query_embeddings, image_embeddings, recorded_scores = self._load_recordings(cache_key)
         
         if query_embeddings is not None and image_embeddings is not None and recorded_scores is not None:
-            print(f"Replaying recorded outputs for {config.model_name}")
             self._replay_model = ReplayModel(query_embeddings, image_embeddings)
             self._replay_processor = ReplayScoreProcessor(recorded_scores)
             device = torch.device('cpu')  # Default for replay
             return self._replay_model, self._replay_processor, device
         else:
-            print(f"No recordings found for {config.model_name}, falling back to real model")
-            return super().get_model_processor_device(config)
+            raise ValueError("No recordings found for cache key, update cache")
     
-    def _get_recording_objects(self, config: ColpaliIndexConfig, cache_key: str) -> tuple[Any, Any, torch.device]:
+    def _get_recording_objects(self, cache_key: str) -> tuple[Any, Any, torch.device]:
         """Get recording objects for recording mode."""
-        print(f"Recording real model outputs for {config.model_name}")
-        real_model, real_processor, device = super().get_model_processor_device(config)
-        
+        if self.config is None:
+            raise ValueError("ColpaliIndexConfig is required")
+        real_model, real_processor, device = super().get_model_processor_device()
+        if device is None:
+            raise RuntimeError("ColpaliModelResource did not return a valid device.")
         # Wrap with recording objects
         self._recording_model = RecordingModel(real_model, cache_key, self.cache_dir)
         self._recording_processor = RecordingScoreProcessor(real_processor, cache_key, self.cache_dir)

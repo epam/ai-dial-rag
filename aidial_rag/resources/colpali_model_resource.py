@@ -11,21 +11,19 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 
 
 class ColpaliModelResource:
-    def __init__(self):
+    def __init__(self, config: ColpaliIndexConfig | None):
+        self.lock = threading.Lock()
         self.config: ColpaliIndexConfig | None = None
         self.model = None
         self.device: torch.device | None = None
         self.processor = None
-        # If a second request comes through while the model is loading we don't want to load 2 models by accident
-        self.lock = threading.Lock()
+        if config is not None:
+            self.set_config(config)
 
-    def get_model_processor_device(self, config: ColpaliIndexConfig):
+    def set_config(self, config: ColpaliIndexConfig):
         with self.lock:
             if self.config == config:
-                assert self.model is not None
-                assert self.processor is not None
-                assert self.device is not None
-                return self.model, self.processor, self.device
+                return
             self.config = config
             device = "cpu"
             if torch.mps.is_available():
@@ -63,4 +61,9 @@ class ColpaliModelResource:
             assert self.model is not None
             assert self.processor is not None
             assert self.device is not None
+
+    def get_model_processor_device(self):
+        with self.lock:
+            if self.config is None:
+                raise ValueError("ColpaliIndexConfig is required")
             return self.model, self.processor, self.device

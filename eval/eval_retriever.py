@@ -15,12 +15,13 @@ from langchain.schema.runnable import RunnablePassthrough
 from pydantic import SecretStr
 
 from aidial_rag.app import create_retriever
-from aidial_rag.app_config import IndexingConfig
+from aidial_rag.app_config import IndexingConfig, RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.documents import load_document_impl
 from aidial_rag.resources.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
+from aidial_rag.retrievers.colpali_retriever.colpali_index_config import ColpaliIndexConfig
 from aidial_rag.retrievers_postprocess import get_text_chunks
 from tests.utils.local_http_server import start_local_server
 from tests.utils.user_limits_mock import user_limits_mock
@@ -47,6 +48,7 @@ async def prepare_doc_records(document_link):
     index_config = IndexingConfig(
         multimodal_index=None,
         description_index=None,
+        colpali_index=None,
     )
 
     doc_record = await load_document_impl(
@@ -55,8 +57,8 @@ async def prepare_doc_records(document_link):
         attachment_link=attachment_link,
         io_stream=sys.stderr,
         index_settings=index_config.collect_fields_that_rebuild_index(),
-        colpali_model_resource=ColpaliModelResource(),
-        index_config=index_config,
+        colpali_model_resource=ColpaliModelResource(index_config.colpali_index),
+        config=RequestConfig(indexing=index_config),
     )
     return [doc_record]
 
@@ -67,7 +69,7 @@ def prepare_retriever(doc_records):
         dial_config=DialConfig(dial_url="-", api_key=SecretStr("-")),
         document_records=doc_records,
         multimodal_index_config=None,
-        colpali_model_resource=ColpaliModelResource(),
+        colpali_model_resource=None,
         colpali_index_config=None,
     )
 

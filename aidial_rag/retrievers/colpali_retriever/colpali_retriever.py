@@ -97,9 +97,7 @@ class ColpaliRetriever(BaseRetriever):
         k: int = 1,
     ) -> "ColpaliRetriever":
         model, processor, device = (
-            colpali_model_resouce.get_model_processor_device(
-                colpali_index_config
-            )
+            colpali_model_resouce.get_model_processor_device()
         )
         if document_records is None:
             document_records = []
@@ -147,9 +145,7 @@ class ColpaliRetriever(BaseRetriever):
         stageio,
     ) -> list[Tensor]:
         model, processor, device = (
-            colpali_model_resource.get_model_processor_device(
-                colpali_index_confis
-            )
+            colpali_model_resource.get_model_processor_device()
         )
         image_embeddings_list = []
         counter = 1

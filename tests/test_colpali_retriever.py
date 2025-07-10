@@ -72,7 +72,7 @@ def mock_create_retriever(
 ):
     """Mock create_retriever to return only ColPali retriever with cached model."""
     use_cache = not os.environ.get('REFRESH', '').lower() == 'true'
-    cached_model_resource = CachedColpaliModelResource(use_cache=use_cache)
+    cached_model_resource = CachedColpaliModelResource(colpali_index_config, use_cache=use_cache)
     
     return ColpaliRetriever.from_doc_records(
         cached_model_resource,
@@ -91,7 +91,8 @@ def create_cached_app_config():
             super().__init__(app_config)
             # Replace the real model resource with cached one
             use_cache = not os.environ.get('REFRESH', '').lower() == 'true'
-            self.colpali_model_resource = CachedColpaliModelResource(use_cache=use_cache)
+            colpali_index = app_config.request.indexing.colpali_index
+            self.colpali_model_resource = CachedColpaliModelResource(colpali_index, use_cache=use_cache)
     
     return CachedDialRAGApplication
 
@@ -154,11 +155,12 @@ async def test_colpali_retriever(local_server):
     chunks_list = await build_chunks_list(text_chunks)
 
     # Setup ColPali model and index using Azure config
-    colpali_model_resource = CachedColpaliModelResource(use_cache=use_cache)
     colpali_index_config = ColpaliIndexConfig(
         model_name="vidore/colSmol-256M",
-        model_type=ColpaliModelType.COLIDEFICS
+        model_type=ColpaliModelType.COLIDEFICS,
+        image_size=512
     )
+    colpali_model_resource = CachedColpaliModelResource(colpali_index_config, use_cache=use_cache)
 
     # Build index
     colpali_index = await ColpaliRetriever.build_index(

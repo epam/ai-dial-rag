@@ -97,7 +97,7 @@ async def test_load_document_success(
         request_context,
         attachment_link,
         index_storage,
-        ColpaliModelResource(),
+        ColpaliModelResource(request_context.indexing.colpali_index),
         config=request_config,
     )
     assert isinstance(doc_record, DocumentRecord)
@@ -140,6 +140,6 @@ async def test_load_document_invalid_document(
             request_context,
             attachment_link,
             index_storage,
-            ColpaliModelResource(),
+            ColpaliModelResource(request_config.indexing.colpali_index),
             config=request_config,
         )
