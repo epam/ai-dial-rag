@@ -64,6 +64,6 @@ class ColpaliModelResource:
 
     def get_model_processor_device(self):
         with self.lock:
-            if self.config is None:
+            if self.config is None or self.device is None or self.model is None or self.processor is None:
                 raise ValueError("ColpaliIndexConfig is required")
             return self.model, self.processor, self.device
