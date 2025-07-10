@@ -20,9 +20,40 @@ class StreamWithPrefix:
         self.prefix = prefix
 
     def write(self, content):
-        if content == "\n" or content == "":
-            # avoid prefixing empty lines, like on tqdm.close() calls
+        if not content.strip(" \n"):
+            # Avoid prefixing empty lines, like on tqdm.close() calls
             return
-        message = f"{self.prefix} {content}"
-        logger.info(f"{message}")
-        self.stream.write(f"{message}\n\n")
+        self.stream.write(f"{self.prefix} {content}")
+
+
+class StageStream:
+    def __init__(self, stream: SupportsWriteStr):
+        self.stream = stream
+
+    def write(self, content):
+        # Use double new line for markdown formatting
+        self.stream.write(f"{content}\n\n")
+
+
+class LoggerStream:
+    def __init__(
+        self, logger: logging.Logger = logger, log_level: int = logging.INFO
+    ):
+        self.logger = logger
+        self.log_level = log_level
+
+    def write(self, content):
+        message = content.strip(" \n")
+        if not message:
+            # Avoid logging empty lines
+            return
+        self.logger.log(self.log_level, f"{message}")
+
+
+class MultiStream:
+    def __init__(self, *streams: SupportsWriteStr):
+        self.streams = streams
+
+    def write(self, content):
+        for stream in self.streams:
+            stream.write(content)

@@ -119,7 +119,7 @@ def e2e_test(filenames=(), refresh=None):
             orig_func
         )
 
-        async def wrapper(request, recwarn, *args, **kwargs):
+        async def wrapper(request, recwarn, caplog, *args, **kwargs):
             if request is not None:
                 os.environ["TEST_NAME"] = request.node.name
             attachments = [
@@ -140,6 +140,11 @@ def e2e_test(filenames=(), refresh=None):
             try:
                 await wait_for_server_ready(port=server.config.port)
                 logger.info("Server started successfully.")
+                # If the function has caplog fixture as parameter, we pass it to the function
+                # Pytest gets fixtures from the function signature, not from the function call
+                # TODO: Rewrite e2e_test from decorator to context manager to avoid interference with the fixture system
+                if "caplog" in func.__code__.co_varnames:
+                    args = (caplog,) + args
                 if not attachments:
                     result = await func(*args, **kwargs)
                 else:

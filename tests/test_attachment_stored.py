@@ -9,7 +9,7 @@ from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.documents import load_document
-from aidial_rag.errors import InvalidDocumentError
+from aidial_rag.errors import DocumentProcessingError, InvalidDocumentError
 from aidial_rag.index_storage import IndexStorage
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
@@ -133,10 +133,11 @@ async def test_load_document_invalid_document(
         MagicMock(), 0, 0, name
     )
 
-    with pytest.raises(InvalidDocumentError):
+    with pytest.raises(DocumentProcessingError) as exc_info:
         await load_document(
             request_context,
             attachment_link,
             index_storage,
             config=request_config,
         )
+    assert isinstance(exc_info.value.__cause__, InvalidDocumentError)

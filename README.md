@@ -116,6 +116,12 @@ Ignore errors during document loading. Used for Web RAG for the request with mul
 
 Use profiler to collect performance metrics for the request.
 
+##### `DIAL_RAG__REQUEST__ALLOW_LOG_DOCUMENT_LINKS`
+
+*Optional*, default value: `False`
+
+Allows to write the links of the attached documents to the logs with log level higher than DEBUG.
+
 ##### `DIAL_RAG__REQUEST__DOWNLOAD__TIMEOUT_SECONDS`
 
 *Optional*, default value: `30`

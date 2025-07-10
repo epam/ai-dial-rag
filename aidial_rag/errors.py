@@ -50,6 +50,26 @@ class NotEnoughDailyTokensError(HTTPException):
         super().__init__(message, status_code=400)
 
 
+class DocumentProcessingError(HTTPException):
+    """Represents an error that occurred during the processing of the attached document."""
+
+    def __init__(
+        self,
+        link: str,
+        exception: Exception,
+        allow_log_document_links: bool = False,
+    ):
+        if allow_log_document_links:
+            message = f"Error on processing document {link}: {exception}"
+        else:
+            message = f"Error on processing document: {exception}"
+
+        if isinstance(exception, HTTPException):
+            super().__init__(message, exception.status_code)
+        else:
+            super().__init__(message)
+
+
 @contextmanager
 def log_exceptions(logger: logging.Logger | None = None):
     if logger is None:

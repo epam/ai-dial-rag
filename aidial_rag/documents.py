@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from contextlib import contextmanager
 from email.policy import EmailPolicy
 from typing import Iterable, List
 
@@ -7,7 +8,13 @@ from docarray import DocList
 
 from aidial_rag.app_config import RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
-from aidial_rag.content_stream import StreamWithPrefix, SupportsWriteStr
+from aidial_rag.content_stream import (
+    LoggerStream,
+    MultiStream,
+    StageStream,
+    StreamWithPrefix,
+    SupportsWriteStr,
+)
 from aidial_rag.converter import convert_document_if_needed
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import (
@@ -22,7 +29,11 @@ from aidial_rag.document_record import (
     IndexSettings,
     build_chunks_list,
 )
-from aidial_rag.errors import InvalidDocumentError, convert_and_log_exceptions
+from aidial_rag.errors import (
+    DocumentProcessingError,
+    InvalidDocumentError,
+    convert_and_log_exceptions,
+)
 from aidial_rag.image_processor.extract_pages import is_image
 from aidial_rag.index_storage import IndexStorage
 from aidial_rag.print_stats import print_chunks_stats
@@ -87,10 +98,17 @@ async def load_document_impl(
     dial_config: DialConfig,
     dial_limited_resources: DialLimitedResources,
     attachment_link: AttachmentLink,
-    io_stream: SupportsWriteStr,
+    stage_stream: SupportsWriteStr,
     index_settings: IndexSettings,
     config: RequestConfig,
 ) -> DocumentRecord:
+    logger_stream = LoggerStream()
+    if config.allow_log_document_links:
+        logger_stream = StreamWithPrefix(
+            LoggerStream(), f"<{attachment_link.dial_link}>: "
+        )
+    io_stream = MultiStream(StageStream(stage_stream), logger_stream)
+
     absolute_url = attachment_link.absolute_url
     headers = (
         {"api-key": dial_config.api_key.get_secret_value()}
@@ -192,13 +210,29 @@ async def load_document_impl(
     )
 
 
+@contextmanager
+def handle_document_processing_error(
+    attachment_link: AttachmentLink,
+    allow_log_document_links: bool = False,
+):
+    with convert_and_log_exceptions(logger):
+        try:
+            yield
+        except Exception as e:
+            raise DocumentProcessingError(
+                attachment_link.dial_link, e, allow_log_document_links
+            ) from e
+
+
 async def load_document(
     request_context: RequestContext,
     attachment_link: AttachmentLink,
     index_storage: IndexStorage,
     config: RequestConfig,
 ) -> DocumentRecord:
-    with convert_and_log_exceptions(logger):
+    with handle_document_processing_error(
+        attachment_link, config.allow_log_document_links
+    ):
         index_settings = config.indexing.collect_fields_that_rebuild_index()
 
         choice = request_context.choice

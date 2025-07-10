@@ -76,6 +76,12 @@ class RequestConfig(BaseConfig):
         description="Use profiler to collect performance metrics for the request.",
     )
 
+    allow_log_document_links: bool = Field(
+        default=False,
+        description="Allows to write the links of the attached documents to the logs "
+        "with log level higher than DEBUG.",
+    )
+
     download: HttpClientConfig = Field(
         default=HttpClientConfig(),
         description="Configuration for downloading the attached documents.",
