@@ -187,7 +187,7 @@ def create_retriever(
                     colpali_model_resource,
                     colpali_index_config,
                     document_records,
-                    2,
+                    7,
                 ),
                 "Colpali retriever",
             )

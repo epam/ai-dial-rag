@@ -78,7 +78,7 @@ def mock_create_retriever(
         cached_model_resource,
         colpali_index_config,
         document_records,
-        2,
+        7,
     )
 
 
@@ -149,7 +149,6 @@ async def test_colpali_retriever(local_server):
     Unit test for ColPali retriever that checks if retrieved page number is correct.
     """
     use_cache = not os.environ.get('REFRESH', '').lower() == 'true'
-
     # Load and process document
     text_chunks, buffer, mime_type = await load_document("alps_wiki.pdf")
     chunks_list = await build_chunks_list(text_chunks)
@@ -184,7 +183,7 @@ async def test_colpali_retriever(local_server):
 
     # Create retriever and test
     retriever = ColpaliRetriever.from_doc_records(
-        colpali_model_resource, colpali_index_config, doc_records, k=2
+        colpali_model_resource, colpali_index_config, doc_records, k=7
     )
 
     # Test retrieval

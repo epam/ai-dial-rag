@@ -60,14 +60,8 @@ class ColpaliRetriever(BaseRetriever):
         
         for doc_id, doc_embedding in enumerate(self.document_embeddings):
             image_embedding = torch.from_numpy(doc_embedding.embedding).bfloat16()
-            
             # Score this document's embedding against the query
-            score = torch.squeeze(
-                self.processor.score_multi_vector(
-                    query_embeddings, [image_embedding]
-                )
-            )
-            
+            score = self.processor.score_multi_vector(query_embeddings, [image_embedding]).squeeze().item()
             page_scores.append(score)
             page_indices.append(doc_id)
 
@@ -76,7 +70,7 @@ class ColpaliRetriever(BaseRetriever):
 
         # Sort documents by score (highest first)
         doc_scores = list(zip(page_scores, page_indices))
-        doc_scores.sort(key=lambda x: x[0], reverse=True)
+        doc_scores.sort(key=lambda x: x, reverse=True)
         return doc_scores
 
     def _collect_top_k_chunks(self, doc_scores: List[Tuple[float, int]]) -> List[Document]:
