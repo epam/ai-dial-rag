@@ -60,7 +60,7 @@ def bge_embedding_impl() -> HuggingFaceBgeEmbeddings:
         encode_kwargs={
             "normalize_embeddings": True,
         },
-        show_progress=True,
+        show_progress=False,
     )
     bge_embedding_impl.client.compile()
     return bge_embedding_impl
