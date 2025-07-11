@@ -9,7 +9,7 @@ from typing import Dict
 
 import httpx
 import pytest
-from fastapi import APIRouter, FastAPI, Request, Response
+from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
 from pydantic.dataclasses import dataclass
 
 from tests.utils.cache_response import CacheResponse
@@ -135,6 +135,8 @@ class CacheMiddlewareApp(FastAPI):
                 request_query=path,
                 request_body="",
             )
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
         except Exception as e:
             logger.exception(f"Error processing metadata for {file_name}: {e}")
             raise
