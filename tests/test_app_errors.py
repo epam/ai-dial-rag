@@ -65,7 +65,7 @@ async def test_document_error_with_error_log_enabled(attachments, caplog):
     with patch.dict(
         "os.environ",
         {
-            "DIAL_RAG__REQUEST__ALLOW_LOG_DOCUMENT_LINKS": "true",
+            "DIAL_RAG__REQUEST__LOG_DOCUMENT_LINKS": "true",
         },
     ):
         message = _make_test_request("What is this csv about?", attachments)
@@ -127,7 +127,7 @@ async def test_wrong_filename_with_error_log_enabled(attachments, caplog):
     with patch.dict(
         "os.environ",
         {
-            "DIAL_RAG__REQUEST__ALLOW_LOG_DOCUMENT_LINKS": "true",
+            "DIAL_RAG__REQUEST__LOG_DOCUMENT_LINKS": "true",
         },
     ):
         attachments[0]["url"] = attachments[0]["url"].replace(".csv", ".xls")

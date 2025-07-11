@@ -116,11 +116,15 @@ Ignore errors during document loading. Used for Web RAG for the request with mul
 
 Use profiler to collect performance metrics for the request.
 
-##### `DIAL_RAG__REQUEST__ALLOW_LOG_DOCUMENT_LINKS`
+##### `DIAL_RAG__REQUEST__LOG_DOCUMENT_LINKS`
 
 *Optional*, default value: `False`
 
-Allows to write the links of the attached documents to the logs with log level higher than DEBUG.
+Allows writing the links of the attached documents to the logs with log levels higher than DEBUG.
+
+If enabled, Dial RAG will log the links to the documents for log messages with levels from INFO to CRITICAL where relevant. For example, an ERROR log message with an exception during document processing will contain the link to the document.
+
+If disabled, only log messages with DEBUG level may contain the links to the documents, to avoid logging sensitive information. For example, the links to the documents will not be logged for the ERROR log messages with an exception during document processing.
 
 ##### `DIAL_RAG__REQUEST__DOWNLOAD__TIMEOUT_SECONDS`
 

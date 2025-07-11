@@ -76,10 +76,18 @@ class RequestConfig(BaseConfig):
         description="Use profiler to collect performance metrics for the request.",
     )
 
-    allow_log_document_links: bool = Field(
+    log_document_links: bool = Field(
         default=False,
-        description="Allows to write the links of the attached documents to the logs "
-        "with log level higher than DEBUG.",
+        description="Allows writing the links of the attached documents to the logs "
+        "with log levels higher than DEBUG.\n\n"
+        "If enabled, Dial RAG will log the links to the documents for log messages "
+        "with levels from INFO to CRITICAL where relevant. For example, an ERROR log "
+        "message with an exception during document processing will contain the link "
+        "to the document.\n\n"
+        "If disabled, only log messages with DEBUG level may contain the links to "
+        "the documents, to avoid logging sensitive information. For example, the links "
+        "to the documents will not be logged for the ERROR log messages with an exception "
+        "during document processing.",
     )
 
     download: HttpClientConfig = Field(

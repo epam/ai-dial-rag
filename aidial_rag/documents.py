@@ -10,8 +10,8 @@ from aidial_rag.app_config import RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.content_stream import (
     LoggerStream,
+    MarkdownStream,
     MultiStream,
-    StageStream,
     StreamWithPrefix,
     SupportsWriteStr,
 )
@@ -103,11 +103,11 @@ async def load_document_impl(
     config: RequestConfig,
 ) -> DocumentRecord:
     logger_stream = LoggerStream()
-    if config.allow_log_document_links:
+    if config.log_document_links:
         logger_stream = StreamWithPrefix(
-            LoggerStream(), f"<{attachment_link.dial_link}>: "
+            logger_stream, f"<{attachment_link.dial_link}>: "
         )
-    io_stream = MultiStream(StageStream(stage_stream), logger_stream)
+    io_stream = MultiStream(MarkdownStream(stage_stream), logger_stream)
 
     absolute_url = attachment_link.absolute_url
     headers = (
@@ -213,14 +213,14 @@ async def load_document_impl(
 @contextmanager
 def handle_document_processing_error(
     attachment_link: AttachmentLink,
-    allow_log_document_links: bool = False,
+    log_document_links: bool = False,
 ):
     with convert_and_log_exceptions(logger):
         try:
             yield
         except Exception as e:
             raise DocumentProcessingError(
-                attachment_link.dial_link, e, allow_log_document_links
+                attachment_link.dial_link, e, log_document_links
             ) from e
 
 
@@ -231,7 +231,7 @@ async def load_document(
     config: RequestConfig,
 ) -> DocumentRecord:
     with handle_document_processing_error(
-        attachment_link, config.allow_log_document_links
+        attachment_link, config.log_document_links
     ):
         index_settings = config.indexing.collect_fields_that_rebuild_index()
 

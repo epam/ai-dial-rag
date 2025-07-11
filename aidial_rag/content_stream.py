@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 # _typeshed module is not available at runtime, so we need to use a string literal
@@ -26,7 +26,7 @@ class StreamWithPrefix:
         self.stream.write(f"{self.prefix} {content}")
 
 
-class StageStream:
+class MarkdownStream:
     def __init__(self, stream: SupportsWriteStr):
         self.stream = stream
 
@@ -37,17 +37,14 @@ class StageStream:
 
 class LoggerStream:
     def __init__(
-        self, logger: logging.Logger = logger, log_level: int = logging.INFO
+        self, logger: logging.Logger = _logger, log_level: int = logging.INFO
     ):
         self.logger = logger
         self.log_level = log_level
 
     def write(self, content):
-        message = content.strip(" \n")
-        if not message:
-            # Avoid logging empty lines
-            return
-        self.logger.log(self.log_level, f"{message}")
+        if message := content.strip(" \n"):
+            self.logger.log(self.log_level, f"{message}")
 
 
 class MultiStream:
