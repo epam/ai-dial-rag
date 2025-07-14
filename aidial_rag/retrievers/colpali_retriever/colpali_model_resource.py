@@ -13,12 +13,18 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 class ColpaliModelResource:
     def __init__(self, config: ColpaliIndexConfig | None):
         self.lock = threading.Lock()
+        self.gpu_lock = threading.Lock()
         self.config: ColpaliIndexConfig | None = None
         self.model = None
         self.device: torch.device | None = None
         self.processor = None
         if config is not None:
             self.set_config(config)
+
+
+    def get_gpu_lock(self):
+        """Get the thread lock specifically for GPU operations."""
+        return self.gpu_lock
 
     def set_config(self, config: ColpaliIndexConfig):
         config.validate_consistency()

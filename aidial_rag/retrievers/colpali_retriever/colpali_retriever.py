@@ -49,6 +49,7 @@ class ColpaliRetriever(BaseRetriever):
     processor: Any
     device: torch.device
     k: int
+    model_resource: ColpaliModelResource
 
     def _score_documents(self, query: str) -> List[Tuple[float, int]]:
         """Score all documents against the query and return sorted (score, doc_idx) pairs."""
@@ -146,6 +147,7 @@ class ColpaliRetriever(BaseRetriever):
             processor=processor,
             device=device,
             k=k,
+            model_resource=colpali_model_resouce,
         )
 
     def embed_queries(self, queries: List[str]) -> Tensor:
@@ -153,7 +155,8 @@ class ColpaliRetriever(BaseRetriever):
             raise RuntimeError("Processor is not initialized.")
         batch_queries = self.processor.process_queries(queries).to(self.device)
         with torch.no_grad():
-            query_embeddings = self.model(**batch_queries)
+            with self.model_resource.get_gpu_lock():
+                query_embeddings = self.model(**batch_queries)
         return query_embeddings
 
     @staticmethod
@@ -193,7 +196,8 @@ class ColpaliRetriever(BaseRetriever):
             stageio.write(f"Processing page {counter}/{images.total}\n")
             counter += 1
             with torch.no_grad():
-                image_embeddings = model(**batch_images)
+                with colpali_model_resource.get_gpu_lock():
+                    image_embeddings = model(**batch_images)
             image_embeddings_list.append(image_embeddings)
 
         max_shape = (
