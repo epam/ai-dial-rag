@@ -143,6 +143,36 @@ def run_e2e_test(attachments, question, expected_text):
     return json_response
 
 
+def test_model_name_type_validation():
+    """Test that model name and type validation works correctly."""
+    from aidial_rag.retrievers.colpali_retriever.colpali_index_config import ColpaliIndexConfig, ColpaliModelType
+    
+    # Test valid configuration
+    valid_config = ColpaliIndexConfig(
+        model_name="vidore/colSmol-256M",
+        model_type=ColpaliModelType.COLIDEFICS,
+        image_size=512
+    )
+    assert valid_config.model_name == "vidore/colSmol-256M"
+    assert valid_config.model_type == ColpaliModelType.COLIDEFICS
+    
+    # Test invalid configuration - should raise ValueError
+    with pytest.raises(ValueError, match="Model name 'vidore/colSmol-256M' is known to be of type 'ColIdefics'"):
+        ColpaliIndexConfig(
+            model_name="vidore/colSmol-256M",
+            model_type=ColpaliModelType.COLPALI,  # Wrong type
+            image_size=512
+        )
+    
+    # Test unknown model name - should raise error (current behavior)
+    with pytest.raises(ValueError, match="Model name 'unknown/model' is not known"):
+        ColpaliIndexConfig(
+            model_name="unknown/model",
+            model_type=ColpaliModelType.COLPALI,
+            image_size=512
+        )
+
+
 @pytest.mark.asyncio
 async def test_colpali_retriever(local_server):
     """
@@ -159,6 +189,7 @@ async def test_colpali_retriever(local_server):
         model_type=ColpaliModelType.COLIDEFICS,
         image_size=512
     )
+
     colpali_model_resource = CachedColpaliModelResource(colpali_index_config, use_cache=use_cache)
 
     # Build index

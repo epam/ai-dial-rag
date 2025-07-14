@@ -21,6 +21,8 @@ class ColpaliModelResource:
             self.set_config(config)
 
     def set_config(self, config: ColpaliIndexConfig):
+        config.validate_consistency()
+
         with self.lock:
             if self.config == config:
                 return
@@ -53,6 +55,7 @@ class ColpaliModelResource:
                     processor_class = ColQwen2Processor
                 case _:
                     raise ValueError("Invalid ColPali model type")
+                
             self.model = model_class.from_pretrained(
                 config.model_name, torch_dtype=torch.bfloat16, device_map=device
             ).eval()
