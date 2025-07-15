@@ -1,9 +1,10 @@
 from itertools import groupby
 from operator import itemgetter
-from typing import List
+from typing import Any, Dict, List
 
-from langchain.schema import Document
-from langchain_core.runnables import chain
+from langchain.schema import BaseRetriever, Document
+from langchain.schema.runnable import RunnablePassthrough
+from langchain_core.runnables import Runnable, chain
 
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.image_processor.base64 import pil_image_as_base64
@@ -13,6 +14,7 @@ from aidial_rag.image_processor.extract_pages import (
 )
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.qa_chain_config import ChatChainConfig
+from aidial_rag.retrieval_api import RetrievalResults
 
 
 def collect_pages_with_images(
@@ -96,4 +98,65 @@ async def create_image_by_page(
     return image_by_page
 
 
-# TODO: Implement retrieval chain here
+@chain
+async def create_retrieval_results(
+    input: dict,
+) -> RetrievalResults:
+    """Create retrieval results from the input data."""
+    doc_records: List[DocumentRecord] = input.get("doc_records", [])
+    index_items: List[Document] = input.get("found_items", [])
+    image_by_page: dict = input.get("image_by_page", {})
+
+    images = []
+    used_image_keys = set()
+    chunks = []
+
+    for index_item in index_items:
+        chunk_metadata = ChunkMetadata(**index_item.metadata)
+        doc_id = chunk_metadata["doc_id"]
+        chunk_id = chunk_metadata["chunk_id"]
+        doc_record = doc_records[doc_id]
+        chunk = doc_record.chunks[chunk_id]
+        chunk_data = RetrievalResults.Chunk(
+            doc_id=doc_id,
+            chunk_id=chunk_id,
+            text=chunk.text,
+            source=chunk.metadata["source"],
+            source_display_name=chunk.metadata.get("source_display_name"),
+            page_number=chunk.metadata.get("page_number"),
+        )
+
+        image_key = (
+            doc_id,
+            chunk.metadata.get("page_number"),
+        )
+        if image_key in image_by_page and image_key not in used_image_keys:
+            used_image_keys.add(image_key)
+            image_index = len(images)
+            images.append(
+                RetrievalResults.Image(
+                    data=image_by_page[image_key],
+                )
+            )
+            chunk_data.page_image = image_index
+
+        chunks.append(chunk_data)
+
+    return RetrievalResults(
+        chunks=chunks,
+        images=images,
+    )
+
+
+async def create_retrieval_chain(
+    query_chain: Runnable[Dict[str, Any], str],
+    retriever: BaseRetriever,
+) -> Runnable[Dict[str, Any], Dict]:
+    retrieval_chain = (
+        RunnablePassthrough()
+        .assign(query=query_chain)
+        .assign(found_items=(itemgetter("query") | retriever))
+        .assign(image_by_page=create_image_by_page)
+        .assign(retrieval_results=create_retrieval_results)
+    )
+    return retrieval_chain

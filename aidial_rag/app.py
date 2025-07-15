@@ -29,12 +29,14 @@ from aidial_rag.documents import load_documents
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.index_storage import IndexStorage
 from aidial_rag.qa_chain import generate_answer
+from aidial_rag.query_chain import create_get_query_chain
 from aidial_rag.repository_digest import (
     RepositoryDigest,
     read_repository_digest,
 )
 from aidial_rag.request_context import create_request_context
 from aidial_rag.resources.cpu_pools import init_cpu_pools
+from aidial_rag.retrieval_chain import create_retrieval_chain
 from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
 from aidial_rag.retrievers.description_retriever.description_retriever import (
@@ -46,6 +48,7 @@ from aidial_rag.retrievers.multimodal_retriever import (
 )
 from aidial_rag.retrievers.semantic_retriever import SemanticRetriever
 from aidial_rag.stages import RetrieverStage
+from aidial_rag.transform_history import transform_history
 from aidial_rag.utils import profiler_if_enabled, timed_stage
 
 APP_NAME = "dial-rag"
@@ -208,6 +211,26 @@ def get_configuration(request: Request) -> dict:
     return custom_configuration_dict
 
 
+async def _run_rag(
+    request_context, choice, request_config, retrieval_chain, chain_input
+):
+    reference_items = await generate_answer(
+        request_context=request_context,
+        request_config=request_config,
+        retrieval_chain=retrieval_chain,
+        chain_input=chain_input,
+        content_callback=choice.append_content,
+    )
+
+    document_records = chain_input["doc_records"]
+    # Answer has already been streamed to the user, so we don't need to do anything here.
+    for i, reference_item in enumerate(reference_items):
+        if attachment := doc_to_attach(
+            reference_item, document_records, index=(i + 1)
+        ):
+            choice.add_attachment(**attachment)
+
+
 class DialRAGApplication(ChatCompletion):
     app_config: AppConfig
     index_storage: IndexStorage
@@ -310,16 +333,6 @@ class DialRAGApplication(ChatCompletion):
                 )
                 return
 
-            with timed_stage(choice, "Prepare indexes for search"):
-                retriever = await loop.run_in_executor(
-                    None,
-                    create_retriever,
-                    request_context.choice,
-                    request_context.dial_config,
-                    document_records,
-                    request_config.indexing.multimodal_index,
-                )
-
             last_message_content = messages[-1].content
             if last_message_content is None:
                 return
@@ -331,22 +344,40 @@ class DialRAGApplication(ChatCompletion):
             if not last_message_content.strip():
                 return
 
-            with profiler_if_enabled(choice, request_config.use_profiler):
-                reference_items = await generate_answer(
-                    request_context=request_context,
-                    qa_chain_config=request_config.qa_chain,
-                    retriever=retriever,
-                    messages=messages,
-                    content_callback=choice.append_content,
-                    document_records=document_records,
+            with timed_stage(choice, "Prepare indexes for search"):
+                # TODO: Move create_retriever to create_retrieval_chain
+                retriever = await loop.run_in_executor(
+                    None,
+                    create_retriever,
+                    request_context.choice,
+                    request_context.dial_config,
+                    document_records,
+                    request_config.indexing.multimodal_index,
                 )
 
-            # Answer has already been streamed to the user, so we don't need to do anything here.
-            for i, reference_item in enumerate(reference_items):
-                if attachment := doc_to_attach(
-                    reference_item, document_records, index=(i + 1)
-                ):
-                    choice.add_attachment(**attachment)
+                query_chain = create_get_query_chain(
+                    request_context, request_config.qa_chain.query_chain
+                )
+
+                retrieval_chain = await create_retrieval_chain(
+                    query_chain=query_chain,
+                    retriever=retriever,
+                )
+
+            with profiler_if_enabled(choice, request_config.use_profiler):
+                chain_input = {
+                    "chat_history": transform_history(messages),
+                    "chat_chain_config": request_config.qa_chain.chat_chain,
+                    "doc_records": document_records,
+                }
+
+                await _run_rag(
+                    request_context,
+                    choice,
+                    request_config,
+                    retrieval_chain,
+                    chain_input,
+                )
 
     async def configuration(self, request):
         return RequestConfig.model_json_schema()

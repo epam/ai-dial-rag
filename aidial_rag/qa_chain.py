@@ -1,32 +1,27 @@
 import logging
 import re
-from operator import itemgetter
-from typing import AsyncIterator, Callable, Dict, List, cast
+from typing import Any, AsyncIterator, Callable, Dict, List, cast
 
-from aidial_sdk.chat_completion import Message
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     MessagesPlaceholder,
     SystemMessagePromptTemplate,
 )
-from langchain.schema import BaseRetriever, Document
+from langchain.schema import Document
 from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
 from langchain_core.messages import (
     HumanMessage,
     merge_content,
 )
-from langchain_core.runnables import chain
+from langchain_core.runnables import Runnable, chain
 
+from aidial_rag.app_config import RequestConfig
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.index_record import ChunkMetadata
 from aidial_rag.llm import create_llm
-from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
-from aidial_rag.query_chain import create_get_query_chain
+from aidial_rag.qa_chain_config import ChatChainConfig
 from aidial_rag.request_context import RequestContext
-from aidial_rag.retrieval_chain import create_image_by_page
-from aidial_rag.transform_history import transform_history
 
 logger = logging.getLogger(__name__)
 
@@ -210,35 +205,19 @@ async def get_reference_documents(chain_input, chain) -> AsyncIterator:  # noqa:
 
 async def generate_answer(
     request_context: RequestContext,
-    qa_chain_config: QAChainConfig,
-    retriever: BaseRetriever,
-    messages: List[Message],
+    request_config: RequestConfig,
+    retrieval_chain: Runnable[Dict[str, Any], Dict],
+    chain_input: Dict[str, Any],
     content_callback: Callable[[str], None],
-    document_records: List[DocumentRecord],
 ) -> List[Document]:
+    qa_chain_config = request_config.qa_chain
+
     llm = create_llm(
         request_context.dial_config, qa_chain_config.chat_chain.llm
     )
-
-    get_query_chain = create_get_query_chain(
-        request_context, qa_chain_config.query_chain
-    )
-
-    qa_chain = (
-        RunnablePassthrough()
-        .assign(query=get_query_chain)
-        .assign(found_items=(itemgetter("query") | retriever))
-        .assign(image_by_page=create_image_by_page)
-        .assign(answer=(create_chat_prompt | llm | StrOutputParser()))
+    qa_chain = retrieval_chain.assign(
+        answer=create_chat_prompt | llm | StrOutputParser()
     ).pick(["found_items", "answer"])
-
-    chain_input = {
-        # We may have empty messages after command processing
-        # Some models (like claude) do not support empty messages
-        "chat_history": transform_history(messages),
-        "chat_chain_config": qa_chain_config.chat_chain,
-        "doc_records": document_records,
-    }
 
     reference_items = []
     async for r in get_reference_documents(chain_input, qa_chain):

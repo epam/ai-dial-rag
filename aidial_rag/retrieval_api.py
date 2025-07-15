@@ -1,0 +1,63 @@
+from typing import ClassVar, List
+
+from pydantic import BaseModel, Field
+
+
+class RetrievalResults(BaseModel):
+    """Results of the Dial RAG retrieval process."""
+
+    CONTENT_TYPE: ClassVar[str] = (
+        "application/vnd.aidial.rag.retrieval-results+json"
+    )
+
+    class Chunk(BaseModel):
+        """Chunk of the document retrieved by the retriever."""
+
+        doc_id: int = Field(
+            description="Index of the attached document in the request, starting from 0."
+        )
+        chunk_id: int = Field(
+            description="Index of the chunk in the document, starting from 0."
+        )
+        source: str = Field(
+            description="URL to the document attachment (relative URL to the Dial storage, or full url for an external document), could have an url fragments like #page=3."
+        )
+        source_display_name: str | None = Field(
+            default=None,
+            description="Human-readable name of the document (the same that Dial RAG displays in the stages).",
+        )
+        text: str | None = Field(
+            default=None,
+            description="Text of the chunk, may be empty, for example, for an image.",
+        )
+        page_number: int | None = Field(
+            default=None,
+            description="The number of the page in the document, the chunk belongs to, if applicable. "
+            "Starting from 1, i.e. the same as in the page fragment of the URL.",
+        )
+        page_image: int | None = Field(
+            default=None,
+            description="Index of the image of the document page, the chunk belongs to, in the `images` list."
+            "Starting from 0. If the chunk is an image, this field is set to the index of the image in the `images` list.",
+        )
+
+    class Image(BaseModel):
+        """Image related to the retrieved chunk."""
+
+        data: str = Field(
+            description="Base64 encoded image data in image/png format."
+        )
+        mime_type: str = Field(
+            default="image/png",
+            description="MIME type of the image. Only image/png is supported for now.",
+        )
+
+    chunks: List[Chunk] = Field(
+        default_factory=list,
+        description="List of chunks found by retriever in the order of their relevance.",
+    )
+
+    images: List[Image] = Field(
+        default_factory=list,
+        description="List of images related to the chunks.",
+    )
