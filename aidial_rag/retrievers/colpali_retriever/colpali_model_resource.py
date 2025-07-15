@@ -1,5 +1,3 @@
-# pyright: reportMissingImports=false
-
 import threading
 
 import torch
@@ -64,8 +62,7 @@ class ColpaliModelResource:
             self.model = model_class.from_pretrained(
                 config.model_name, torch_dtype=torch.float16, device_map=device
             ).eval()
-            self.processor = processor_class.from_pretrained(config.model_name)  # pyright: ignore
-
+            self.processor = processor_class.from_pretrained(config.model_name)
             assert self.model is not None
             assert self.processor is not None
             assert self.device is not None
