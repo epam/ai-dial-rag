@@ -15,26 +15,19 @@ from langchain.schema import BaseRetriever, Document
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain_core.messages import (
-    AIMessage,
-    BaseMessage,
     HumanMessage,
     merge_content,
 )
 from langchain_core.runnables import chain
-from pydantic import Field
 
-from aidial_rag.aidial_to_langchain import to_langchain_messages
-from aidial_rag.base_config import BaseConfig
 from aidial_rag.document_record import DocumentRecord
-from aidial_rag.image_processor.base64 import pil_image_as_base64
-from aidial_rag.image_processor.extract_pages import (
-    are_image_pages_supported,
-    extract_pages_gen,
-)
-from aidial_rag.index_record import ChunkMetadata, RetrievalType
-from aidial_rag.llm import LlmConfig, create_llm
-from aidial_rag.query_chain import QueryChainConfig, create_get_query_chain
+from aidial_rag.index_record import ChunkMetadata
+from aidial_rag.llm import create_llm
+from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
+from aidial_rag.query_chain import create_get_query_chain
 from aidial_rag.request_context import RequestContext
+from aidial_rag.retrieval_chain import create_image_by_page
+from aidial_rag.transform_history import transform_history
 
 logger = logging.getLogger(__name__)
 
@@ -62,62 +55,7 @@ SINGLE_QUERY_TEMPLATE = HumanMessagePromptTemplate.from_template("{query}")
 
 REF_PATTERN = re.compile(r"<\[(\d+)\]>")
 
-REF_HISTORY_PATTERN = re.compile(r"\[(\d+)\]")
-
 INCLUDED_ATTRIBUTES = ["source", "page_number", "title"]
-
-
-class ChatChainConfig(BaseConfig):
-    llm: LlmConfig = Field(
-        default=LlmConfig(),
-        description=(
-            "Configuration for the LLM used in the chat chain. "
-            "The model should support vision if `num_page_images_to_use` is greater than 0."
-        ),
-    )
-    system_prompt_template_override: str | None = Field(
-        default=None,
-        description="Allow to override the system prompt template.",
-    )
-    use_history: bool = Field(
-        default=True,
-        description=(
-            "Used to set whether to use the history for the answer generation. "
-            "If true, the previous messages from the chat history would be passes to the model. "
-            "If false, only the query (last user message or standalone question, depending on the "
-            "`query_chain` settings) will be passed to the model for the answer generation."
-        ),
-    )
-    num_page_images_to_use: int = Field(
-        default=4,
-        description=(
-            "Sets number of page images to pass to the model for the answer generation. "
-            "If is greater that 0, the model in `llm.deployment_name` should accept images "
-            "in the user messages. Could be set to 0 (together with USE_MULTIMODAL_INDEX=False "
-            "and USE_DESCRIPTION_INDEX=False) for text-only RAG."
-        ),
-    )
-    page_image_size: int = Field(
-        default=1536,
-        description="Sets the size of the page images to pass to the model for the answer generation.",
-    )
-
-
-class QAChainConfig(BaseConfig):
-    chat_chain: ChatChainConfig = Field(
-        default=ChatChainConfig(),
-        description=(
-            "Configuration for the chat chain which generates the answer for the user question "
-            "based on the retrieved context."
-        ),
-    )
-    query_chain: QueryChainConfig = Field(
-        default=QueryChainConfig(),
-        description=(
-            "Configuration for the query chain which reformulates the user question to standalone "
-            "question for the retrieval based on the chat history."
-        ),
-    )
 
 
 def format_attributes(i, metadata: dict) -> str:
@@ -136,66 +74,6 @@ def image_element(image: str) -> dict:
         "type": "image_url",
         "image_url": {"url": f"data:image/png;base64,{image}"},
     }
-
-
-def collect_pages_with_images(
-    doc_records: List[DocumentRecord], chunks_metadatas
-):
-    # RetrievalType.IMAGE has higher priority
-    for chunk_metadata in chunks_metadatas:
-        doc_record = doc_records[chunk_metadata["doc_id"]]
-        if not are_image_pages_supported(doc_record.mime_type):
-            continue
-        chunk = doc_record.chunks[chunk_metadata["chunk_id"]]
-        if (
-            chunk_metadata["retrieval_type"] == RetrievalType.IMAGE
-            and "page_number" in chunk.metadata
-        ):
-            yield (chunk_metadata["doc_id"], chunk.metadata["page_number"])
-
-    for chunk_metadata in chunks_metadatas:
-        doc_record = doc_records[chunk_metadata["doc_id"]]
-        if not are_image_pages_supported(doc_record.mime_type):
-            continue
-        chunk = doc_record.chunks[chunk_metadata["chunk_id"]]
-        if (
-            chunk_metadata["retrieval_type"] != RetrievalType.IMAGE
-            and "page_number" in chunk.metadata
-        ):
-            yield (chunk_metadata["doc_id"], chunk.metadata["page_number"])
-
-
-async def make_image_by_page(
-    doc_records: List[DocumentRecord],
-    chunks_metadatas,
-    num_pages_to_use: int,
-    page_image_size: int,
-) -> dict:
-    required_pages = set()
-    for doc_id, page_number in collect_pages_with_images(
-        doc_records, chunks_metadatas
-    ):
-        if len(required_pages) >= num_pages_to_use:
-            break
-        required_pages.add((doc_id, page_number))
-
-    image_by_page = {}
-    for doc_id, pages_iter in groupby(sorted(required_pages), itemgetter(0)):
-        page_numbers = [page_number for _, page_number in pages_iter]
-        doc_record = doc_records[doc_id]
-        page_images_gen = extract_pages_gen(
-            doc_record.mime_type,
-            doc_record.document_bytes,
-            page_numbers,
-            scaled_size=page_image_size,
-        )
-        page_numbers_it = iter(page_numbers)
-        async for page_image in page_images_gen:
-            image_by_page[doc_id, next(page_numbers_it)] = pil_image_as_base64(
-                page_image, format="PNG"
-            )
-
-    return image_by_page
 
 
 def create_docs_message(
@@ -240,16 +118,11 @@ async def create_chat_prompt(input: dict):
 
     doc_records: List[DocumentRecord] = input.get("doc_records", [])
     index_items: List[Document] = input.get("found_items", [])
+    image_by_page: Dict[tuple, str] = input.get("image_by_page", {})
+
     chunks_metadatas = [
         ChunkMetadata(**index_item.metadata) for index_item in index_items
     ]
-
-    image_by_page = await make_image_by_page(
-        doc_records,
-        chunks_metadatas,
-        config.num_page_images_to_use,
-        config.page_image_size,
-    )
 
     docs_message = create_docs_message(
         doc_records, chunks_metadatas, image_by_page
@@ -279,25 +152,6 @@ async def create_chat_prompt(input: dict):
 
     prompt_messages[-1] = HumanMessage(content=merged_content)
     return prompt_messages
-
-
-def transform_history_message(message: BaseMessage) -> BaseMessage:
-    if isinstance(message, AIMessage) and message.content:
-        # Restore the references to <[num]> in the assistant messages, because
-        # the model may be confused if the format is different from the prompt
-        return AIMessage(
-            content=REF_HISTORY_PATTERN.sub(r"<[\1]>", str(message.content))
-        )
-
-    return message
-
-
-def transform_history(messages: List[Message]) -> List[BaseMessage]:
-    return [
-        transform_history_message(message)
-        for message in to_langchain_messages(messages)
-        if message.content
-    ]
 
 
 # TODO: Rewrite this function to be a chain and be able to work with pipe operator
@@ -375,6 +229,7 @@ async def generate_answer(
         RunnablePassthrough()
         .assign(query=get_query_chain)
         .assign(found_items=(itemgetter("query") | retriever))
+        .assign(image_by_page=create_image_by_page)
         .assign(answer=(create_chat_prompt | llm | StrOutputParser()))
     ).pick(["found_items", "answer"])
 

@@ -8,55 +8,14 @@ from pydantic_settings import (
 )
 from pydantic_settings.sources import PathType, YamlConfigSettingsSource
 
-from aidial_rag.base_config import (
-    BaseConfig,
-    IndexRebuildTrigger,
-    collect_fields_with_trigger,
-)
-from aidial_rag.document_loaders import (
-    HttpClientConfig,
-    ParserConfig,
-)
-from aidial_rag.document_record import IndexSettings
+from aidial_rag.base_config import BaseConfig
+from aidial_rag.document_loaders import HttpClientConfig
 from aidial_rag.index_storage import IndexStorageConfig
+from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.llm import LlmConfig
-from aidial_rag.qa_chain import ChatChainConfig, QAChainConfig
+from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
 from aidial_rag.query_chain import QueryChainConfig
 from aidial_rag.resources.cpu_pools import CpuPoolsConfig
-from aidial_rag.retrievers.description_retriever.description_retriever import (
-    DescriptionIndexConfig,
-)
-from aidial_rag.retrievers.multimodal_retriever import MultimodalIndexConfig
-
-
-class IndexingConfig(BaseConfig):
-    """Configuration for the document indexing."""
-
-    # pyright does not understand default values for Annotated fields
-    parser: ParserConfig = Field(default=ParserConfig())  # type: ignore
-
-    multimodal_index: MultimodalIndexConfig | None = Field(
-        default=None,
-        description="Enables MultimodalRetriever which uses multimodal embedding models for pages "
-        "images search.",
-    )
-    description_index: DescriptionIndexConfig | None = Field(
-        default=DescriptionIndexConfig(),
-        description="Enables DescriptionRetriever which uses vision model to generate page images "
-        "descriptions and perform search on them.",
-    )
-
-    def collect_fields_that_rebuild_index(self) -> IndexSettings:
-        """Return the IndexingConfig fields that determine when the index needs to be rebuilt."""
-        indexes = {}
-        for name, _field_info in self.__class__.model_fields.items():
-            index_config = getattr(self, name)
-            if index_config is not None:
-                indexes[name] = collect_fields_with_trigger(
-                    index_config, IndexRebuildTrigger
-                )
-
-        return IndexSettings(indexes=indexes)
 
 
 class RequestConfig(BaseConfig):
@@ -118,9 +77,6 @@ class RequestConfig(BaseConfig):
             ),
         ),
     )
-
-
-# TODO: Add support for legacy env variables names
 
 
 class AppConfig(BaseSettings):
