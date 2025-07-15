@@ -29,10 +29,12 @@ from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
     ColpaliRetriever,
 )
-from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionRetriever,
 )
@@ -285,9 +287,9 @@ async def load_documents(
             load_document(
                 request_context,
                 attachment_link,
-                index_storage, 
+                index_storage,
                 colpali_model_resource,
-                config
+                config,
             )
             for attachment_link in attachment_links
         ],

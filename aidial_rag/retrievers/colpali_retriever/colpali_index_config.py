@@ -62,9 +62,11 @@ class ColpaliIndexConfig(BaseModel):
                     f"but '{self.model_type}' was specified. Please use the correct model type."
                 )
         else:
-            raise ValueError(f"Model name '{self.model_name}' is not known. Please use one of the following: {list(KNOWN_MODELS.keys())}")
+            raise ValueError(
+                f"Model name '{self.model_name}' is not known. Please use one of the following: {list(KNOWN_MODELS.keys())}"
+            )
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_model_consistency(self):
         """Validate that model name and type are consistent."""
         self.validate_consistency()

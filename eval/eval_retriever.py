@@ -8,7 +8,6 @@ from operator import itemgetter
 #  https://github.com/onnx/onnx/issues/6267
 # The onnx module should be imported before any unstructured_inference and pandas imports to avoid the issue
 import onnx  # noqa: F401
-
 import pandas as pd
 from aidial_rag_eval.evaluate import evaluate
 from langchain.schema.runnable import RunnablePassthrough
@@ -19,9 +18,10 @@ from aidial_rag.app_config import IndexingConfig, RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.documents import load_document_impl
-from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
-from aidial_rag.retrievers.colpali_retriever.colpali_index_config import ColpaliIndexConfig
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
 from aidial_rag.retrievers_postprocess import get_text_chunks
 from tests.utils.local_http_server import start_local_server
 from tests.utils.user_limits_mock import user_limits_mock

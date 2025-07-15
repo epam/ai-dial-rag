@@ -40,10 +40,12 @@ from aidial_rag.retrievers.bm25_retriever import BM25Retriever
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
     ColpaliRetriever,
 )
-from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionRetriever,
 )
@@ -181,7 +183,10 @@ def create_retriever(
             weights.append(1.0)
 
         if ColpaliRetriever.has_index(document_records):
-            assert colpali_index_config is not None and colpali_model_resource is not None
+            assert (
+                colpali_index_config is not None
+                and colpali_model_resource is not None
+            )
             colpali_retriever = stage(
                 ColpaliRetriever.from_doc_records(
                     colpali_model_resource,
@@ -242,7 +247,9 @@ class DialRAGApplication(ChatCompletion):
         self.index_storage = IndexStorage(
             self.app_config.dial_url, self.app_config.index_storage
         )
-        self.colpali_model_resource = ColpaliModelResource(app_config.request.indexing.colpali_index)
+        self.colpali_model_resource = ColpaliModelResource(
+            app_config.request.indexing.colpali_index
+        )
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)
         logger.info(

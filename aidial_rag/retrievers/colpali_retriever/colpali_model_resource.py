@@ -21,7 +21,6 @@ class ColpaliModelResource:
         if config is not None:
             self.set_config(config)
 
-
     def get_gpu_lock(self):
         """Get the thread lock specifically for GPU operations."""
         return self.gpu_lock
@@ -61,7 +60,7 @@ class ColpaliModelResource:
                     processor_class = ColQwen2Processor
                 case _:
                     raise ValueError("Invalid ColPali model type")
-                
+
             self.model = model_class.from_pretrained(
                 config.model_name, torch_dtype=torch.float16, device_map=device
             ).eval()
@@ -73,6 +72,11 @@ class ColpaliModelResource:
 
     def get_model_processor_device(self):
         with self.lock:
-            if self.config is None or self.device is None or self.model is None or self.processor is None:
+            if (
+                self.config is None
+                or self.device is None
+                or self.model is None
+                or self.processor is None
+            ):
                 raise ValueError("ColpaliIndexConfig is required")
             return self.model, self.processor, self.device
