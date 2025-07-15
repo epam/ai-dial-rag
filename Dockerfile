@@ -115,7 +115,6 @@ ENV UNSTRUCTURED_XY_CUT_BBOX_SHRINK_FACTOR=1.0
 ENV DIAL_RAG__CONFIG_PATH=/config/azure_description.yaml
 ENV DIAL_RAG__INDEX_STORAGE__USE_DIAL_FILE_STORAGE=False
 ENV ENABLE_DEBUG_COMMANDS=False
-ENV USE_COLPALI_INDEX=True
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 EXPOSE 5000

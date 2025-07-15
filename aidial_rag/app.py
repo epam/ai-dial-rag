@@ -34,7 +34,6 @@ from aidial_rag.repository_digest import (
     read_repository_digest,
 )
 from aidial_rag.request_context import create_request_context
-from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.cpu_pools import init_cpu_pools
 from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
@@ -44,6 +43,7 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
     ColpaliRetriever,
 )
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionRetriever,
 )
