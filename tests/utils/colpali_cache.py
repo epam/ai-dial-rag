@@ -153,38 +153,40 @@ class ReplayModel:
     ):
         self.recorded_query_embeddings = recorded_query_embeddings
         self.recorded_image_embeddings = recorded_image_embeddings
+        if (
+            len(recorded_query_embeddings) == 0
+            and len(recorded_image_embeddings) == 0
+        ):
+            raise Exception(
+                "query and image embeddings should not be both empty"
+            )
         self.query_call_count = 0
         self.image_call_count = 0
 
     def __call__(self, **kwargs):
-        if "pixel_values" in kwargs:
-            # Image embedding call
-            if self.image_call_count < len(self.recorded_image_embeddings):
-                output = self.recorded_image_embeddings[self.image_call_count]
-                self.image_call_count += 1
-                return output
-            else:
-                # If we run out of recordings, cycle back
+        is_image_call = "pixel_values" in kwargs
+        call_count = (
+            self.image_call_count if is_image_call else self.query_call_count
+        )
+        recorded_embeddings = (
+            self.recorded_image_embeddings
+            if is_image_call
+            else self.recorded_query_embeddings
+        )
+
+        output = recorded_embeddings[call_count]
+
+        # Update counter and reset if needed
+        if is_image_call:
+            self.image_call_count += 1
+            if self.image_call_count >= len(recorded_embeddings):
                 self.image_call_count = 0
-                return (
-                    self.recorded_image_embeddings[0]
-                    if self.recorded_image_embeddings
-                    else torch.zeros(1, 768)
-                )
         else:
-            # Query embedding call
-            if self.query_call_count < len(self.recorded_query_embeddings):
-                output = self.recorded_query_embeddings[self.query_call_count]
-                self.query_call_count += 1
-                return output
-            else:
-                # If we run out of recordings, cycle back
+            self.query_call_count += 1
+            if self.query_call_count >= len(recorded_embeddings):
                 self.query_call_count = 0
-                return (
-                    self.recorded_query_embeddings[0]
-                    if self.recorded_query_embeddings
-                    else torch.zeros(1, 768)
-                )
+
+        return output
 
 
 class ReplayScoreProcessor:
@@ -192,6 +194,8 @@ class ReplayScoreProcessor:
 
     def __init__(self, recorded_scores: List[Tensor]):
         self.recorded_scores = recorded_scores
+        if len(recorded_scores) == 0:
+            raise Exception("recorded_scores should not be empty")
         self.score_count = 0
 
     def process_queries(self, queries: List[str]):
@@ -214,18 +218,11 @@ class ReplayScoreProcessor:
 
     def _get_next_score(self) -> Tensor:
         """Get the next recorded score, cycling back if needed."""
-        if self.score_count < len(self.recorded_scores):
-            output = self.recorded_scores[self.score_count]
-            self.score_count += 1
-            return output
-        else:
-            # If we run out of recordings, cycle back
+        output = self.recorded_scores[self.score_count]
+        self.score_count += 1
+        if self.score_count >= len(self.recorded_scores):
             self.score_count = 0
-            return (
-                self.recorded_scores[0]
-                if self.recorded_scores
-                else torch.rand(1, 1)
-            )
+        return output
 
 
 class CachedColpaliModelResource(ColpaliModelResource):
