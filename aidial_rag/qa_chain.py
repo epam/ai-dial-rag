@@ -1,6 +1,5 @@
 import logging
 import re
-from itertools import groupby
 from operator import itemgetter
 from typing import AsyncIterator, Callable, Dict, List, cast
 
