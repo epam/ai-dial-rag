@@ -17,6 +17,7 @@ from aidial_rag.document_record import (
 )
 from aidial_rag.image_processor.base64 import pil_image_from_base64
 from aidial_rag.index_record import RetrievalType, to_metadata_doc
+from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import ColpaliModelResource
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
@@ -27,12 +28,13 @@ from aidial_rag.retrievers.embeddings_index import (
 )
 from aidial_rag.retrievers.page_image_retriever_utils import extract_page_images
 from aidial_rag.utils import timed_block
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 
 class DocumentPageEmbedding:
-    """Simple structure to hold document page embedding and chunk IDs."""
+    """Structure to hold document page embedding and chunk IDs."""
     embedding: np.ndarray
     chunk_ids: List[int]
     doc_idx: int
@@ -51,17 +53,15 @@ class ColpaliRetriever(BaseRetriever):
     k: int
     model_resource: ColpaliModelResource
 
-    def _score_documents(self, query: str) -> List[Tuple[float, int]]:
-        """Score all documents against the query and return sorted (score, doc_idx) pairs."""
-        query_embeddings = self.embed_queries([query]).bfloat16()
+    def _score_documents_with_embeddings(self, query_embeddings: Tensor) -> List[Tuple[float, int]]:
+        """Score all documents against the query embeddings and return sorted (score, doc_idx) pairs."""
+        query_embeddings = query_embeddings.bfloat16()
 
-        # Score each document/page embedding against the query
         page_scores = []
         page_indices = []
         
         for doc_id, doc_embedding in enumerate(self.document_embeddings):
             image_embedding = torch.from_numpy(doc_embedding.embedding).bfloat16()
-            # Score this document's embedding against the query
             score = self.processor.score_multi_vector(query_embeddings, [image_embedding]).squeeze().item()
             page_scores.append(score)
             page_indices.append(doc_id)
@@ -69,10 +69,19 @@ class ColpaliRetriever(BaseRetriever):
         if not page_scores:
             return []
 
-        # Sort documents by score (highest first)
         doc_scores = list(zip(page_scores, page_indices))
         doc_scores.sort(key=lambda x: x, reverse=True)
         return doc_scores
+
+    def _score_documents(self, query: str) -> List[Tuple[float, int]]:
+        """Score all documents against the query and return sorted (score, doc_idx) pairs."""
+        query_embeddings = self.embed_queries([query])
+        return self._score_documents_with_embeddings(query_embeddings)
+
+    async def _ascore_documents(self, query: str) -> List[Tuple[float, int]]:
+        """Async version of _score_documents"""
+        query_embeddings = await self.aembed_queries([query])
+        return self._score_documents_with_embeddings(query_embeddings)
 
     def _collect_top_k_chunks(self, doc_scores: List[Tuple[float, int]]) -> List[Document]:
         """Collect top k chunks from sorted document scores."""
@@ -104,7 +113,8 @@ class ColpaliRetriever(BaseRetriever):
     async def _aget_relevant_documents(
         self, query: str, *args, **kwargs
     ) -> List[Document]:
-        return self._get_relevant_documents(query, *args, **kwargs)
+        doc_scores = await self._ascore_documents(query)
+        return self._collect_top_k_chunks(doc_scores)
 
     @classmethod
     def from_doc_records(
@@ -129,7 +139,7 @@ class ColpaliRetriever(BaseRetriever):
                     page_num = chunk.metadata['page_number'] - 1 # page_number is 1-indexed
                     chunks_per_page[page_num].append(chunk_idx)
                 
-                # Each page of the document has one set of embeddings
+                # Each page of the document has one list of embeddings that represent the page
                 for page_idx, page_embedding in enumerate(doc.colpali_embeddings_index):
                     chunks_in_page = chunks_per_page.get(page_idx, [])
                     
@@ -158,6 +168,10 @@ class ColpaliRetriever(BaseRetriever):
             with self.model_resource.get_gpu_lock():
                 query_embeddings = self.model(**batch_queries)
         return query_embeddings
+
+    async def aembed_queries(self, queries: List[str]) -> Tensor:
+        """Async version of embed_queries that runs in CPU pool."""
+        return await run_in_indexing_cpu_pool(self.embed_queries, queries)
 
     @staticmethod
     def pad_embeddings(tensor: Tensor, target_shape: Tuple) -> Tensor:
@@ -188,17 +202,23 @@ class ColpaliRetriever(BaseRetriever):
         if model is None:
             raise RuntimeError("ColpaliModelResource did not return a valid model.")
         
-        image_embeddings_list = []
-        counter = 1
-        async for image in images.agen:
-            image = pil_image_from_base64(image)
+        def process_image_gpu(image_base64):
+            image = pil_image_from_base64(image_base64)
             batch_images = processor.process_images([image]).to(device)  # pyright: ignore
-            stageio.write(f"Processing page {counter}/{images.total}\n")
-            counter += 1
             with torch.no_grad():
                 with colpali_model_resource.get_gpu_lock():
-                    image_embeddings = model(**batch_images)
+                    return model(**batch_images)
+        
+        image_embeddings_list = []
+        counter = 1
+        
+        async for image in images.agen:
+            stageio.write(f"Processing page {counter}/{images.total}\n")
+            image_embeddings = await run_in_indexing_cpu_pool(
+                process_image_gpu, image
+            )
             image_embeddings_list.append(image_embeddings)
+            counter += 1
 
         max_shape = (
             max(embed.shape[0] for embed in image_embeddings_list),
