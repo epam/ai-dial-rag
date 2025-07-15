@@ -55,13 +55,13 @@ class ColpaliRetriever(BaseRetriever):
 
     def _score_documents_with_embeddings(self, query_embeddings: Tensor) -> List[Tuple[float, int]]:
         """Score all documents against the query embeddings and return sorted (score, doc_idx) pairs."""
-        query_embeddings = query_embeddings.bfloat16()
+        query_embeddings = query_embeddings.half()
 
         page_scores = []
         page_indices = []
         
         for doc_id, doc_embedding in enumerate(self.document_embeddings):
-            image_embedding = torch.from_numpy(doc_embedding.embedding).bfloat16()
+            image_embedding = torch.from_numpy(doc_embedding.embedding).half()
             score = self.processor.score_multi_vector(query_embeddings, [image_embedding]).squeeze().item()
             page_scores.append(score)
             page_indices.append(doc_id)

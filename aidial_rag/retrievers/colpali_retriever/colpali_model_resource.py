@@ -63,7 +63,7 @@ class ColpaliModelResource:
                     raise ValueError("Invalid ColPali model type")
                 
             self.model = model_class.from_pretrained(
-                config.model_name, torch_dtype=torch.bfloat16, device_map=device
+                config.model_name, torch_dtype=torch.float16, device_map=device
             ).eval()
             self.processor = processor_class.from_pretrained(config.model_name)  # pyright: ignore
 
