@@ -13,6 +13,9 @@ from aidial_rag.errors import DocumentProcessingError, InvalidDocumentError
 from aidial_rag.index_storage import IndexStorage
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
 from tests.utils.user_limits_mock import user_limits_mock
 
 request_config = RequestConfig(
@@ -96,6 +99,7 @@ async def test_load_document_success(
         request_context,
         attachment_link,
         index_storage,
+        ColpaliModelResource(request_context.indexing.colpali_index),
         config=request_config,
     )
     assert isinstance(doc_record, DocumentRecord)
@@ -138,6 +142,7 @@ async def test_load_document_invalid_document(
             request_context,
             attachment_link,
             index_storage,
+            ColpaliModelResource(request_config.indexing.colpali_index),
             config=request_config,
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)

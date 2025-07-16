@@ -1,0 +1,16 @@
+request:
+  indexing:
+    description_index: null
+    multimodal_index: null
+    colpali_index:
+      model_name: vidore/colSmol-256M
+      model_type: ColIdefics
+  qa_chain:
+    chat_chain:
+      llm:
+        deployment_name: gpt-4o-2024-05-13
+        max_prompt_tokens: 16000
+    query_chain:
+      llm:
+        deployment_name: gpt-4o-2024-05-13
+        max_prompt_tokens: 8000 

@@ -25,6 +25,9 @@ RUN apt-get update && \
 
 FROM base AS builder
 
+# Needed to install some dependencies from git repositories
+RUN apt-get update && apt-get install -y git
+
 # Getting uv from distroless docker
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 

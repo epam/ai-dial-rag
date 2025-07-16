@@ -20,7 +20,9 @@ def test(session):
         session.env["REFRESH"] = "true"
         args.remove("--refresh")
 
-    session.run("poetry", "install", "--only", "main, test", external=True)
+    session.run(
+        "poetry", "install", "--no-cache", "--only", "main, test", external=True
+    )
     session.run(
         "python",
         "-m",
@@ -37,7 +39,9 @@ def test(session):
 @nox.session()
 def eval(session):
     """Runs RAG evaluation"""
-    session.run("poetry", "install", "--with", "eval", external=True)
+    session.run(
+        "poetry", "install", "--no-cache", "--with", "eval", external=True
+    )
     session.run(
         "python",
         "-m",
