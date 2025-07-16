@@ -16,6 +16,7 @@ from aidial_rag.content_stream import (
     SupportsWriteStr,
 )
 from aidial_rag.converter import convert_document_if_needed
+from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import (
     load_attachment,
@@ -36,6 +37,7 @@ from aidial_rag.errors import (
 )
 from aidial_rag.image_processor.extract_pages import is_image
 from aidial_rag.index_storage import IndexStorage
+from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
@@ -226,27 +228,33 @@ def handle_document_processing_error(
 
 async def load_document(
     request_context: RequestContext,
-    attachment_link: AttachmentLink,
+    task: IndexingTask,
     index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> DocumentRecord:
     with handle_document_processing_error(
-        attachment_link, config.log_document_links
+        task.attachment_link, config.log_document_links
     ):
         index_settings = config.indexing.collect_fields_that_rebuild_index()
 
         choice = request_context.choice
 
-        await check_document_access(request_context, attachment_link, config)
+        await check_document_access(
+            request_context, task.attachment_link, config
+        )
 
         doc_record = None
         # aidial-sdk does not allow to do stage.close(Status.FAILED) inside with-statement
         try:
             with timed_stage(
-                choice, f"Load indexes for '{attachment_link.display_name}'"
+                choice,
+                f"Load indexes for '{task.attachment_link.display_name}'",
             ) as load_stage:
                 doc_record = await index_storage.load(
-                    attachment_link, index_settings, request_context
+                    task,
+                    index_settings,
+                    dial_api_client,
                 )
                 if doc_record is None:
                     raise FailStageException()
@@ -256,14 +264,15 @@ async def load_document(
 
         if doc_record is None:
             with timed_stage(
-                choice, f"Processing document '{attachment_link.display_name}'"
+                choice,
+                f"Processing document '{task.attachment_link.display_name}'",
             ) as doc_stage:
                 io_stream = doc_stage.content_stream
                 try:
                     doc_record = await load_document_impl(
                         request_context.dial_config,
                         request_context.dial_limited_resources,
-                        attachment_link,
+                        task.attachment_link,
                         io_stream,
                         index_settings,
                         config,
@@ -275,10 +284,13 @@ async def load_document(
                 print_chunks_stats(io_stream, doc_record.chunks)
 
             with timed_stage(
-                choice, f"Store indexes for '{attachment_link.display_name}'"
+                choice,
+                f"Store indexes for '{task.attachment_link.display_name}'",
             ):
                 await index_storage.store(
-                    attachment_link, doc_record, request_context
+                    task,
+                    doc_record,
+                    dial_api_client,
                 )
 
         return doc_record
@@ -286,16 +298,17 @@ async def load_document(
 
 async def load_documents(
     request_context: RequestContext,
-    attachment_links: Iterable[AttachmentLink],
+    tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> List[DocumentRecord | BaseException]:
     return await asyncio.gather(
         *[
             load_document(
-                request_context, attachment_link, index_storage, config
+                request_context, task, index_storage, dial_api_client, config
             )
-            for attachment_link in attachment_links
+            for task in tasks
         ],
         return_exceptions=True,
     )
