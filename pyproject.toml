@@ -54,8 +54,6 @@ pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
 colpali-engine = { git = "https://github.com/illuin-tech/colpali.git", rev = "6f126a136c22d2230a5557eb809dd9134277e1f6" }
 "pdfminer.six" = "20231228"
-pdfplumber = "0.11.5"
-
 
 
 [[tool.poetry.source]]
