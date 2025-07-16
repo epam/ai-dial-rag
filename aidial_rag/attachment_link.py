@@ -8,7 +8,7 @@ from aidial_sdk.chat_completion import Message, Role
 from pydantic import BaseModel
 from requests.exceptions import Timeout
 
-from aidial_rag.errors import InvalidAttachmentError
+from aidial_rag.errors import DocumentProcessingError, InvalidAttachmentError
 from aidial_rag.request_context import RequestContext
 
 
@@ -156,7 +156,11 @@ def get_attachment_links(
 def _get_user_facing_error_message(
     exc: BaseException,
 ) -> Generator[str, None, None]:
-    if isinstance(exc, HTTPException):
+    if isinstance(exc, DocumentProcessingError) and exc.__cause__:
+        # We want to show the original cause of the error to the User.
+        # The document name is already included in a separate field of the table.
+        yield from _get_user_facing_error_message(exc.__cause__)
+    elif isinstance(exc, HTTPException):
         yield exc.message.replace("\n", " ")
     elif isinstance(exc, Timeout):
         yield "Timed out during download"

@@ -8,61 +8,14 @@ from pydantic_settings import (
 )
 from pydantic_settings.sources import PathType, YamlConfigSettingsSource
 
-from aidial_rag.base_config import (
-    BaseConfig,
-    IndexRebuildTrigger,
-    collect_fields_with_trigger,
-)
-from aidial_rag.document_loaders import (
-    HttpClientConfig,
-    ParserConfig,
-)
-from aidial_rag.document_record import IndexSettings
+from aidial_rag.base_config import BaseConfig
+from aidial_rag.document_loaders import HttpClientConfig
 from aidial_rag.index_storage import IndexStorageConfig
+from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.llm import LlmConfig
-from aidial_rag.qa_chain import ChatChainConfig, QAChainConfig
+from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
 from aidial_rag.query_chain import QueryChainConfig
 from aidial_rag.resources.cpu_pools import CpuPoolsConfig
-from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
-    ColpaliIndexConfig,
-)
-from aidial_rag.retrievers.description_retriever.description_retriever import (
-    DescriptionIndexConfig,
-)
-from aidial_rag.retrievers.multimodal_retriever import MultimodalIndexConfig
-
-
-class IndexingConfig(BaseConfig):
-    """Configuration for the document indexing."""
-
-    # pyright does not understand default values for Annotated fields
-    parser: ParserConfig = Field(default=ParserConfig())  # type: ignore
-
-    multimodal_index: MultimodalIndexConfig | None = Field(
-        default=None,
-        description="Enables MultimodalRetriever which uses multimodal embedding models for pages "
-        "images search.",
-    )
-    description_index: DescriptionIndexConfig | None = Field(
-        default=DescriptionIndexConfig(),
-        description="Enables DescriptionRetriever which uses vision model to generate page images "
-        "descriptions and perform search on them.",
-    )
-    colpali_index: ColpaliIndexConfig | None = Field(
-        default=None, description="Enables ColpaliRetriever"
-    )
-
-    def collect_fields_that_rebuild_index(self) -> IndexSettings:
-        """Return the IndexingConfig fields that determine when the index needs to be rebuilt."""
-        indexes = {}
-        for name, _field_info in self.__class__.model_fields.items():
-            index_config = getattr(self, name)
-            if index_config is not None:
-                indexes[name] = collect_fields_with_trigger(
-                    index_config, IndexRebuildTrigger
-                )
-
-        return IndexSettings(indexes=indexes)
 
 
 class RequestConfig(BaseConfig):
@@ -80,6 +33,20 @@ class RequestConfig(BaseConfig):
     use_profiler: bool = Field(
         default=False,
         description="Use profiler to collect performance metrics for the request.",
+    )
+
+    log_document_links: bool = Field(
+        default=False,
+        description="Allows writing the links of the attached documents to the logs "
+        "with log levels higher than DEBUG.\n\n"
+        "If enabled, Dial RAG will log the links to the documents for log messages "
+        "with levels from INFO to CRITICAL where relevant. For example, an ERROR log "
+        "message with an exception during document processing will contain the link "
+        "to the document.\n\n"
+        "If disabled, only log messages with DEBUG level may contain the links to "
+        "the documents, to avoid logging sensitive information. For example, the links "
+        "to the documents will not be logged for the ERROR log messages with an exception "
+        "during document processing.",
     )
 
     download: HttpClientConfig = Field(
@@ -110,9 +77,6 @@ class RequestConfig(BaseConfig):
             ),
         ),
     )
-
-
-# TODO: Add support for legacy env variables names
 
 
 class AppConfig(BaseSettings):
