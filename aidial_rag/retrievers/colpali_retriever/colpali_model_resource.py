@@ -2,6 +2,7 @@ import threading
 
 import torch
 
+from aidial_rag.embeddings.detect_device import autodetect_device
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
     ColpaliModelType,
@@ -30,11 +31,7 @@ class ColpaliModelResource:
             if self.config == config:
                 return
             self.config = config
-            device = "cpu"
-            if torch.mps.is_available():
-                device = "mps"
-            if torch.cuda.is_available():
-                device = "cuda"
+            device = autodetect_device()
             self.device = torch.device(device)
 
             from colpali_engine.models import (
