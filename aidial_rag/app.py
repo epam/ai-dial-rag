@@ -1,13 +1,20 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from aidial_sdk import DIALApp, HTTPException
-from aidial_sdk.chat_completion import ChatCompletion, Choice, Request, Response
+from aidial_sdk.chat_completion import (
+    ChatCompletion,
+    Choice,
+    Message,
+    Request,
+    Response,
+)
 from langchain.retrievers import EnsembleRetriever
 from langchain.schema import BaseRetriever, Document
 from langchain_core.retrievers import RetrieverLike
+from langchain_core.runnables import Runnable
 from pydantic import ValidationError
 
 from aidial_rag.app_config import AppConfig, RequestConfig
@@ -34,7 +41,7 @@ from aidial_rag.repository_digest import (
     RepositoryDigest,
     read_repository_digest,
 )
-from aidial_rag.request_context import create_request_context
+from aidial_rag.request_context import RequestContext, create_request_context
 from aidial_rag.resources.cpu_pools import init_cpu_pools
 from aidial_rag.retrieval_chain import create_retrieval_chain
 from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
@@ -212,11 +219,21 @@ def get_configuration(request: Request) -> dict:
 
 
 async def _run_rag(
-    request_context, choice, request_config, retrieval_chain, chain_input
+    request_context: RequestContext,
+    request_config: RequestConfig,
+    retrieval_chain: Runnable[Dict[str, Any], Dict[str, Any]],
+    messages: List[Message],
+    document_records: List[DocumentRecord],
 ):
+    choice = request_context.choice
+    chain_input = {
+        "chat_history": transform_history(messages),
+        "chat_chain_config": request_config.qa_chain.chat_chain,
+        "doc_records": document_records,
+    }
+
     reference_items = await generate_answer(
         request_context=request_context,
-        request_config=request_config,
         retrieval_chain=retrieval_chain,
         chain_input=chain_input,
         content_callback=choice.append_content,
@@ -365,18 +382,12 @@ class DialRAGApplication(ChatCompletion):
                 )
 
             with profiler_if_enabled(choice, request_config.use_profiler):
-                chain_input = {
-                    "chat_history": transform_history(messages),
-                    "chat_chain_config": request_config.qa_chain.chat_chain,
-                    "doc_records": document_records,
-                }
-
                 await _run_rag(
                     request_context,
-                    choice,
                     request_config,
                     retrieval_chain,
-                    chain_input,
+                    messages,
+                    document_records,
                 )
 
     async def configuration(self, request):

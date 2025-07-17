@@ -14,17 +14,20 @@ class RetrievalResults(BaseModel):
         """Chunk of the document retrieved by the retriever."""
 
         doc_id: int = Field(
-            description="Index of the attached document in the request, starting from 0."
+            description="Index of the attached document in the request, 0-based."
         )
         chunk_id: int = Field(
-            description="Index of the chunk in the document, starting from 0."
+            description="Index of the chunk in the document, 0-based."
         )
         source: str = Field(
-            description="URL to the document attachment (relative URL to the Dial storage, or full url for an external document), could have an url fragments like #page=3."
+            description="URL to the source of the chunk. The source could be a document "
+            "or some part of the document, like a page or a section. The URL could have "
+            "a fragment to indicate a specific part of the document, like a page number "
+            "(for example, #page=3).",
         )
         source_display_name: str | None = Field(
             default=None,
-            description="Human-readable name of the document (the same that Dial RAG displays in the stages).",
+            description="Human-readable name of the source (the same that Dial RAG displays in the stages).",
         )
         text: str | None = Field(
             default=None,
@@ -32,13 +35,13 @@ class RetrievalResults(BaseModel):
         )
         page_number: int | None = Field(
             default=None,
-            description="The number of the page in the document, the chunk belongs to, if applicable. "
+            description="The the page number in the document, the chunk belongs to, if applicable. "
             "Starting from 1, i.e. the same as in the page fragment of the URL.",
         )
-        page_image: int | None = Field(
+        page_image_index: int | None = Field(
             default=None,
             description="Index of the image of the document page, the chunk belongs to, in the `images` list."
-            "Starting from 0. If the chunk is an image, this field is set to the index of the image in the `images` list.",
+            "Starting from 0.",
         )
 
     class Image(BaseModel):
