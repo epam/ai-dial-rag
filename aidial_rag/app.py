@@ -30,11 +30,13 @@ from aidial_rag.commands import (
     process_commands,
 )
 from aidial_rag.config_digest import ConfigDigest
+from aidial_rag.dial_api_client import DialApiClient, create_dial_api_client
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
-from aidial_rag.index_storage import IndexStorage
+from aidial_rag.index_storage import IndexStorage, link_to_index_url
+from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.qa_chain import generate_answer
 from aidial_rag.query_chain import create_get_query_chain
 from aidial_rag.repository_digest import (
@@ -197,6 +199,19 @@ def create_retriever(
     return retriever
 
 
+def create_indexing_tasks(
+    attachment_links: List[AttachmentLink],
+    dial_api_client: DialApiClient,
+) -> List[IndexingTask]:
+    return [
+        IndexingTask(
+            attachment_link=link,
+            index_url=link_to_index_url(link, dial_api_client.bucket_id),
+        )
+        for link in attachment_links
+    ]
+
+
 def get_configuration(request: Request) -> dict:
     if (
         request.custom_fields is None
@@ -250,15 +265,11 @@ async def _run_rag(
 
 class DialRAGApplication(ChatCompletion):
     app_config: AppConfig
-    index_storage: IndexStorage
     enable_debug_commands: bool
     repository_digest: RepositoryDigest
 
     def __init__(self, app_config: AppConfig):
         self.app_config = app_config
-        self.index_storage = IndexStorage(
-            self.app_config.dial_url, self.app_config.index_storage
-        )
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)
         logger.info(
@@ -331,10 +342,21 @@ class DialRAGApplication(ChatCompletion):
                 get_attachment_links(request_context, messages)
             )
 
+            dial_api_client = await create_dial_api_client(request_context)
+            index_storage = IndexStorage(
+                dial_api_client,
+                self.app_config.index_storage,
+            )
+
+            # TODO: Allow to specify desired index URLs in the request
+            indexing_tasks = create_indexing_tasks(
+                attachment_links, dial_api_client
+            )
+
             docs_and_errors = await load_documents(
                 request_context,
-                attachment_links,
-                self.index_storage,
+                indexing_tasks,
+                index_storage,
                 config=request_config,
             )
             document_records, loading_errors = process_load_errors(

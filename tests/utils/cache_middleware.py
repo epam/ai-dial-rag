@@ -269,6 +269,10 @@ class CacheMiddlewareApp(FastAPI):
                 "dayTokenStats": {"total": 1000000, "used": 0},
             }
 
+        @self.get("/v1/bucket")
+        async def get_bucket_info():
+            return {"bucket": "test_bucket"}
+
         @self.get("/health")
         async def health_check():
             return {"status": "ok"}
