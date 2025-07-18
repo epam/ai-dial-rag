@@ -245,8 +245,7 @@ async def load_document(
         # aidial-sdk does not allow to do stage.close(Status.FAILED) inside with-statement
         try:
             with timed_stage(
-                choice,
-                f"Load indexes for '{attachment_link.display_name}'",
+                choice, f"Load indexes for '{attachment_link.display_name}'"
             ) as load_stage:
                 doc_record = await index_storage.load(task, index_settings)
                 if doc_record is None:
@@ -257,8 +256,7 @@ async def load_document(
 
         if doc_record is None:
             with timed_stage(
-                choice,
-                f"Processing document '{attachment_link.display_name}'",
+                choice, f"Processing document '{attachment_link.display_name}'"
             ) as doc_stage:
                 io_stream = doc_stage.content_stream
                 try:
@@ -277,8 +275,7 @@ async def load_document(
                 print_chunks_stats(io_stream, doc_record.chunks)
 
             with timed_stage(
-                choice,
-                f"Store indexes for '{attachment_link.display_name}'",
+                choice, f"Store indexes for '{attachment_link.display_name}'"
             ):
                 await index_storage.store(task, doc_record)
 
