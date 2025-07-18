@@ -83,8 +83,7 @@ def create_docs_message(
 
         if chunk.page_image_index is not None:
             image = retrieval_results.images[chunk.page_image_index]
-            if image:
-                docs_message.append(image_element(image.data))
+            docs_message.append(image_element(image.data))
 
         docs_message.append(text_element("</doc>\n"))
     docs_message.append(text_element("</context>"))
