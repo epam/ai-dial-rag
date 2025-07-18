@@ -35,13 +35,12 @@ class RetrievalResults(BaseModel):
         )
         page_number: int | None = Field(
             default=None,
-            description="The the page number in the document, the chunk belongs to, if applicable. "
-            "Starting from 1, i.e. the same as in the page fragment of the URL.",
+            description="The the page number in the document, the chunk belongs to, if applicable, "
+            "1-based (i.e. the same as in the page fragment of the URL).",
         )
         page_image_index: int | None = Field(
             default=None,
-            description="Index of the image of the document page, the chunk belongs to, in the `images` list."
-            "Starting from 0.",
+            description="Index of the image of the document page, the chunk belongs to, in the `images` list, 0-based.",
         )
 
     class Image(BaseModel):
