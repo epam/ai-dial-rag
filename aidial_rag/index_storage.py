@@ -1,5 +1,4 @@
 import hashlib
-import io
 import logging
 from abc import ABC, abstractmethod
 from typing import cast
@@ -68,11 +67,11 @@ def link_to_index_url(attachment_link: AttachmentLink, bucket_id: str) -> str:
 
 class IndexStorageBackend(ABC):
     @abstractmethod
-    async def load(self, url: str, *args, **kwargs) -> bytes | None:
+    async def load(self, url: str) -> bytes | None:
         pass
 
     @abstractmethod
-    async def store(self, url: str, data: bytes, *args, **kwargs) -> dict:
+    async def store(self, url: str, data: bytes) -> dict:
         pass
 
 
@@ -80,10 +79,10 @@ class LRUCacheStorage(IndexStorageBackend):
     def __init__(self, capacity: int = DEFAULT_IN_MEMORY_CACHE_CAPACITY):
         self._cache = LRUCache(maxsize=capacity, getsizeof=len)
 
-    async def load(self, url: str, *args, **kwargs) -> bytes | None:
+    async def load(self, url: str) -> bytes | None:
         return cast(bytes | None, self._cache.get(url))
 
-    async def store(self, url, data: bytes, *args, **kwargs) -> dict:
+    async def store(self, url, data: bytes) -> dict:
         self._cache[url] = data
         return {}
 
@@ -93,30 +92,18 @@ class DialFileStorage(IndexStorageBackend):
     Implements API from https://gitlab.deltixhub.com/Deltix/openai-apps/documentation/-/issues/12
     """
 
-    def __init__(self, dial_url: str):
-        self._dial_url = dial_url
-        self._dial_base_url = f"{dial_url}/v1/"
+    def __init__(self, dial_api_client: DialApiClient):
+        self._dial_api_client = dial_api_client
 
-    def to_form_data(self, key: str, data: bytes) -> aiohttp.FormData:
-        form_data = aiohttp.FormData()
-        form_data.add_field(
-            "file", io.BytesIO(data), filename=key, content_type=INDEX_MIME_TYPE
-        )
-        return form_data
-
-    async def load(
-        self, url: str, dial_api_client: DialApiClient
-    ) -> bytes | None:
+    async def load(self, url: str) -> bytes | None:
         try:
-            return await dial_api_client.get_file(url)
+            return await self._dial_api_client.get_file(url)
         except aiohttp.ClientError as e:
             logger.warning(f"Failed to load index from {url}: {e}")
             return None
 
-    async def store(
-        self, url, data: bytes, dial_api_client: DialApiClient
-    ) -> dict:
-        return await dial_api_client.put_file(url, data, INDEX_MIME_TYPE)
+    async def store(self, url, data: bytes) -> dict:
+        return await self._dial_api_client.put_file(url, data, INDEX_MIME_TYPE)
 
 
 class CachedStorage(IndexStorageBackend):
@@ -146,14 +133,14 @@ class CachedStorage(IndexStorageBackend):
 class IndexStorage:
     def __init__(
         self,
-        dial_url,
+        dial_api_client: DialApiClient,
         index_storage_config: IndexStorageConfig | None = None,
     ):
         if index_storage_config is None:
             index_storage_config = IndexStorageConfig()
         if index_storage_config.use_dial_file_storage:
             self._storage = CachedStorage(
-                DialFileStorage(dial_url),
+                DialFileStorage(dial_api_client),
                 index_storage_config.in_memory_cache_capacity,
             )
         else:
@@ -165,11 +152,8 @@ class IndexStorage:
         self,
         task: IndexingTask,
         index_settings: IndexSettings,
-        dial_api_client: DialApiClient,
     ) -> DocumentRecord | None:
-        doc_record_bytes = await self._storage.load(
-            task.index_url, dial_api_client=dial_api_client
-        )
+        doc_record_bytes = await self._storage.load(task.index_url)
         if doc_record_bytes is None:
             return None
         try:
@@ -197,12 +181,9 @@ class IndexStorage:
         self,
         task: IndexingTask,
         doc_record: DocumentRecord,
-        dial_api_client: DialApiClient,
     ) -> dict:
         doc_record_bytes = doc_record.to_bytes(**SERIALIZATION_CONFIG)
         logger.debug(
             f"Stored document {task.attachment_link} index with url: {task.index_url}"
         )
-        return await self._storage.store(
-            task.index_url, doc_record_bytes, dial_api_client=dial_api_client
-        )
+        return await self._storage.store(task.index_url, doc_record_bytes)

@@ -16,7 +16,6 @@ from aidial_rag.content_stream import (
     SupportsWriteStr,
 )
 from aidial_rag.converter import convert_document_if_needed
-from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import (
     load_attachment,
@@ -230,32 +229,26 @@ async def load_document(
     request_context: RequestContext,
     task: IndexingTask,
     index_storage: IndexStorage,
-    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> DocumentRecord:
+    attachment_link = task.attachment_link
     with handle_document_processing_error(
-        task.attachment_link, config.log_document_links
+        attachment_link, config.log_document_links
     ):
         index_settings = config.indexing.collect_fields_that_rebuild_index()
 
         choice = request_context.choice
 
-        await check_document_access(
-            request_context, task.attachment_link, config
-        )
+        await check_document_access(request_context, attachment_link, config)
 
         doc_record = None
         # aidial-sdk does not allow to do stage.close(Status.FAILED) inside with-statement
         try:
             with timed_stage(
                 choice,
-                f"Load indexes for '{task.attachment_link.display_name}'",
+                f"Load indexes for '{attachment_link.display_name}'",
             ) as load_stage:
-                doc_record = await index_storage.load(
-                    task,
-                    index_settings,
-                    dial_api_client,
-                )
+                doc_record = await index_storage.load(task, index_settings)
                 if doc_record is None:
                     raise FailStageException()
                 print_chunks_stats(load_stage.content_stream, doc_record.chunks)
@@ -265,14 +258,14 @@ async def load_document(
         if doc_record is None:
             with timed_stage(
                 choice,
-                f"Processing document '{task.attachment_link.display_name}'",
+                f"Processing document '{attachment_link.display_name}'",
             ) as doc_stage:
                 io_stream = doc_stage.content_stream
                 try:
                     doc_record = await load_document_impl(
                         request_context.dial_config,
                         request_context.dial_limited_resources,
-                        task.attachment_link,
+                        attachment_link,
                         io_stream,
                         index_settings,
                         config,
@@ -285,13 +278,9 @@ async def load_document(
 
             with timed_stage(
                 choice,
-                f"Store indexes for '{task.attachment_link.display_name}'",
+                f"Store indexes for '{attachment_link.display_name}'",
             ):
-                await index_storage.store(
-                    task,
-                    doc_record,
-                    dial_api_client,
-                )
+                await index_storage.store(task, doc_record)
 
         return doc_record
 
@@ -300,14 +289,11 @@ async def load_documents(
     request_context: RequestContext,
     tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
-    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> List[DocumentRecord | BaseException]:
     return await asyncio.gather(
         *[
-            load_document(
-                request_context, task, index_storage, dial_api_client, config
-            )
+            load_document(request_context, task, index_storage, config)
             for task in tasks
         ],
         return_exceptions=True,

@@ -23,7 +23,7 @@ from aidial_rag.commands import (
     process_commands,
 )
 from aidial_rag.config_digest import ConfigDigest
-from aidial_rag.dial_api_client import create_dial_api_client
+from aidial_rag.dial_api_client import DialApiClient, create_dial_api_client
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
@@ -191,7 +191,7 @@ def create_retriever(
 
 def create_indexing_tasks(
     attachment_links: List[AttachmentLink],
-    dial_api_client,
+    dial_api_client: DialApiClient,
 ) -> List[IndexingTask]:
     return [
         IndexingTask(
@@ -225,15 +225,11 @@ def get_configuration(request: Request) -> dict:
 
 class DialRAGApplication(ChatCompletion):
     app_config: AppConfig
-    index_storage: IndexStorage
     enable_debug_commands: bool
     repository_digest: RepositoryDigest
 
     def __init__(self, app_config: AppConfig):
         self.app_config = app_config
-        self.index_storage = IndexStorage(
-            self.app_config.dial_url, self.app_config.index_storage
-        )
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)
         logger.info(
@@ -307,6 +303,10 @@ class DialRAGApplication(ChatCompletion):
             )
 
             dial_api_client = await create_dial_api_client(request_context)
+            index_storage = IndexStorage(
+                dial_api_client,
+                self.app_config.index_storage,
+            )
 
             # TODO: Allow to specify desired index URLs in the request
             indexing_tasks = create_indexing_tasks(
@@ -316,8 +316,7 @@ class DialRAGApplication(ChatCompletion):
             docs_and_errors = await load_documents(
                 request_context,
                 indexing_tasks,
-                self.index_storage,
-                dial_api_client,
+                index_storage,
                 config=request_config,
             )
             document_records, loading_errors = process_load_errors(

@@ -32,19 +32,6 @@ def request_context():
     )
 
 
-@pytest.fixture
-def index_storage():
-    return IndexStorage("http://localhost:8080")
-
-
-@pytest.fixture
-def attachment_link(request_context):
-    return AttachmentLink.from_link(
-        request_context,
-        "files/6iTkeGUs2CvUehhYLmMYXB/folder%201/file-example_PDF%20500_kB.pdf",
-    )
-
-
 class MockDialApiClient(DialApiClient):
     def __init__(self):
         self.bucket_id = "test_bucket"
@@ -58,6 +45,24 @@ class MockDialApiClient(DialApiClient):
     async def put_file(self, relative_url, data, content_type):
         self.storage[relative_url] = data
         return {}
+
+
+@pytest.fixture
+def dial_api_client():
+    return MockDialApiClient()
+
+
+@pytest.fixture
+def index_storage(dial_api_client):
+    return IndexStorage(dial_api_client=dial_api_client)
+
+
+@pytest.fixture
+def attachment_link(request_context):
+    return AttachmentLink.from_link(
+        request_context,
+        "files/6iTkeGUs2CvUehhYLmMYXB/folder%201/file-example_PDF%20500_kB.pdf",
+    )
 
 
 class MockStage(Stage):
@@ -98,6 +103,7 @@ async def test_load_document_success(
     mock_fetch,
     mock_check_document_access,
     request_context,
+    dial_api_client,
     index_storage,
     attachment_link,
 ):
@@ -108,7 +114,6 @@ async def test_load_document_success(
         MagicMock(), 0, 0, name
     )
 
-    dial_api_client = MockDialApiClient()
     indexing_task = IndexingTask(
         attachment_link=attachment_link,
         index_url=link_to_index_url(attachment_link, dial_api_client.bucket_id),
@@ -119,7 +124,6 @@ async def test_load_document_success(
         request_context,
         indexing_task,
         index_storage,
-        dial_api_client=dial_api_client,
         config=request_config,
     )
     assert isinstance(doc_record, DocumentRecord)
@@ -128,9 +132,7 @@ async def test_load_document_success(
     index_settings = request_config.indexing.collect_fields_that_rebuild_index()
 
     # Read stored value
-    doc = await index_storage.load(
-        indexing_task, index_settings, request_context
-    )
+    doc = await index_storage.load(indexing_task, index_settings)
     assert isinstance(doc, DocumentRecord)
     assert doc.document_bytes == b"This is a test byte array."
     assert len(doc.chunks) == 1
@@ -147,6 +149,7 @@ async def test_load_document_invalid_document(
     mock_fetch,
     mock_check_document_access,
     request_context,
+    dial_api_client,
     index_storage,
     attachment_link,
 ):
@@ -168,7 +171,6 @@ async def test_load_document_invalid_document(
                 index_url=index_url,
             ),
             index_storage,
-            dial_api_client,
             config=request_config,
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)
