@@ -115,19 +115,19 @@ class CachedStorage(IndexStorageBackend):
         self._storage = storage
         self._cache = LRUCacheStorage(capacity)
 
-    async def load(self, url: str, *args, **kwargs) -> bytes | None:
-        data = await self._cache.load(url, *args, **kwargs)
+    async def load(self, url: str) -> bytes | None:
+        data = await self._cache.load(url)
         if data is not None:
             return data
 
-        data = await self._storage.load(url, *args, **kwargs)
+        data = await self._storage.load(url)
         if data is not None:
-            await self._cache.store(url, data, *args, **kwargs)
+            await self._cache.store(url, data)
         return data
 
-    async def store(self, url, data: bytes, *args, **kwargs) -> dict:
-        await self._cache.store(url, data, *args, **kwargs)
-        return await self._storage.store(url, data, *args, **kwargs)
+    async def store(self, url, data: bytes) -> dict:
+        await self._cache.store(url, data)
+        return await self._storage.store(url, data)
 
 
 class IndexStorage:
