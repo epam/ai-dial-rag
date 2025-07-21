@@ -1,32 +1,26 @@
 import logging
 import re
-from operator import itemgetter
-from typing import AsyncIterator, Callable, Dict, List, cast
+from typing import Any, AsyncIterator, Callable, Dict, List, cast
 
-from aidial_sdk.chat_completion import Message
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     MessagesPlaceholder,
     SystemMessagePromptTemplate,
 )
-from langchain.schema import BaseRetriever, Document
+from langchain.schema import Document
 from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
 from langchain_core.messages import (
+    BaseMessage,
     HumanMessage,
     merge_content,
 )
-from langchain_core.runnables import chain
+from langchain_core.runnables import Runnable, chain
 
-from aidial_rag.document_record import DocumentRecord
-from aidial_rag.index_record import ChunkMetadata
 from aidial_rag.llm import create_llm
-from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
-from aidial_rag.query_chain import create_get_query_chain
+from aidial_rag.qa_chain_config import ChatChainConfig
 from aidial_rag.request_context import RequestContext
-from aidial_rag.retrieval_chain import create_image_by_page
-from aidial_rag.transform_history import transform_history
+from aidial_rag.retrieval_api import RetrievalResults
 
 logger = logging.getLogger(__name__)
 
@@ -54,21 +48,24 @@ SINGLE_QUERY_TEMPLATE = HumanMessagePromptTemplate.from_template("{query}")
 
 REF_PATTERN = re.compile(r"<\[(\d+)\]>")
 
-INCLUDED_ATTRIBUTES = ["source", "page_number", "title"]
+INCLUDED_ATTRIBUTES = ["page_number", "source", "title"]
 
 
-def format_attributes(i, metadata: dict) -> str:
+def format_attributes(i, metadata: Dict[str, int | str]) -> str:
     attributes = [("id", i)] + [
-        (k, v) for k, v in metadata.items() if k in INCLUDED_ATTRIBUTES
+        (k, metadata[k]) for k in INCLUDED_ATTRIBUTES if k in metadata
     ]
     return " ".join(f"{k}='{v}'" for k, v in attributes)
 
 
-def text_element(text: str) -> dict:
+MessageElement = Dict[str, str | Dict[str, str]]
+
+
+def text_element(text: str) -> MessageElement:
     return {"type": "text", "text": text}
 
 
-def image_element(image: str) -> dict:
+def image_element(image: str) -> MessageElement:
     return {
         "type": "image_url",
         "image_url": {"url": f"data:image/png;base64,{image}"},
@@ -76,27 +73,17 @@ def image_element(image: str) -> dict:
 
 
 def create_docs_message(
-    doc_records, chunks_metadatas, image_by_page
-) -> List[Dict[str, dict]]:
-    attached_images = set()
-    docs_message = []
+    retrieval_results: RetrievalResults,
+) -> List[MessageElement]:
+    docs_message: List[MessageElement] = []
     docs_message.append(text_element("<context>"))
-    for i, chunk_metadata in enumerate(chunks_metadatas, start=1):
-        doc_record = doc_records[chunk_metadata["doc_id"]]
-        chunk = doc_record.chunks[chunk_metadata["chunk_id"]]
-
-        attributes = format_attributes(i, chunk.metadata)
+    for i, chunk in enumerate(retrieval_results.chunks, start=1):
+        attributes = format_attributes(i, chunk.model_dump(exclude_none=True))
         docs_message.append(text_element(f"<doc {attributes}>\n{chunk.text}\n"))
 
-        image_key = (
-            chunk_metadata["doc_id"],
-            chunk.metadata.get("page_number"),
-        )
-        if image_key not in attached_images and (
-            image := image_by_page.get(image_key)
-        ):
-            docs_message.append(image_element(image))
-            attached_images.add(image_key)
+        if chunk.page_image_index is not None:
+            image = retrieval_results.images[chunk.page_image_index]
+            docs_message.append(image_element(image.data))
 
         docs_message.append(text_element("</doc>\n"))
     docs_message.append(text_element("</context>"))
@@ -108,24 +95,15 @@ def create_docs_message(
 # and we may get several chains running in parallel.
 # Some functions used in chain may be not thread-safe, like extract_pages_gen
 @chain
-async def create_chat_prompt(input: dict):
+async def create_chat_prompt(input: Dict[str, Any]) -> List[BaseMessage]:
     config: ChatChainConfig = input["chat_chain_config"]
 
     system_prompt_template = (
         config.system_prompt_template_override or DEFAULT_SYSTEM_TEMPLATE
     )
 
-    doc_records: List[DocumentRecord] = input.get("doc_records", [])
-    index_items: List[Document] = input.get("found_items", [])
-    image_by_page: Dict[tuple, str] = input.get("image_by_page", {})
-
-    chunks_metadatas = [
-        ChunkMetadata(**index_item.metadata) for index_item in index_items
-    ]
-
-    docs_message = create_docs_message(
-        doc_records, chunks_metadatas, image_by_page
-    )
+    retrieval_results = input["retrieval_results"]
+    docs_message = create_docs_message(retrieval_results)
 
     template = ChatPromptTemplate.from_messages(
         [
@@ -210,35 +188,16 @@ async def get_reference_documents(chain_input, chain) -> AsyncIterator:  # noqa:
 
 async def generate_answer(
     request_context: RequestContext,
-    qa_chain_config: QAChainConfig,
-    retriever: BaseRetriever,
-    messages: List[Message],
+    retrieval_chain: Runnable[Dict[str, Any], Dict[str, Any]],
+    chain_input: Dict[str, Any],
     content_callback: Callable[[str], None],
-    document_records: List[DocumentRecord],
 ) -> List[Document]:
-    llm = create_llm(
-        request_context.dial_config, qa_chain_config.chat_chain.llm
-    )
+    chat_chain_config = chain_input["chat_chain_config"]
 
-    get_query_chain = create_get_query_chain(
-        request_context, qa_chain_config.query_chain
-    )
-
-    qa_chain = (
-        RunnablePassthrough()
-        .assign(query=get_query_chain)
-        .assign(found_items=(itemgetter("query") | retriever))
-        .assign(image_by_page=create_image_by_page)
-        .assign(answer=(create_chat_prompt | llm | StrOutputParser()))
+    llm = create_llm(request_context.dial_config, chat_chain_config.llm)
+    qa_chain = retrieval_chain.assign(
+        answer=create_chat_prompt | llm | StrOutputParser()
     ).pick(["found_items", "answer"])
-
-    chain_input = {
-        # We may have empty messages after command processing
-        # Some models (like claude) do not support empty messages
-        "chat_history": transform_history(messages),
-        "chat_chain_config": qa_chain_config.chat_chain,
-        "doc_records": document_records,
-    }
 
     reference_items = []
     async for r in get_reference_documents(chain_input, qa_chain):
