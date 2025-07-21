@@ -16,6 +16,9 @@ from aidial_rag.llm import LlmConfig
 from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
 from aidial_rag.query_chain import QueryChainConfig
 from aidial_rag.resources.cpu_pools import CpuPoolsConfig
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResourceConfig,
+)
 
 
 class RequestConfig(BaseConfig):
@@ -104,6 +107,9 @@ class AppConfig(BaseSettings):
 
     cpu_pools: CpuPoolsConfig = Field(default=CpuPoolsConfig())
     index_storage: IndexStorageConfig = Field(default=IndexStorageConfig())
+    colpali_model_resource_config: ColpaliModelResourceConfig | None = Field(
+        default=None
+    )
     request: RequestConfig = Field(default=RequestConfig())
 
     model_config = SettingsConfigDict(

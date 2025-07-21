@@ -15,6 +15,9 @@ from aidial_rag.document_record import (
 from aidial_rag.documents import parse_content_type
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
+)
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResourceConfig,
     ColpaliModelType,
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
@@ -66,11 +69,19 @@ async def load_document(name, port=PORT):
 def create_colpali_only_config():
     """Create app configuration that uses Azure ColPali config."""
     from aidial_rag.app_config import AppConfig
+    from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+        ColpaliModelResourceConfig,
+        ColpaliModelType,
+    )
 
     return AppConfig(
         dial_url=MIDDLEWARE_HOST,
         enable_debug_commands=True,
         config_path="config/azure_colpali.yaml",
+        colpali_model_resource_config=ColpaliModelResourceConfig(
+            model_name="vidore/colSmol-256M",
+            model_type=ColpaliModelType.COLIDEFICS,
+        ),
     )
 
 
@@ -84,8 +95,13 @@ def mock_create_retriever(
 ):
     """Mock create_retriever to return only ColPali retriever with cached model."""
     use_cache = not os.environ.get("REFRESH", "").lower() == "true"
+    # Create model resource config from the index config for backward compatibility
+    colpali_model_resource_config = ColpaliModelResourceConfig(
+        model_name="vidore/colSmol-256M",
+        model_type=ColpaliModelType.COLIDEFICS,
+    )
     cached_model_resource = CachedColpaliModelResource(
-        colpali_index_config, use_cache=use_cache
+        colpali_model_resource_config, colpali_index_config, use_cache=use_cache
     )
 
     return ColpaliRetriever.from_doc_records(
@@ -105,9 +121,10 @@ def create_cached_app_config():
             super().__init__(app_config)
             # Replace the real model resource with cached one
             use_cache = not os.environ.get("REFRESH", "").lower() == "true"
-            colpali_index = app_config.request.indexing.colpali_index
             self.colpali_model_resource = CachedColpaliModelResource(
-                colpali_index, use_cache=use_cache
+                app_config.colpali_model_resource_config,
+                app_config.request.indexing.colpali_index,
+                use_cache=use_cache,
             )
 
     return CachedDialRAGApplication
@@ -159,16 +176,11 @@ def run_e2e_test(attachments, question, expected_text):
 
 def test_model_name_type_validation():
     """Test that model name and type validation works correctly."""
-    from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
-        ColpaliIndexConfig,
-        ColpaliModelType,
-    )
 
     # Test valid configuration
-    valid_config = ColpaliIndexConfig(
+    valid_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
         model_type=ColpaliModelType.COLIDEFICS,
-        image_size=512,
     )
     assert valid_config.model_name == "vidore/colSmol-256M"
     assert valid_config.model_type == ColpaliModelType.COLIDEFICS
@@ -178,20 +190,18 @@ def test_model_name_type_validation():
         ValueError,
         match="Model name 'vidore/colSmol-256M' is known to be of type 'ColIdefics'",
     ):
-        ColpaliIndexConfig(
+        ColpaliModelResourceConfig(
             model_name="vidore/colSmol-256M",
             model_type=ColpaliModelType.COLPALI,  # Wrong type
-            image_size=512,
         )
 
     # Test unknown model name - should raise error (current behavior)
     with pytest.raises(
         ValueError, match="Model name 'unknown/model' is not known"
     ):
-        ColpaliIndexConfig(
+        ColpaliModelResourceConfig(
             model_name="unknown/model",
             model_type=ColpaliModelType.COLPALI,
-            image_size=512,
         )
 
 
@@ -206,14 +216,16 @@ async def test_colpali_retriever(local_server):
     chunks_list = await build_chunks_list(text_chunks)
 
     # Setup ColPali model and index using Azure config
-    colpali_index_config = ColpaliIndexConfig(
+    colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
         model_type=ColpaliModelType.COLIDEFICS,
+    )
+    colpali_index_config = ColpaliIndexConfig(
         image_size=512,
     )
 
     colpali_model_resource = CachedColpaliModelResource(
-        colpali_index_config, use_cache=use_cache
+        colpali_model_resource_config, colpali_index_config, use_cache=use_cache
     )
 
     # Build index

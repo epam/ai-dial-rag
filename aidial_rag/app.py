@@ -248,7 +248,8 @@ class DialRAGApplication(ChatCompletion):
             self.app_config.dial_url, self.app_config.index_storage
         )
         self.colpali_model_resource = ColpaliModelResource(
-            app_config.request.indexing.colpali_index
+            app_config.colpali_model_resource_config,
+            app_config.request.indexing.colpali_index,
         )
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)

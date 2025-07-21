@@ -207,7 +207,7 @@ class ColpaliRetriever(BaseRetriever):
     @staticmethod
     async def embed_images(
         colpali_model_resource: ColpaliModelResource,
-        colpali_index_confis: ColpaliIndexConfig,
+        colpali_index_config: ColpaliIndexConfig,
         images: AsyncGeneratorWithTotal,
         stageio,
     ) -> list[Tensor]:

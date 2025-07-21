@@ -11,6 +11,7 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
+    ColpaliModelResourceConfig,
 )
 
 
@@ -130,27 +131,30 @@ class CachedColpaliModelResource(ColpaliModelResource):
 
     def __init__(
         self,
-        colpali_config: Optional[ColpaliIndexConfig],
+        colpali_model_resource_config: Optional[ColpaliModelResourceConfig],
+        colpali_index_config: Optional[ColpaliIndexConfig],
         use_cache: bool = True,
         cache_dir: str = "tests/cache/test_colpali_retriever",
     ):
-        super().__init__(colpali_config)
+        super().__init__(colpali_model_resource_config, colpali_index_config)
         self.use_cache = use_cache
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.cache_key = self._get_cache_key() if colpali_config else ""
+        self.cache_key = (
+            self._get_cache_key() if colpali_model_resource_config else ""
+        )
 
     def _get_cache_key(self) -> str:
         """Generate cache key for model configuration."""
-        if self.config is None:
-            raise ValueError("Config is required")
-        content = f"{self.config.model_name}_{self.config.model_type}"
+        if self.model_resource_config is None:
+            raise ValueError("Model resource config is required")
+        content = f"{self.model_resource_config.model_name}_{self.model_resource_config.model_type}"
         return hashlib.sha256(content.encode()).hexdigest()
 
     def get_model_processor_device(self) -> tuple[Any, Any, torch.device]:
         """Get model, processor, and device with caching support."""
-        if self.config is None:
-            raise ValueError("ColpaliIndexConfig is required")
+        if self.model_resource_config is None:
+            raise ValueError("ColpaliModelResourceConfig is required")
 
         if self.use_cache:
             # Replay mode

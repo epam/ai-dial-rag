@@ -1,36 +1,97 @@
 import threading
+from enum import StrEnum
+from typing import Annotated
 
 import torch
+from pydantic import BaseModel, Field, model_validator
 
 from aidial_rag.embeddings.detect_device import autodetect_device
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
-    ColpaliModelType,
 )
 
 
+class ColpaliModelType(StrEnum):
+    COLPALI = "ColPali"
+    COLQWEN = "ColQwen"
+    COLIDEFICS = "ColIdefics"
+
+
+# Mapping of known model names to their expected model types
+# can be extended with more models if needed
+KNOWN_MODELS = {
+    # ColIdefics models
+    "vidore/colSmol-256M": ColpaliModelType.COLIDEFICS,
+    "vidore/colpali-v1.3": ColpaliModelType.COLPALI,
+    "vidore/colqwen2-v1.0": ColpaliModelType.COLQWEN,
+}
+
+
+class ColpaliModelResourceConfig(BaseModel):
+    model_name: Annotated[
+        str,
+        Field(
+            default="vidore/colSmol-256M",
+            description="Model name, should be one of KNOWN_MODELS keys",
+        ),
+    ]
+    model_type: Annotated[
+        ColpaliModelType,
+        Field(
+            default=ColpaliModelType.COLIDEFICS,
+            description="Type of ColPali model",
+        ),
+    ]
+
+    def validate_consistency(self):
+        """validation of model name and type consistency"""
+        if self.model_name in KNOWN_MODELS:
+            expected_type = KNOWN_MODELS[self.model_name]
+            if self.model_type != expected_type:
+                raise ValueError(
+                    f"Model name '{self.model_name}' is known to be of type '{expected_type}', "
+                    f"but '{self.model_type}' was specified. Please use the correct model type."
+                )
+        else:
+            raise ValueError(
+                f"Model name '{self.model_name}' is not known. Please use one of the following: {list(KNOWN_MODELS.keys())}"
+            )
+
+    @model_validator(mode="after")
+    def validate_model_consistency(self):
+        """Validate that model name and type are consistent."""
+        self.validate_consistency()
+        return self
+
+
 class ColpaliModelResource:
-    def __init__(self, config: ColpaliIndexConfig | None):
+    def __init__(
+        self,
+        config: ColpaliModelResourceConfig | None,
+        colpali_index_config: ColpaliIndexConfig | None,
+    ):
         self.lock = threading.Lock()
         self.gpu_lock = threading.Lock()
-        self.config: ColpaliIndexConfig | None = None
+        self.model_resource_config: ColpaliModelResourceConfig | None = None
+        self.colpali_index_config: ColpaliIndexConfig | None = None
+        self.index_config: ColpaliIndexConfig | None = None
         self.model = None
         self.device: torch.device | None = None
         self.processor = None
-        if config is not None:
-            self.set_config(config)
+        if colpali_index_config is not None and config is not None:
+            self.__set_config(config)
 
     def get_gpu_lock(self):
         """Get the thread lock specifically for GPU operations."""
         return self.gpu_lock
 
-    def set_config(self, config: ColpaliIndexConfig):
+    def __set_config(self, config: ColpaliModelResourceConfig):
         config.validate_consistency()
 
         with self.lock:
-            if self.config == config:
+            if self.model_resource_config == config:
                 return
-            self.config = config
+            self.model_resource_config = config
             device = autodetect_device()
             self.device = torch.device(device)
 
@@ -67,10 +128,10 @@ class ColpaliModelResource:
     def get_model_processor_device(self):
         with self.lock:
             if (
-                self.config is None
+                self.model_resource_config is None
                 or self.device is None
                 or self.model is None
                 or self.processor is None
             ):
-                raise ValueError("ColpaliIndexConfig is required")
+                raise ValueError("ColpaliModelResourceConfig is required")
             return self.model, self.processor, self.device
