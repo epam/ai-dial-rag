@@ -6,14 +6,11 @@ from typing import Any, Dict, List, Tuple
 from aidial_sdk import DIALApp, HTTPException
 from aidial_sdk.chat_completion import (
     ChatCompletion,
-    Choice,
     Message,
     Request,
     Response,
 )
-from langchain.retrievers import EnsembleRetriever
 from langchain.schema import BaseRetriever, Document
-from langchain_core.retrievers import RetrieverLike
 from langchain_core.runnables import Runnable
 from pydantic import ValidationError
 
@@ -31,7 +28,6 @@ from aidial_rag.commands import (
 )
 from aidial_rag.config_digest import ConfigDigest
 from aidial_rag.dial_api_client import DialApiClient, create_dial_api_client
-from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
@@ -46,16 +42,6 @@ from aidial_rag.repository_digest import (
 from aidial_rag.request_context import RequestContext, create_request_context
 from aidial_rag.resources.cpu_pools import init_cpu_pools
 from aidial_rag.retrieval_chain import create_retrieval_chain
-from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
-from aidial_rag.retrievers.bm25_retriever import BM25Retriever
-from aidial_rag.retrievers.description_retriever.description_retriever import (
-    DescriptionRetriever,
-)
-from aidial_rag.retrievers.multimodal_retriever import (
-    MultimodalIndexConfig,
-    MultimodalRetriever,
-)
-from aidial_rag.retrievers.semantic_retriever import SemanticRetriever
 from aidial_rag.stages import RetrieverStage
 from aidial_rag.transform_history import transform_history
 from aidial_rag.utils import profiler_if_enabled, timed_stage
@@ -125,78 +111,6 @@ def process_load_errors(
             ) from doc_or_error
 
     return document_records, loading_errors
-
-
-def create_retriever(
-    response_choice: Choice | None,
-    dial_config: DialConfig,
-    document_records: List[DocumentRecord],
-    multimodal_index_config: MultimodalIndexConfig | None,
-) -> BaseRetriever:
-    def stage(retriever, name):
-        if response_choice is not None:
-            return RetrieverStage(
-                choice=response_choice,
-                stage_name=name,
-                document_records=document_records,
-                retriever=retriever,
-                doc_to_attach=doc_to_attach,
-            )
-        else:
-            return retriever
-
-    if not AllDocumentsRetriever.is_within_limit(document_records):
-        semantic_retriever = stage(
-            SemanticRetriever.from_doc_records(document_records, 7),
-            "Embeddings search",
-        )
-        retrievers: List[RetrieverLike] = [semantic_retriever]
-        weights = [1.0]
-
-        if BM25Retriever.has_index(document_records):
-            bm25_retriever = stage(
-                BM25Retriever.from_doc_records(document_records, 7),
-                "Keywords search",
-            )
-            retrievers.append(bm25_retriever)
-            weights.append(1.0)
-
-        if MultimodalRetriever.has_index(document_records):
-            assert multimodal_index_config
-            multimodal_retriever = stage(
-                MultimodalRetriever.from_doc_records(
-                    dial_config,
-                    multimodal_index_config,
-                    document_records,
-                    7,
-                ),
-                "Multimodal search",
-            )
-            retrievers.append(multimodal_retriever)
-            weights.append(1.0)
-
-        if DescriptionRetriever.has_index(document_records):
-            description_retriever = stage(
-                DescriptionRetriever.from_doc_records(document_records, 7),
-                "Page image search",
-            )
-            retrievers.append(description_retriever)
-            weights.append(1.0)
-
-        retriever = stage(
-            EnsembleRetriever(
-                retrievers=retrievers,
-                weights=weights,
-            ),
-            "Combined search",
-        )
-    else:
-        retriever = stage(
-            AllDocumentsRetriever.from_doc_records(document_records),
-            "All documents",
-        )
-
-    return retriever
 
 
 def create_indexing_tasks(
@@ -384,23 +298,26 @@ class DialRAGApplication(ChatCompletion):
                 return
 
             with timed_stage(choice, "Prepare indexes for search"):
-                # TODO: Move create_retriever to create_retrieval_chain
-                retriever = await loop.run_in_executor(
-                    None,
-                    create_retriever,
-                    request_context.choice,
-                    request_context.dial_config,
-                    document_records,
-                    request_config.indexing.multimodal_index,
-                )
+
+                def _make_retrieval_stage(retriever: BaseRetriever, stage_name):
+                    return RetrieverStage(
+                        choice=choice,
+                        stage_name=stage_name,
+                        document_records=document_records,
+                        retriever=retriever,
+                        doc_to_attach=doc_to_attach,
+                    )
 
                 query_chain = create_get_query_chain(
                     request_context, request_config.qa_chain.query_chain
                 )
 
                 retrieval_chain = await create_retrieval_chain(
+                    dial_config=request_context.dial_config,
+                    indexing_config=request_config.indexing,
+                    document_records=document_records,
                     query_chain=query_chain,
-                    retriever=retriever,
+                    make_retrieval_stage=_make_retrieval_stage,
                 )
 
             with profiler_if_enabled(choice, request_config.use_profiler):
