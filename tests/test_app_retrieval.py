@@ -138,7 +138,7 @@ async def test_retrieval_request_with_unsupported_csv(attachments):
     )
 
     # TODO: Add machine-readable per-document errors
-    assert response.status_code == 500
+    assert response.status_code == 400
     json_response = json.loads(response.text)
     assert json_response["error"]["message"] == (
         "I'm sorry, but I can't process the documents because of the following errors:\n\n"

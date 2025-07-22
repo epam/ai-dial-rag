@@ -153,23 +153,30 @@ def get_attachment_links(
             yield link
 
 
-def _get_user_facing_error_message(
-    exc: BaseException,
-) -> Generator[str, None, None]:
-    if isinstance(exc, DocumentProcessingError) and exc.__cause__:
+def _visit_leaf_exceptions(
+    exception: BaseException,
+) -> Generator[BaseException, None, None]:
+    if isinstance(exception, DocumentProcessingError) and exception.__cause__:
         # We want to show the original cause of the error to the User.
-        # The document name is already included in a separate field of the table.
-        yield from _get_user_facing_error_message(exc.__cause__)
-    elif isinstance(exc, HTTPException):
-        yield exc.message.replace("\n", " ")
-    elif isinstance(exc, Timeout):
-        yield "Timed out during download"
-    elif isinstance(exc, BaseExceptionGroup):
+        yield from _visit_leaf_exceptions(exception.__cause__)
+    elif isinstance(exception, BaseExceptionGroup):
         # We could have multiple errors in the group because of the concurrent processing.
-        for inner_exception in exc.exceptions:
-            yield from _get_user_facing_error_message(inner_exception)
+        for inner_exception in exception.exceptions:
+            yield from _visit_leaf_exceptions(inner_exception)
     else:
-        yield "Internal error"
+        yield exception
+
+
+def _get_user_facing_error_message(
+    exception: BaseException,
+) -> Generator[str, None, None]:
+    for leaf_exception in _visit_leaf_exceptions(exception):
+        if isinstance(leaf_exception, HTTPException):
+            yield leaf_exception.message.replace("\n", " ")
+        elif isinstance(leaf_exception, Timeout):
+            yield "Timed out during download"
+        else:
+            yield "Internal error"
 
 
 def format_document_loading_errors(
@@ -190,10 +197,12 @@ def format_document_loading_errors(
     )
 
 
-def _get_status_code(exception: BaseException) -> int:
-    if isinstance(exception, HTTPException):
-        return exception.status_code
-    return 500
+def _get_status_codes(exception: BaseException) -> Generator[int, None, None]:
+    for leaf_exception in _visit_leaf_exceptions(exception):
+        if isinstance(leaf_exception, HTTPException):
+            yield leaf_exception.status_code
+        else:
+            yield 500
 
 
 def create_document_loading_exception(
@@ -201,7 +210,11 @@ def create_document_loading_exception(
 ) -> HTTPException:
     # The min is used to make 4xx errors more important than 5xx errors,
     # because we want to prioritize errors that are caused by the User's input.
-    status_code = min(_get_status_code(exception) for exception, _ in errors)
+    status_code = min(
+        status_code
+        for e, _ in errors
+        for status_code in _get_status_codes(e)
+    )
 
     error_message = format_document_loading_errors(errors)
     return HTTPException(
