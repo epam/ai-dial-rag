@@ -173,7 +173,7 @@ def _get_user_facing_error_message(
 
 
 def format_document_loading_errors(
-    errors: list[Tuple[BaseException, AttachmentLink]],
+    errors: List[Tuple[BaseException, AttachmentLink]],
 ) -> str:
     return "\n".join(
         [
@@ -187,4 +187,25 @@ def format_document_loading_errors(
             ),
             "\nPlease try again with different documents.",
         ]
+    )
+
+
+def _get_status_code(exception: BaseException) -> int:
+    if isinstance(exception, HTTPException):
+        return exception.status_code
+    return 500
+
+
+def create_document_loading_exception(
+    errors: List[Tuple[BaseException, AttachmentLink]],
+) -> HTTPException:
+    # The min is used to make 4xx errors more important than 5xx errors,
+    # because we want to prioritize errors that are caused by the User's input.
+    status_code = min(_get_status_code(exception) for exception, _ in errors)
+
+    error_message = format_document_loading_errors(errors)
+    return HTTPException(
+        status_code=status_code,
+        message=error_message,
+        display_message=error_message,
     )

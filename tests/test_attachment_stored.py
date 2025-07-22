@@ -4,14 +4,15 @@ import pytest
 from aidial_sdk.chat_completion import Choice, Stage
 from pydantic import SecretStr
 
-from aidial_rag.app_config import IndexingConfig, RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.documents import load_document
 from aidial_rag.errors import DocumentProcessingError, InvalidDocumentError
 from aidial_rag.index_storage import IndexStorage, link_to_index_url
+from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
