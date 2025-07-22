@@ -1,0 +1,22 @@
+---
+excludes:
+  scopes:
+    - pattern: "lint"
+      reason: "DEV_DEPENDENCY_OF"
+      comment: "Packages for static code analysis only."
+    - pattern: "test"
+      reason: "TEST_DEPENDENCY_OF"
+      comment: "Packages for testing only."
+    - pattern: "nox"
+      reason: "TEST_DEPENDENCY_OF"
+      comment: "Packages for testing only."
+    - pattern: "doc"
+      reason: "DOCUMENTATION_DEPENDENCY_OF"
+      comment: "Packages for building the documentation only."
+    - pattern: "eval"
+      reason: "DEV_DEPENDENCY_OF"
+      comment: "Packages for quality evaluation only."
+license_choices:
+  repository_license_choices:
+    - given: FTL OR GPL-2.0-or-later
+      choice: FTL
