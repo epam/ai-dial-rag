@@ -13,12 +13,11 @@ class RetrievalResults(BaseModel):
     class Chunk(BaseModel):
         """Chunk of the document retrieved by the retriever."""
 
-        doc_id: int = Field(
-            description="Index of the attached document in the request, 0-based."
+        attachment_url: str = Field(
+            description="URL of the attached document, the chunk belongs to. "
+            "Exactly matches with the `attachment.url` field in the request.",
         )
-        chunk_id: int = Field(
-            description="Index of the chunk in the document, 0-based."
-        )
+
         source: str = Field(
             description="URL to the source of the chunk. The source could be a document "
             "or some part of the document, like a page or a section. The URL could have "

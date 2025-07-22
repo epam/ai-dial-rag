@@ -54,7 +54,7 @@ async def test_document_error(attachments, caplog):
         "unhandled errors in a TaskGroup (1 sub-exception)" in caplog.text
     )
     assert (
-        "aidial_sdk.exceptions.HTTPException: Unable to load document content. "
+        "aidial_rag.errors.InvalidDocumentError: Unable to load document content. "
         "Try another document format." in caplog.text
     )
 
@@ -90,7 +90,7 @@ async def test_document_error_with_error_log_enabled(attachments, caplog):
         "unhandled errors in a TaskGroup (1 sub-exception)" in caplog.text
     )
     assert (
-        "aidial_sdk.exceptions.HTTPException: Unable to load document content. "
+        "aidial_rag.errors.InvalidDocumentError: Unable to load document content. "
         "Try another document format." in caplog.text
     )
 

@@ -6,8 +6,8 @@ from typing import Iterable, List
 
 from docarray import DocList
 
-from aidial_rag.app_config import RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag.content_stream import (
     LoggerStream,
     MarkdownStream,
