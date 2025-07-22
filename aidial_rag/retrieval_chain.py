@@ -10,6 +10,7 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain_core.retrievers import RetrieverLike
 from langchain_core.runnables import Runnable, chain
 
+from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.image_processor.base64 import pil_image_as_base64
@@ -126,6 +127,7 @@ async def create_retrieval_results(
 ) -> RetrievalResults:
     """Create retrieval results from the input data."""
     doc_records: List[DocumentRecord] = input.get("doc_records", [])
+    doc_records_links: List[AttachmentLink] = input.get("doc_records_links", [])
     index_items: List[Document] = input.get("found_items", [])
     image_by_page: Dict[PageKey, str] = input.get("image_by_page", {})
 
@@ -138,10 +140,10 @@ async def create_retrieval_results(
         doc_id = chunk_metadata["doc_id"]
         chunk_id = chunk_metadata["chunk_id"]
         doc_record = doc_records[doc_id]
+        doc_record_link = doc_records_links[doc_id]
         chunk = doc_record.chunks[chunk_id]
         chunk_data = RetrievalResults.Chunk(
-            doc_id=doc_id,
-            chunk_id=chunk_id,
+            attachment_url=doc_record_link.dial_link,
             text=chunk.text,
             source=chunk.metadata["source"],
             source_display_name=chunk.metadata.get("source_display_name"),

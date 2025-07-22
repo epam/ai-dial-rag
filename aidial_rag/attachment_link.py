@@ -211,9 +211,7 @@ def create_document_loading_exception(
     # The min is used to make 4xx errors more important than 5xx errors,
     # because we want to prioritize errors that are caused by the User's input.
     status_code = min(
-        status_code
-        for e, _ in errors
-        for status_code in _get_status_codes(e)
+        status_code for e, _ in errors for status_code in _get_status_codes(e)
     )
 
     error_message = format_document_loading_errors(errors)

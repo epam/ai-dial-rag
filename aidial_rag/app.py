@@ -98,8 +98,13 @@ def doc_to_attach(
 def process_load_errors(
     docs_and_errors: List[DocumentRecord | BaseException],
     attachment_links: List[AttachmentLink],
-) -> Tuple[List[DocumentRecord], List[Tuple[BaseException, AttachmentLink]]]:
+) -> Tuple[
+    List[DocumentRecord],
+    List[AttachmentLink],
+    List[Tuple[BaseException, AttachmentLink]],
+]:
     document_records: List[DocumentRecord] = []
+    document_records_links: List[AttachmentLink] = []
     loading_errors: List[Tuple[BaseException, AttachmentLink]] = []
 
     for doc_or_error, link in zip(
@@ -107,6 +112,8 @@ def process_load_errors(
     ):
         if isinstance(doc_or_error, DocumentRecord):
             document_records.append(doc_or_error)
+            document_records_links.append(link)
+
         elif isinstance(doc_or_error, Exception):
             loading_errors.append((doc_or_error, link))
         else:
@@ -117,7 +124,7 @@ def process_load_errors(
                 status_code=500,
             ) from doc_or_error
 
-    return document_records, loading_errors
+    return document_records, document_records_links, loading_errors
 
 
 def create_indexing_tasks(
@@ -139,11 +146,13 @@ async def _run_retrieval(
     retrieval_chain: Runnable[Dict[str, Any], Dict[str, Any]],
     messages: List[Message],
     document_records: List[DocumentRecord],
+    document_records_links: List[AttachmentLink],
 ):
     chain_input = {
         "chat_history": transform_history(messages),
         "chat_chain_config": request_config.qa_chain.chat_chain,
         "doc_records": document_records,
+        "doc_records_links": document_records_links,
     }
 
     retrieval_results = await retrieval_chain.pick("retrieval_results").ainvoke(
@@ -163,12 +172,14 @@ async def _run_rag(
     retrieval_chain: Runnable[Dict[str, Any], Dict[str, Any]],
     messages: List[Message],
     document_records: List[DocumentRecord],
+    document_records_links: List[AttachmentLink],
 ):
     choice = request_context.choice
     chain_input = {
         "chat_history": transform_history(messages),
         "chat_chain_config": request_config.qa_chain.chat_chain,
         "doc_records": document_records,
+        "doc_records_links": document_records_links,
     }
 
     reference_items = await generate_answer(
@@ -286,8 +297,8 @@ class DialRAGApplication(ChatCompletion):
                 index_storage,
                 config=request_config,
             )
-            document_records, loading_errors = process_load_errors(
-                docs_and_errors, attachment_links
+            document_records, document_records_links, loading_errors = (
+                process_load_errors(docs_and_errors, attachment_links)
             )
 
             if (
@@ -344,6 +355,7 @@ class DialRAGApplication(ChatCompletion):
                         retrieval_chain,
                         messages,
                         document_records,
+                        document_records_links,
                     )
 
                 if request_config.request.type == RequestType.RAG:
@@ -353,6 +365,7 @@ class DialRAGApplication(ChatCompletion):
                         retrieval_chain,
                         messages,
                         document_records,
+                        document_records_links,
                     )
 
     async def configuration(self, request):

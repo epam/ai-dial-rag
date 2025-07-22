@@ -17,16 +17,6 @@ middleware_host = "http://localhost:8081"
 pytestmark = pytest.mark.usefixtures("description_index_retries_override")
 
 
-def _get_stage_names(response_json):
-    stages = response_json["choices"][0]["message"]["custom_content"]["stages"]
-    return [
-        re.sub(
-            r"\s*\[.*\]$", "", stage["name"]
-        ).strip()  # cut [0.03s] at the end of the stage name
-        for stage in stages
-    ]
-
-
 @pytest.mark.asyncio
 @e2e_test(filenames=["alps_wiki.html", "test_image.png"])
 async def test_retrieval_request(attachments):
@@ -73,8 +63,10 @@ async def test_retrieval_request(attachments):
     retrieval_results = RetrievalResults.model_validate_json(attachment["data"])
     assert len(retrieval_results.chunks) == 13
     chunk_from_image = retrieval_results.chunks[0]
-    assert chunk_from_image.doc_id == 1
-    assert chunk_from_image.chunk_id == 0
+    assert (
+        chunk_from_image.attachment_url
+        == "files/6iTkeGUs2CvUehhYLmMYXB/test_image.png"
+    )
     assert chunk_from_image.text == ""
     assert (
         chunk_from_image.source == "files/6iTkeGUs2CvUehhYLmMYXB/test_image.png"
@@ -91,7 +83,7 @@ async def test_retrieval_request(attachments):
     )
 
     assert all(
-        chunk.doc_id == 0
+        chunk.attachment_url == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
         and chunk.source_display_name == "alps_wiki.html"
         and chunk.source == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
         and chunk.page_number is None
