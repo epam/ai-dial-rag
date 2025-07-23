@@ -31,7 +31,7 @@ def test(session):
         "averaged_perceptron_tagger",
         "averaged_perceptron_tagger_eng",
     )
-    session.run("pytest", *args, env=session.env)
+    session.run("pytest", *(args + ["-o", "log_cli=true"]), env=session.env)
 
 
 @nox.session()
