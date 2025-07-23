@@ -1,6 +1,8 @@
+import asyncio
 import threading
+import time
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, List, Optional, Tuple
 
 import torch
 from pydantic import BaseModel, Field, model_validator
@@ -64,6 +66,81 @@ class ColpaliModelResourceConfig(BaseModel):
         return self
 
 
+class ColpaliBatchProcessor:
+    """Handles batching of image processing requests across multiple concurrent tasks."""
+    
+    def __init__(self, process_batch_func, batch_size=8, batch_wait_time=0.05):
+        self.pending_items: List[Tuple[str, asyncio.Future]] = []  # (image, future)
+        self.processing_task: Optional[asyncio.Task] = None
+        self.process_batch_func = process_batch_func
+        self.batch_size = batch_size  # Configurable batch size
+        self.batch_wait_time = batch_wait_time  # Wait time to collect more items
+        self._lock = asyncio.Lock()
+    
+    async def add_item(self, item: str) -> asyncio.Future:
+        """Add item to batch, return future for the result."""
+        future = asyncio.Future()
+        
+        async with self._lock:
+            self.pending_items.append((item, future))
+            
+            # Start processing task if not already running
+            if self.processing_task is None or self.processing_task.done():
+                self.processing_task = asyncio.create_task(self._process_batches())
+        
+        return future
+
+    
+    async def _process_batches(self):
+        """Process batches"""
+        while True:
+            batch_items = []
+            should_wait = False
+            
+            async with self._lock:
+                if len(self.pending_items) < self.batch_size:
+                    should_wait = True
+                elif len(self.pending_items) == 0:
+                    break  # No more items, exit processing
+
+            # Wait to collect more items
+            if should_wait:
+                await asyncio.sleep(self.batch_wait_time)
+            async with self._lock:
+                if self.pending_items:
+                    batch_size = min(len(self.pending_items), self.batch_size)
+                    batch_items = self.pending_items[:batch_size]
+                    self.pending_items = self.pending_items[batch_size:]
+
+            # Only process if we have items
+            if batch_items:
+                await self._process_batch(batch_items)
+    
+    async def _process_batch(self, batch_items: List[Tuple[str, asyncio.Future]]):
+        """Process a batch of images."""
+        try:
+            # Extract images from batch
+            images = [item[0] for item in batch_items]
+            futures = [item[1] for item in batch_items]
+            
+            from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
+            #TODO change pools and make it configurable
+            batch_results = await run_in_indexing_cpu_pool(self.process_batch_func, images)
+            
+            # Distribute results back to futures
+            for future, result in zip(futures, batch_results):
+                if not future.done():
+                    future.set_result(result)
+                    
+        except Exception as e:
+            # Set exception for all futures in batch
+            for _, future in batch_items:
+                if not future.done():
+                    future.set_exception(e)
+
+
+
+
 class ColpaliModelResource:
     def __init__(
         self,
@@ -78,6 +155,8 @@ class ColpaliModelResource:
         self.model = None
         self.device: torch.device | None = None
         self.processor = None
+        self.batch_processor: Optional[ColpaliBatchProcessor] = None
+        self.query_batch_processor: Optional[ColpaliBatchProcessor] = None
         if colpali_index_config is not None and config is not None:
             self.__set_config(config)
 
@@ -94,7 +173,7 @@ class ColpaliModelResource:
             self.model_resource_config = config
             device = autodetect_device()
             self.device = torch.device(device)
-
+            self.device = torch.device("mps")
             from colpali_engine.models import (
                 ColIdefics3,
                 ColIdefics3Processor,
@@ -118,7 +197,7 @@ class ColpaliModelResource:
                     raise ValueError("Invalid ColPali model type")
 
             self.model = model_class.from_pretrained(
-                config.model_name, torch_dtype=torch.float16, device_map=device
+                config.model_name, torch_dtype=torch.float16, device_map=self.device
             ).eval()
             self.processor = processor_class.from_pretrained(config.model_name)
             assert self.model is not None
@@ -135,3 +214,17 @@ class ColpaliModelResource:
             ):
                 raise ValueError("ColpaliModelResourceConfig is required")
             return self.model, self.processor, self.device
+    
+
+    
+    def get_batch_processor(self, process_batch_func, batch_size=8, batch_wait_time=0.05) -> ColpaliBatchProcessor:
+        """Get or create the indexing batch processor instance with the given processing function."""
+        if self.batch_processor is None:
+            self.batch_processor = ColpaliBatchProcessor(process_batch_func, batch_size, batch_wait_time)
+        return self.batch_processor
+    
+    def get_query_batch_processor(self, process_batch_func, batch_size=8, batch_wait_time=0.05) -> ColpaliBatchProcessor:
+        """Get or create the query batch processor instance with the given processing function."""
+        if self.query_batch_processor is None:
+            self.query_batch_processor = ColpaliBatchProcessor(process_batch_func, batch_size, batch_wait_time)
+        return self.query_batch_processor

@@ -1,12 +1,13 @@
 import logging
+import time
+import asyncio
 from collections import defaultdict
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import torch
-from langchain.schema import BaseRetriever
-from langchain_core.documents import Document
 from torch import Tensor
+from langchain.schema import BaseRetriever, Document
 
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.document_record import (
@@ -23,14 +24,24 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
+    ColpaliBatchProcessor,
 )
 from aidial_rag.retrievers.embeddings_index import (
     to_ndarray,
 )
 from aidial_rag.retrievers.page_image_retriever_utils import extract_page_images
 from aidial_rag.utils import timed_block
+from dataclasses import dataclass
+from typing import Coroutine
+from collections import deque
 
 logger = logging.getLogger(__name__)
+
+
+
+
+
+
 
 
 class DocumentPageEmbedding:
@@ -55,6 +66,8 @@ class ColpaliRetriever(BaseRetriever):
     device: torch.device
     k: int
     model_resource: ColpaliModelResource
+
+
 
     def _score_documents_with_embeddings(
         self, query_embeddings: Tensor
@@ -86,12 +99,14 @@ class ColpaliRetriever(BaseRetriever):
 
     def _score_documents(self, query: str) -> List[Tuple[float, int]]:
         """Score all documents against the query and return sorted (score, doc_idx) pairs."""
-        query_embeddings = self.embed_queries([query])
+        query_embeddings_list = self.embed_queries([query])
+        query_embeddings = query_embeddings_list[0]  # Get the single embedding
         return self._score_documents_with_embeddings(query_embeddings)
 
     async def _ascore_documents(self, query: str) -> List[Tuple[float, int]]:
         """Async version of _score_documents"""
-        query_embeddings = await self.aembed_queries([query])
+        query_embeddings_list = await self.aembed_queries([query])
+        query_embeddings = query_embeddings_list[0]  # Get the single embedding
         return self._score_documents_with_embeddings(query_embeddings)
 
     def _collect_top_k_chunks(
@@ -177,18 +192,33 @@ class ColpaliRetriever(BaseRetriever):
             model_resource=colpali_model_resouce,
         )
 
-    def embed_queries(self, queries: List[str]) -> Tensor:
-        if self.processor is None:
-            raise RuntimeError("Processor is not initialized.")
-        batch_queries = self.processor.process_queries(queries).to(self.device)
+    def embed_queries(self, queries: List[str]) -> List[Tensor]:
+        """Embed queries using the ColPali model."""
+        model, processor, device = self.model_resource.get_model_processor_device()
+        
+        # Process queries with ColPali
+        inputs = processor.process_queries(queries).to(device)
+        
         with torch.no_grad():
-            with self.model_resource.get_gpu_lock():
-                query_embeddings = self.model(**batch_queries)
-        return query_embeddings
+            embeddings = model(**inputs)
+        
+        # Split batch tensor into individual tensors and move to CPU
+        return [tensor.cpu().unsqueeze(0) for tensor in embeddings]
 
-    async def aembed_queries(self, queries: List[str]) -> Tensor:
-        """Async version of embed_queries that runs in CPU pool."""
-        return await run_in_indexing_cpu_pool(self.embed_queries, queries)
+    async def aembed_queries(self, queries: List[str]) -> List[Tensor]:
+        """Async version of embed_queries with batching support."""
+        # Get or create query batch processor with GPU processing method
+        query_batch_processor = self.model_resource.get_query_batch_processor(self.embed_queries)
+        
+        query_embeddings_list = []
+        
+        for query in queries:
+            # Add query to batch processor
+            future = await query_batch_processor.add_item(query)
+            query_embedding = await future
+            query_embeddings_list.append(query_embedding)
+        
+        return query_embeddings_list
 
     @staticmethod
     def pad_embeddings(tensor: Tensor, target_shape: Tuple) -> Tensor:
@@ -205,12 +235,40 @@ class ColpaliRetriever(BaseRetriever):
         )
 
     @staticmethod
+    def _process_images_batch_gpu(images_batch: List[str], processor, model, device) -> List[torch.Tensor]:
+        """Process a batch of images using the ColPali model on GPU."""
+        # Convert base64 images to PIL images
+        from PIL import Image
+        import base64
+        import io
+        
+        pil_images = []
+        for image in images_batch:
+            # Remove data URL prefix if present
+            if image.startswith('data:image'):
+                image = image.split(',')[1]
+            
+            # Decode base64
+            image_data = base64.b64decode(image)
+            pil_image = Image.open(io.BytesIO(image_data))
+            pil_images.append(pil_image)
+        
+        # Process images with ColPali - use the proper processor methods
+        inputs = processor.process_images(pil_images).to(device)
+        
+        with torch.no_grad():
+            outputs = model(**inputs)
+        
+        # Split batch tensor into individual tensors and move to CPU
+        return [tensor.cpu().unsqueeze(0) for tensor in outputs]
+
+    @staticmethod
     async def embed_images(
         colpali_model_resource: ColpaliModelResource,
         colpali_index_config: ColpaliIndexConfig,
         images: AsyncGeneratorWithTotal,
         stageio,
-    ) -> list[Tensor]:
+    ) -> List[Tensor]:
         model, processor, device = (
             colpali_model_resource.get_model_processor_device()
         )
@@ -223,34 +281,38 @@ class ColpaliRetriever(BaseRetriever):
                 "ColpaliModelResource did not return a valid model."
             )
 
-        def process_image_gpu(image_base64):
-            image = pil_image_from_base64(image_base64)
-            batch_images = processor.process_images([image]).to(device)  # pyright: ignore
-            with torch.no_grad():
-                with colpali_model_resource.get_gpu_lock():
-                    return model(**batch_images)
-
+        # Get or create batch processor with GPU processing method
+        batch_processor = colpali_model_resource.get_batch_processor(
+            lambda images: ColpaliRetriever._process_images_batch_gpu(images, processor, model, device)
+        )
+        
         image_embeddings_list = []
-        counter = 1
+        counter = 1#TODO should be removed after change to tqdm
 
         async for image in images.agen:
+            #TODO change to tqdm
             stageio.write(f"Processing page {counter}/{images.total}\n")
-            image_embeddings = await run_in_indexing_cpu_pool(
-                process_image_gpu, image
-            )
-            image_embeddings_list.append(image_embeddings)
+            
+            # Add image to batch processor
+            future = await batch_processor.add_item(image)
+            image_embedding = await future
+            image_embeddings_list.append(image_embedding)
             counter += 1
 
-        max_shape = (
-            max(embed.shape[0] for embed in image_embeddings_list),
-            max(embed.shape[1] for embed in image_embeddings_list),
-            max(embed.shape[2] for embed in image_embeddings_list),
-        )
+        # Pad embeddings to same shape
+        if image_embeddings_list:
+            max_shape = (
+                max(embed.shape[0] for embed in image_embeddings_list),
+                max(embed.shape[1] for embed in image_embeddings_list),
+                max(embed.shape[2] for embed in image_embeddings_list),
+            )
 
-        padded_embeddings = [
-            torch.squeeze(ColpaliRetriever.pad_embeddings(embed, max_shape), 0)
-            for embed in image_embeddings_list
-        ]
+            padded_embeddings = [
+                torch.squeeze(ColpaliRetriever.pad_embeddings(embed, max_shape), 0)
+                for embed in image_embeddings_list
+            ]
+        else:
+            padded_embeddings = []
 
         return padded_embeddings
 
