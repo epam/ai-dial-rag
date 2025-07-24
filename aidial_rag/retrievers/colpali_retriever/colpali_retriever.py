@@ -242,25 +242,19 @@ class ColpaliRetriever(BaseRetriever):
         import base64
         import io
         
+        #process images with processor
         pil_images = []
         for image in images_batch:
-            # Remove data URL prefix if present
-            if image.startswith('data:image'):
-                image = image.split(',')[1]
-            
-            # Decode base64
-            image_data = base64.b64decode(image)
-            pil_image = Image.open(io.BytesIO(image_data))
+            pil_image = pil_image_from_base64(image)
             pil_images.append(pil_image)
-        
-        # Process images with ColPali - use the proper processor methods
         inputs = processor.process_images(pil_images).to(device)
         
         with torch.no_grad():
             outputs = model(**inputs)
         
         # Split batch tensor into individual tensors and move to CPU
-        return [tensor.cpu().unsqueeze(0) for tensor in outputs]
+        result = [tensor.cpu().unsqueeze(0) for tensor in outputs]
+        return result
 
     @staticmethod
     async def embed_images(
@@ -283,21 +277,27 @@ class ColpaliRetriever(BaseRetriever):
 
         # Get or create batch processor with GPU processing method
         batch_processor = colpali_model_resource.get_batch_processor(
-            lambda images: ColpaliRetriever._process_images_batch_gpu(images, processor, model, device)
+            lambda images: ColpaliRetriever._process_images_batch_gpu(images, processor, model, device),
         )
         
         image_embeddings_list = []
         counter = 1#TODO should be removed after change to tqdm
 
+        futures = []
         async for image in images.agen:
             #TODO change to tqdm
             stageio.write(f"Processing page {counter}/{images.total}\n")
             
-            # Add image to batch processor
+            # Add image to batch processor (don't await yet)
             future = await batch_processor.add_item(image)
+            futures.append(future)
+            counter += 1
+        
+        # waiting for images to be processed
+        for future in futures:
+            #TODO move progress here
             image_embedding = await future
             image_embeddings_list.append(image_embedding)
-            counter += 1
 
         # Pad embeddings to same shape
         if image_embeddings_list:
