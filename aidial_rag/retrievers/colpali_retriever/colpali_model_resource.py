@@ -82,9 +82,7 @@ class ColpaliBatchProcessor:
         self.process_batch_func = process_batch_func
         self.pool_func = pool_func
         self.batch_size = batch_size
-        self.batch_wait_time = (
-            batch_wait_time
-        )
+        self.batch_wait_time = batch_wait_time
         self._lock = asyncio.Lock()
 
         # Validate pool function

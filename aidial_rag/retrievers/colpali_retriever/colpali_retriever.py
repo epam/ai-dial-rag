@@ -7,6 +7,7 @@ import torch
 from langchain.schema import BaseRetriever, Document
 from torch import Tensor
 
+from aidial_rag.batched import TqdmProgressBar
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.document_record import (
     DocumentRecord,
@@ -273,23 +274,21 @@ class ColpaliRetriever(BaseRetriever):
         )
 
         image_embeddings_list = []
-        counter = 1  # TODO should be removed after change to tqdm
 
+        stageio.write("Processing images\n")
+
+        # Collect all futures first (parallel processing)
         futures = []
         async for image in images.agen:
-            # TODO change to tqdm
-            stageio.write(f"Processing page {counter}/{images.total}\n")
-
-            # Add image to batch processor (don't await yet)
-            future = await batch_processor.add_item(image)
+            future = await batch_processor.add_item(image)  # await to get the Future
             futures.append(future)
-            counter += 1
 
-        # waiting for images to be processed
-        for future in futures:
-            # TODO move progress here
-            image_embedding = await future
-            image_embeddings_list.append(image_embedding)
+        # Wait for all futures to complete
+        with TqdmProgressBar(total=len(futures), file=stageio) as pbar:
+            for future in futures:
+                image_embedding = await future
+                image_embeddings_list.append(image_embedding)
+                pbar.update()
 
         # Pad embeddings to same shape
         if image_embeddings_list:
