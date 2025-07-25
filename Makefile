@@ -46,7 +46,7 @@ install_libreoffice:
 	sudo apt-get install --no-install-recommends -y libreoffice=$(LIBREOFFICE_UBUNTU_VERSION)
 
 test: install_nox $(if $(CI), install_libreoffice)
-	PYTHONASYNCIODEBUG=1 $(POETRY) run nox -s test $(ARGS)
+	$(POETRY) run nox -s test $(ARGS)
 
 docker_build:
 	$(DOCKER) build --platform $(PLATFORM) -t $(IMAGE_NAME):dev .
