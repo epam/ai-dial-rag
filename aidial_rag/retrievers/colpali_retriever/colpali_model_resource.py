@@ -68,17 +68,28 @@ class ColpaliModelResourceConfig(BaseModel):
 class ColpaliBatchProcessor:
     """Handles batching of image processing requests across multiple concurrent tasks."""
 
-    def __init__(self, process_batch_func, batch_size=8, batch_wait_time=0.05):
+    def __init__(
+        self,
+        process_batch_func,
+        pool_func,
+        batch_size: int = 8,
+        batch_wait_time: float = 0.05,
+    ):
         self.pending_items: List[
             Tuple[str, asyncio.Future]
         ] = []  # (image, future)
         self.processing_task: Optional[asyncio.Task] = None
         self.process_batch_func = process_batch_func
-        self.batch_size = batch_size  # Configurable batch size
+        self.pool_func = pool_func
+        self.batch_size = batch_size
         self.batch_wait_time = (
-            batch_wait_time  # Wait time to collect more items
+            batch_wait_time
         )
         self._lock = asyncio.Lock()
+
+        # Validate pool function
+        if pool_func is not None and not callable(pool_func):
+            raise ValueError("pool_func must be callable")
 
     async def add_item(self, item: str) -> asyncio.Future:
         """Add item to batch, return future for the result."""
@@ -129,10 +140,7 @@ class ColpaliBatchProcessor:
             images = [item[0] for item in batch_items]
             futures = [item[1] for item in batch_items]
 
-            from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
-
-            # TODO change pools and make it configurable
-            batch_results = await run_in_indexing_cpu_pool(
+            batch_results = await self.pool_func(
                 self.process_batch_func, images
             )
 
@@ -175,6 +183,7 @@ class ColpaliModelResource:
             self.model_resource_config = config
             device = autodetect_device()
             self.device = torch.device(device)
+
             from colpali_engine.models import (
                 ColIdefics3,
                 ColIdefics3Processor,
@@ -219,21 +228,43 @@ class ColpaliModelResource:
             return self.model, self.processor, self.device
 
     def get_batch_processor(
-        self, process_batch_func, batch_size=8, batch_wait_time=0.05
+        self,
+        process_batch_func,
+        pool_func,
+        batch_size: int = 8,
+        batch_wait_time: float = 0.05,
     ) -> ColpaliBatchProcessor:
-        """Get or create the indexing batch processor instance with the given processing function."""
+        """Get or create the indexing batch processor instance with the given processing function.
+
+        Args:
+            process_batch_func: Function to process batches
+            pool_func: Pool function to use
+            batch_size: Number of items to process in each batch
+            batch_wait_time: Time to wait for more items before processing batch
+        """
         if self.batch_processor is None:
             self.batch_processor = ColpaliBatchProcessor(
-                process_batch_func, batch_size, batch_wait_time
+                process_batch_func, pool_func, batch_size, batch_wait_time
             )
         return self.batch_processor
 
     def get_query_batch_processor(
-        self, process_batch_func, batch_size=8, batch_wait_time=0.05
+        self,
+        process_batch_func,
+        pool_func,
+        batch_size: int = 8,
+        batch_wait_time: float = 0.05,
     ) -> ColpaliBatchProcessor:
-        """Get or create the query batch processor instance with the given processing function."""
+        """Get or create the query batch processor instance with the given processing function.
+
+        Args:
+            process_batch_func: Function to process batches
+            pool_func: pool function to use
+            batch_size: Number of items to process in each batch
+            batch_wait_time: Time to wait for more items before processing batch
+        """
         if self.query_batch_processor is None:
             self.query_batch_processor = ColpaliBatchProcessor(
-                process_batch_func, batch_size, batch_wait_time
+                process_batch_func, pool_func, batch_size, batch_wait_time
             )
         return self.query_batch_processor

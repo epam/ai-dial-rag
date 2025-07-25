@@ -15,6 +15,10 @@ from aidial_rag.document_record import (
 )
 from aidial_rag.image_processor.base64 import pil_image_from_base64
 from aidial_rag.index_record import RetrievalType, to_metadata_doc
+from aidial_rag.resources.cpu_pools import (
+    run_in_heavy_indexing_embeddings_pool,
+    run_in_heavy_query_embeddings_pool,
+)
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
@@ -193,7 +197,7 @@ class ColpaliRetriever(BaseRetriever):
         """Async version of embed_queries with batching support."""
         # Get or create query batch processor with GPU processing method
         query_batch_processor = self.model_resource.get_query_batch_processor(
-            self.embed_queries
+            self.embed_queries, pool_func=run_in_heavy_query_embeddings_pool
         )
 
         query_embeddings_list = []
@@ -265,6 +269,7 @@ class ColpaliRetriever(BaseRetriever):
             lambda images: ColpaliRetriever._process_images_batch_gpu(
                 images, processor, model, device
             ),
+            pool_func=run_in_heavy_indexing_embeddings_pool,
         )
 
         image_embeddings_list = []
