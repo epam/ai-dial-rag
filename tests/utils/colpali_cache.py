@@ -1,7 +1,7 @@
 import hashlib
 import pickle
 from pathlib import Path
-from typing import Any, List, Optional, Dict
+from typing import Any, Dict, Optional
 
 import torch
 from torch import Tensor
@@ -40,32 +40,32 @@ class CachedModel:
     def _get_input_hash(self, kwargs: Dict[str, Any]) -> str:
         """Generate hash from input kwargs."""
         import hashlib
-        
+
         # For images, hash the pixel_values
         if "pixel_values" in kwargs:
             pixel_values = kwargs["pixel_values"]
-            if hasattr(pixel_values, 'cpu'):
-                pixel_values = pixel_values.cpu()
             hash_input = pixel_values.numpy().tobytes()
         # For queries, hash the input_ids
         elif "input_ids" in kwargs:
             # Hash the input_ids tensor
             input_ids = kwargs["input_ids"]
-            if hasattr(input_ids, 'cpu'):
-                input_ids = input_ids.cpu()
             hash_input = input_ids.numpy().tobytes()
         else:
             # Fallback: hash the entire kwargs
-            hash_input = str(kwargs).encode()
-        
-        hash_result = hashlib.md5(hash_input).hexdigest()
+            raise ValueError("No input found in kwargs")
+
+        hash_result = hashlib.md5(hash_input).hexdigest()  # noqa: S324
         return hash_result
 
     def _load_cached_data(self) -> None:
         if not self.cache_dir:
             return
-        query_path = self.cache_dir / f"{self.cache_key}_query_embeddings_cache.pkl"
-        image_path = self.cache_dir / f"{self.cache_key}_image_embeddings_cache.pkl"
+        query_path = (
+            self.cache_dir / f"{self.cache_key}_query_embeddings_cache.pkl"
+        )
+        image_path = (
+            self.cache_dir / f"{self.cache_key}_image_embeddings_cache.pkl"
+        )
         if query_path.exists():
             with open(query_path, "rb") as f:
                 self.query_embeddings_cache = pickle.load(f)  # noqa: S301
@@ -73,7 +73,9 @@ class CachedModel:
             with open(image_path, "rb") as f:
                 self.image_embeddings_cache = pickle.load(f)  # noqa: S301
 
-    def _save_embeddings(self, embeddings_cache: Dict[str, Tensor], filename: str) -> None:
+    def _save_embeddings(
+        self, embeddings_cache: Dict[str, Tensor], filename: str
+    ) -> None:
         """Save embeddings cache to disk."""
         if self.cache_dir:
             cache_path = self.cache_dir / f"{self.cache_key}_{filename}.pkl"
@@ -82,28 +84,33 @@ class CachedModel:
 
     def __call__(self, **kwargs) -> Tensor:
         is_image_call = "pixel_values" in kwargs
-        cache = self.image_embeddings_cache if is_image_call else self.query_embeddings_cache
+        cache = (
+            self.image_embeddings_cache
+            if is_image_call
+            else self.query_embeddings_cache
+        )
 
         if self.use_cache:
             # Replay mode: split input, get individual embeddings, assemble batch
             batch_size = kwargs["input_ids"].shape[0]
             individual_embeddings = []
-            
+
             for i in range(batch_size):
                 # Split input into individual item
                 individual_kwargs = {}
                 for key, value in kwargs.items():
-                    individual_kwargs[key] = value[i:i+1]
-                
+                    individual_kwargs[key] = value[i : i + 1]
+
                 # Get individual embedding from cache
                 input_hash = self._get_input_hash(individual_kwargs)
                 if input_hash in cache:
                     cached_embedding = cache[input_hash]
                     individual_embeddings.append(cached_embedding)
                 else:
-                    
-                    raise RuntimeError(f"No cached embedding found for {input_hash}")
-            
+                    raise RuntimeError(
+                        f"No cached embedding found for {input_hash}"
+                    )
+
             # Assemble batch from individual embeddings
             result = torch.cat(individual_embeddings, dim=0)
             return result
@@ -112,7 +119,6 @@ class CachedModel:
             if self.real_model is None:
                 raise RuntimeError("Real model is required for recording mode")
             output = self.real_model(**kwargs)  # Process whole batch
-            
 
             # Split batch result and input, then cache individual mappings
             batch_size = output.shape[0]
@@ -120,19 +126,23 @@ class CachedModel:
                 # Split input into individual item
                 individual_kwargs = {}
                 for key, value in kwargs.items():
-                    individual_kwargs[key] = value[i:i+1]
-                
+                    individual_kwargs[key] = value[i : i + 1]
+
                 # Cache individual mapping
                 input_hash = self._get_input_hash(individual_kwargs)
                 individual_tensor = output[i].unsqueeze(0).detach().cpu()
                 cache[input_hash] = individual_tensor
-            
+
             # Save cache
             if is_image_call:
-                self._save_embeddings(self.image_embeddings_cache, "image_embeddings_cache")
+                self._save_embeddings(
+                    self.image_embeddings_cache, "image_embeddings_cache"
+                )
             else:
-                self._save_embeddings(self.query_embeddings_cache, "query_embeddings_cache")
-            
+                self._save_embeddings(
+                    self.query_embeddings_cache, "query_embeddings_cache"
+                )
+
             return output
 
 

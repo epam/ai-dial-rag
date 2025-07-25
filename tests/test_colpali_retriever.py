@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 from unittest.mock import patch
@@ -13,6 +14,7 @@ from aidial_rag.document_record import (
     build_chunks_list,
 )
 from aidial_rag.documents import parse_content_type
+from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
@@ -23,6 +25,7 @@ from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
     ColpaliRetriever,
 )
+from aidial_rag.retrievers.page_image_retriever_utils import extract_page_images
 from tests.utils.colpali_cache import CachedColpaliModelResource
 from tests.utils.e2e_decorator import e2e_test
 from tests.utils.local_http_server import start_local_server
@@ -195,7 +198,7 @@ def test_model_name_type_validation():
             model_type=ColpaliModelType.COLPALI,  # Wrong type
         )
 
-    # Test unknown model name - should raise error (current behavior)
+    # Test unknown model name - should raise error
     with pytest.raises(
         ValueError, match="Model name 'unknown/model' is not known"
     ):
@@ -285,3 +288,183 @@ async def test_colpali_retrieval_e2e(attachments):
             question=COLPALI_TEST_CONFIG["query"],
             expected_text=COLPALI_TEST_CONFIG["expected_answer"],
         )
+
+
+@pytest.fixture
+def test_queries():
+    """Fixture providing test queries for tests."""
+    return ["what is the caption of the image of butterfly?" for _ in range(16)]
+
+
+@pytest.fixture
+def colpali_model_resource():
+    """Fixture providing ColPali model resource."""
+    use_cache = (
+        True  # To update the cache  test_colpali_retriever with REFRESH=true
+    )
+
+    colpali_model_resource_config = ColpaliModelResourceConfig(
+        model_name="vidore/colSmol-256M",
+        model_type=ColpaliModelType.COLIDEFICS,
+    )
+    colpali_index_config = ColpaliIndexConfig(
+        image_size=512,
+    )
+
+    model_resource = CachedColpaliModelResource(
+        colpali_model_resource_config, colpali_index_config, use_cache=use_cache
+    )
+
+    # Ensure colpali_index_config is set
+    model_resource.colpali_index_config = colpali_index_config
+
+    return model_resource
+
+
+@pytest.fixture
+def colpali_retriever(local_server, colpali_model_resource):
+    """Fixture providing ColPali retriever without embeddings"""
+    model, processor, device = (
+        colpali_model_resource.get_model_processor_device()
+    )
+
+    retriever = ColpaliRetriever(
+        document_embeddings=[],
+        model=model,
+        processor=processor,
+        device=device,
+        k=7,
+        model_resource=colpali_model_resource,
+    )
+
+    return retriever
+
+
+@pytest.fixture
+async def test_images(local_server, colpali_model_resource):
+    """Fixture providing test images extracted from PDF."""
+    # Load PDF and extract images
+    _, buffer, mime_type = await load_document("alps_wiki.pdf")
+
+    # Extract images from PDF
+    extracted_images = await extract_page_images(
+        mime_type,
+        buffer,
+        {"scaled_size": colpali_model_resource.colpali_index_config.image_size},
+        sys.stderr,
+    )
+
+    assert extracted_images is not None, "No images extracted from PDF"
+
+    # Collect all images
+    all_images = []
+    async for image_data in extracted_images.agen:
+        all_images.append(image_data)
+
+    return all_images
+
+
+# Shared functions for embedding tests
+async def run_query_embedding(colpali_retriever, query, query_id):
+    """Run a single query embedding."""
+    embeddings = await colpali_retriever.aembed_queries([query])
+    embedding_count = len(embeddings)
+    return f"query_{query_id}", embedding_count
+
+
+async def embed_image_batch(colpali_retriever, image_batch, task_id):
+    """Run a batch of image embeddings."""
+
+    async def image_generator():
+        for image_data in image_batch:
+            yield image_data
+
+    images_gen = AsyncGeneratorWithTotal(image_generator(), len(image_batch))
+    embeddings = await ColpaliRetriever.embed_images(
+        colpali_retriever.model_resource,
+        colpali_retriever.model_resource.colpali_index_config,
+        images_gen,
+        sys.stderr,
+    )
+    return f"image_batch_{task_id}", len(embeddings)
+
+
+@pytest.mark.asyncio
+async def test_colpali_parallel_queries(test_queries, colpali_retriever):
+    """Test all queries in parallel"""
+
+    # Create parallel tasks for all queries
+    parallel_tasks = [
+        run_query_embedding(colpali_retriever, query, i)
+        for i, query in enumerate(test_queries)
+    ]
+
+    parallel_results = await asyncio.gather(*parallel_tasks)
+
+    # Verify results
+    for task_id, embedding_count in parallel_results:
+        assert embedding_count > 0, f"No embeddings for query {task_id}"
+
+
+@pytest.mark.asyncio
+async def test_colpali_mixed_query_and_image(
+    test_queries, colpali_retriever, test_images
+):
+    """Test mixed query and image embeddings in parallel."""
+
+    test_images = await test_images
+
+    assert len(test_images) >= 2, (
+        f"Need at least 2 images, got {len(test_images)}"
+    )
+
+    # Split images into two halves for parallel processing
+    mid_point = len(test_images) // 2
+    first_half = test_images[:mid_point]
+    second_half = test_images[mid_point:]
+
+    # Create parallel tasks for both queries and images
+    parallel_tasks = []
+
+    # Add image  tasks
+    parallel_tasks.append(embed_image_batch(colpali_retriever, first_half, 0))
+    parallel_tasks.append(embed_image_batch(colpali_retriever, second_half, 1))
+    # Add query tasks
+    for i, query in enumerate(test_queries):
+        parallel_tasks.append(run_query_embedding(colpali_retriever, query, i))
+
+    parallel_results = await asyncio.gather(*parallel_tasks)
+
+    # Verify results
+    for task_id, embedding_count in parallel_results:
+        if task_id.startswith("query"):
+            assert embedding_count > 0, f"No embeddings for query {task_id}"
+        else:
+            assert embedding_count > 0, (
+                f"No embeddings for image batch {task_id}"
+            )
+
+
+@pytest.mark.asyncio
+async def test_colpali_embed_images_parallel(colpali_retriever, test_images):
+    """Test parallel image embeddings using fixture."""
+
+    test_images = await test_images
+
+    assert len(test_images) >= 2, (
+        f"Need at least 2 images, got {len(test_images)}"
+    )
+
+    # Split images into two halves for parallel processing
+    mid_point = len(test_images) // 2
+    first_half = test_images[:mid_point]
+    second_half = test_images[mid_point:]
+
+    parallel_tasks = [
+        embed_image_batch(colpali_retriever, first_half, 0),
+        embed_image_batch(colpali_retriever, second_half, 1),
+    ]
+    parallel_results = await asyncio.gather(*parallel_tasks)
+
+    for task_id, embedding_count in parallel_results:
+        assert embedding_count > 0, f"No embeddings for task {task_id}"

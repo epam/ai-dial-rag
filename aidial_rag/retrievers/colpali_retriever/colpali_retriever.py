@@ -1,13 +1,11 @@
 import logging
-import time
-import asyncio
 from collections import defaultdict
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
 import torch
-from torch import Tensor
 from langchain.schema import BaseRetriever, Document
+from torch import Tensor
 
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.document_record import (
@@ -17,31 +15,20 @@ from aidial_rag.document_record import (
 )
 from aidial_rag.image_processor.base64 import pil_image_from_base64
 from aidial_rag.index_record import RetrievalType, to_metadata_doc
-from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
-    ColpaliBatchProcessor,
 )
 from aidial_rag.retrievers.embeddings_index import (
     to_ndarray,
 )
 from aidial_rag.retrievers.page_image_retriever_utils import extract_page_images
 from aidial_rag.utils import timed_block
-from dataclasses import dataclass
-from typing import Coroutine
-from collections import deque
 
 logger = logging.getLogger(__name__)
-
-
-
-
-
-
 
 
 class DocumentPageEmbedding:
@@ -66,8 +53,6 @@ class ColpaliRetriever(BaseRetriever):
     device: torch.device
     k: int
     model_resource: ColpaliModelResource
-
-
 
     def _score_documents_with_embeddings(
         self, query_embeddings: Tensor
@@ -194,30 +179,31 @@ class ColpaliRetriever(BaseRetriever):
 
     def embed_queries(self, queries: List[str]) -> List[Tensor]:
         """Embed queries using the ColPali model."""
-        model, processor, device = self.model_resource.get_model_processor_device()
-        
+
         # Process queries with ColPali
-        inputs = processor.process_queries(queries).to(device)
-        
+        inputs = self.processor.process_queries(queries).to(self.device)
+
         with torch.no_grad():
-            embeddings = model(**inputs)
-        
+            embeddings = self.model(**inputs)
+
         # Split batch tensor into individual tensors and move to CPU
         return [tensor.cpu().unsqueeze(0) for tensor in embeddings]
 
     async def aembed_queries(self, queries: List[str]) -> List[Tensor]:
         """Async version of embed_queries with batching support."""
         # Get or create query batch processor with GPU processing method
-        query_batch_processor = self.model_resource.get_query_batch_processor(self.embed_queries)
-        
+        query_batch_processor = self.model_resource.get_query_batch_processor(
+            self.embed_queries
+        )
+
         query_embeddings_list = []
-        
+
         for query in queries:
             # Add query to batch processor
             future = await query_batch_processor.add_item(query)
             query_embedding = await future
             query_embeddings_list.append(query_embedding)
-        
+
         return query_embeddings_list
 
     @staticmethod
@@ -235,23 +221,22 @@ class ColpaliRetriever(BaseRetriever):
         )
 
     @staticmethod
-    def _process_images_batch_gpu(images_batch: List[str], processor, model, device) -> List[torch.Tensor]:
+    def _process_images_batch_gpu(
+        images_batch: List[str], processor, model, device
+    ) -> List[torch.Tensor]:
         """Process a batch of images using the ColPali model on GPU."""
         # Convert base64 images to PIL images
-        from PIL import Image
-        import base64
-        import io
-        
-        #process images with processor
+
+        # process images with processor
         pil_images = []
         for image in images_batch:
             pil_image = pil_image_from_base64(image)
             pil_images.append(pil_image)
         inputs = processor.process_images(pil_images).to(device)
-        
+
         with torch.no_grad():
             outputs = model(**inputs)
-        
+
         # Split batch tensor into individual tensors and move to CPU
         result = [tensor.cpu().unsqueeze(0) for tensor in outputs]
         return result
@@ -277,25 +262,27 @@ class ColpaliRetriever(BaseRetriever):
 
         # Get or create batch processor with GPU processing method
         batch_processor = colpali_model_resource.get_batch_processor(
-            lambda images: ColpaliRetriever._process_images_batch_gpu(images, processor, model, device),
+            lambda images: ColpaliRetriever._process_images_batch_gpu(
+                images, processor, model, device
+            ),
         )
-        
+
         image_embeddings_list = []
-        counter = 1#TODO should be removed after change to tqdm
+        counter = 1  # TODO should be removed after change to tqdm
 
         futures = []
         async for image in images.agen:
-            #TODO change to tqdm
+            # TODO change to tqdm
             stageio.write(f"Processing page {counter}/{images.total}\n")
-            
+
             # Add image to batch processor (don't await yet)
             future = await batch_processor.add_item(image)
             futures.append(future)
             counter += 1
-        
+
         # waiting for images to be processed
         for future in futures:
-            #TODO move progress here
+            # TODO move progress here
             image_embedding = await future
             image_embeddings_list.append(image_embedding)
 
@@ -308,7 +295,9 @@ class ColpaliRetriever(BaseRetriever):
             )
 
             padded_embeddings = [
-                torch.squeeze(ColpaliRetriever.pad_embeddings(embed, max_shape), 0)
+                torch.squeeze(
+                    ColpaliRetriever.pad_embeddings(embed, max_shape), 0
+                )
                 for embed in image_embeddings_list
             ]
         else:
