@@ -44,12 +44,12 @@ class CachedModel:
         # For images, hash the pixel_values
         if "pixel_values" in kwargs:
             pixel_values = kwargs["pixel_values"]
-            hash_input = pixel_values.numpy().tobytes()
+            hash_input = pixel_values.cpu().numpy().tobytes()
         # For queries, hash the input_ids
         elif "input_ids" in kwargs:
             # Hash the input_ids tensor
             input_ids = kwargs["input_ids"]
-            hash_input = input_ids.numpy().tobytes()
+            hash_input = input_ids.cpu().numpy().tobytes()
         else:
             # Fallback: hash the entire kwargs
             raise ValueError("No input found in kwargs")
