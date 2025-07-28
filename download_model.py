@@ -22,14 +22,14 @@ def download_all_colpali_models(base_path: str):
     """Download all models from the KNOWN_MODELS map"""
     print(f"Downloading all ColPali models to base path: {base_path}")
     
-    # Import the KNOWN_MODELS map and utility functions
-    from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    # Import the KNOWN_MODELS map and utility functions from isolated module
+    from aidial_rag.retrievers.colpali_retriever.colpali_models import (
         KNOWN_MODELS, get_model_processor_classes, get_model_local_path
     )
     
     for model_name, model_type in KNOWN_MODELS.items():
         model_path = get_model_local_path(base_path, model_name)
-
+        
         model_class, processor_class = get_model_processor_classes(model_type)
         Path(model_path).mkdir(parents=True, exist_ok=True)
         

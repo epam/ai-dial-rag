@@ -67,7 +67,9 @@ RUN python download_model.py embeddings "epam/bge-small-en" "$BGE_EMBEDDINGS_MOD
 
 FROM builder AS builder_download_colpali
 
-COPY download_model.py .
+# Copy only the necessary files for ColPali model download
+COPY aidial_rag/retrievers/colpali_retriever/colpali_models.py aidial_rag/retrievers/colpali_retriever/
+COPY download_model.py ./
 
 # Download all ColPali models
 RUN python download_model.py colpali "$COLPALI_MODELS_BASE_PATH"
@@ -109,6 +111,7 @@ COPY --from=builder --chown=appuser /opt/uv/python /opt/uv/python
 COPY --from=builder --chown=appuser /opt/venv /opt/venv
 COPY --from=builder_download_nltk --chown=appuser /usr/share/nltk_data /usr/share/nltk_data
 COPY --from=builder_download_model --chown=appuser "$BGE_EMBEDDINGS_MODEL_PATH" "$BGE_EMBEDDINGS_MODEL_PATH"
+COPY --from=builder_download_colpali --chown=appuser "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODELS_BASE_PATH"
 COPY --chown=appuser ./config /config
 COPY --chown=appuser ./aidial_rag /aidial_rag
 COPY --from=builder_repo_digest --chown=appuser /opt/repository-digest.json /opt/repository-digest.json
