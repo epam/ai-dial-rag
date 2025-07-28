@@ -14,6 +14,7 @@ from langchain_unstructured import UnstructuredLoader
 from pdf2image.exceptions import PDFInfoNotInstalledError
 from pydantic import ByteSize, Field
 from unstructured.file_utils.model import FileType
+from unstructured_client import UnstructuredClient
 from unstructured_pytesseract.pytesseract import TesseractNotFoundError
 
 from aidial_rag.attachment_link import AttachmentLink
@@ -28,6 +29,17 @@ from aidial_rag.print_stats import print_documents_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.utils import format_size, get_bytes_length, timed_block
+
+# Create a stub for UnstructuredClient to avoid creating/destroying it in every request.
+# We do not use unstructured api, but the langchain_unstructured will create the client
+# even for partition_via_api=False.
+# The UnstructuredClient registers close_clients as weakref.finalize which could be called
+# by garbage collector at any time. If close_clients will be called during submit in the
+# ThreadPoolExecutor, it could block the thread and cause a deadlock.
+_unstructured_client_stub = UnstructuredClient(
+    api_key_auth="-",
+    server_url="-",
+)
 
 
 class HttpClientConfig(BaseConfig):
@@ -214,6 +226,9 @@ def get_document_chunks(
             combine_text_under_n_chars=0,
             new_after_n_chars=parser_config.unstructured_chunk_size,
             max_characters=parser_config.unstructured_chunk_size,
+            # langchain_unstructured creates the client even for partition_via_api=False
+            client=_unstructured_client_stub,
+            partition_via_api=False,
         ).load()
     except ValueError as e:
         raise HTTPException(
