@@ -47,10 +47,10 @@ def main():
         epilog="""
 Examples:
   # Download all ColPali models
-  python download_model.py --colpali /path/to/colpali_models
+  python download_model.py colpali /path/to/colpali_models
   
   # Download embeddings model
-  python download_model.py --embeddings epam/bge-small-en /path/to/embeddings openvino torch
+  python download_model.py embeddings epam/bge-small-en /path/to/embeddings openvino torch
         """
     )
     
@@ -58,11 +58,11 @@ Examples:
     subparsers = parser.add_subparsers(dest='command', help='Model type to download')
     
     # ColPali models parser
-    colpali_parser = subparsers.add_parser('--colpali', help='Download all ColPali models')
+    colpali_parser = subparsers.add_parser('colpali', help='Download all ColPali models')
     colpali_parser.add_argument('path', help='Base path to save all ColPali models')
     
     # Embeddings models parser  
-    embeddings_parser = subparsers.add_parser('--embeddings', help='Download embeddings model')
+    embeddings_parser = subparsers.add_parser('embeddings', help='Download embeddings model')
     embeddings_parser.add_argument('model_name', help='Hugging Face model name')
     embeddings_parser.add_argument('path', help='Path to save the model')
     embeddings_parser.add_argument('backends', nargs='*', default=['openvino'], 
@@ -70,9 +70,9 @@ Examples:
     
     args = parser.parse_args()
     
-    if args.command == '--colpali':
+    if args.command == 'colpali':
         download_all_colpali_models(args.path)
-    elif args.command == '--embeddings':
+    elif args.command == 'embeddings':
         download_model(args.model_name, args.path, *args.backends)
     else:
         parser.print_help()

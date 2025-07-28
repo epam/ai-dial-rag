@@ -70,7 +70,7 @@ FROM builder AS builder_download_colpali
 COPY download_model.py .
 
 # Download all ColPali models
-RUN python download_model.py --colpali "$COLPALI_MODELS_BASE_PATH"
+RUN python download_model.py colpali "$COLPALI_MODELS_BASE_PATH"
 
 
 FROM builder AS builder_repo_digest
