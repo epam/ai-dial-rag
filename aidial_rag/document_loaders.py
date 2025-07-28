@@ -14,6 +14,7 @@ from langchain_unstructured import UnstructuredLoader
 from pdf2image.exceptions import PDFInfoNotInstalledError
 from pydantic import ByteSize, Field
 from unstructured.file_utils.model import FileType
+from unstructured_client import UnstructuredClient
 from unstructured_pytesseract.pytesseract import TesseractNotFoundError
 
 from aidial_rag.attachment_link import AttachmentLink
@@ -28,6 +29,11 @@ from aidial_rag.print_stats import print_documents_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.utils import format_size, get_bytes_length, timed_block
+
+_unstructured_client = UnstructuredClient(
+    api_key_auth="-",
+    server_url="-",
+)
 
 
 class HttpClientConfig(BaseConfig):
@@ -214,6 +220,8 @@ def get_document_chunks(
             combine_text_under_n_chars=0,
             new_after_n_chars=parser_config.unstructured_chunk_size,
             max_characters=parser_config.unstructured_chunk_size,
+            client=_unstructured_client,
+            partition_via_api=False,
         ).load()
     except ValueError as e:
         raise HTTPException(
