@@ -1,7 +1,8 @@
 import asyncio
+import os
 import threading
 from enum import StrEnum
-from typing import Annotated, List, Optional, Tuple
+from typing import Annotated, Any, List, Optional, Tuple
 
 import torch
 from pydantic import BaseModel, Field, model_validator
@@ -10,6 +11,10 @@ from aidial_rag.embeddings.detect_device import autodetect_device
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
+
+# Path to pre-downloaded ColPali models for normal use in docker
+# Model names are used for local runs only
+COLPALI_MODELS_BASE_PATH = os.environ.get("COLPALI_MODELS_BASE_PATH", None)
 
 
 class ColpaliModelType(StrEnum):
@@ -26,6 +31,41 @@ KNOWN_MODELS = {
     "vidore/colpali-v1.3": ColpaliModelType.COLPALI,
     "vidore/colqwen2-v1.0": ColpaliModelType.COLQWEN,
 }
+
+
+def get_model_processor_classes(
+    model_type: ColpaliModelType,
+) -> tuple[Any, Any]:
+    """Get model and processor classes for a given model type"""
+    from colpali_engine.models import (
+        ColIdefics3,
+        ColIdefics3Processor,
+        ColPali,
+        ColPaliProcessor,
+        ColQwen2,
+        ColQwen2Processor,
+    )
+
+    match model_type:
+        case ColpaliModelType.COLPALI:
+            return ColPali, ColPaliProcessor
+        case ColpaliModelType.COLIDEFICS:
+            return ColIdefics3, ColIdefics3Processor
+        case ColpaliModelType.COLQWEN:
+            return ColQwen2, ColQwen2Processor
+        case _:
+            raise ValueError("Invalid ColPali model type")
+
+
+def get_safe_model_name(model_name: str) -> str:
+    """Convert model name to safe directory name"""
+    return model_name.replace("/", "_")
+
+
+def get_model_local_path(base_path: str, model_name: str) -> str:
+    """Get the local path for a model given base path and model name"""
+    safe_name = get_safe_model_name(model_name)
+    return f"{base_path}/{safe_name}"
 
 
 class ColpaliModelResourceConfig(BaseModel):
@@ -182,34 +222,24 @@ class ColpaliModelResource:
             device = autodetect_device()
             self.device = torch.device(device)
 
-            from colpali_engine.models import (
-                ColIdefics3,
-                ColIdefics3Processor,
-                ColPali,
-                ColPaliProcessor,
-                ColQwen2,
-                ColQwen2Processor,
+            model_class, processor_class = get_model_processor_classes(
+                config.model_type
             )
 
-            match config.model_type:
-                case ColpaliModelType.COLPALI:
-                    model_class = ColPali
-                    processor_class = ColPaliProcessor
-                case ColpaliModelType.COLIDEFICS:
-                    model_class = ColIdefics3
-                    processor_class = ColIdefics3Processor
-                case ColpaliModelType.COLQWEN:
-                    model_class = ColQwen2
-                    processor_class = ColQwen2Processor
-                case _:
-                    raise ValueError("Invalid ColPali model type")
-
+            # Check if local model path exists otherwise use Hugging Face
+            model_name = config.model_name
+            if COLPALI_MODELS_BASE_PATH:
+                local_model_path = get_model_local_path(
+                    COLPALI_MODELS_BASE_PATH, model_name
+                )
+                if os.path.exists(local_model_path):
+                    model_name = local_model_path
             self.model = model_class.from_pretrained(
-                config.model_name,
+                model_name,
                 torch_dtype=torch.float16,
                 device_map=self.device,
             ).eval()
-            self.processor = processor_class.from_pretrained(config.model_name)
+            self.processor = processor_class.from_pretrained(model_name)
             assert self.model is not None
             assert self.processor is not None
             assert self.device is not None

@@ -280,7 +280,9 @@ class ColpaliRetriever(BaseRetriever):
         # Collect all futures first (parallel processing)
         futures = []
         async for image in images.agen:
-            future = await batch_processor.add_item(image)  # await to get the Future
+            future = await batch_processor.add_item(
+                image
+            )  # await to get the Future
             futures.append(future)
 
         # Wait for all futures to complete

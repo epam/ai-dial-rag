@@ -9,6 +9,7 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV BGE_EMBEDDINGS_MODEL_PATH=/embeddings_model/bge-small-en
+ENV COLPALI_MODELS_BASE_PATH=/colpali_models
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -61,7 +62,15 @@ FROM builder AS builder_download_model
 COPY download_model.py .
 
 # Model: https://huggingface.co/epam/bge-small-en
-RUN python download_model.py "epam/bge-small-en" "$BGE_EMBEDDINGS_MODEL_PATH" "openvino" "torch"
+RUN python download_model.py --embeddings "epam/bge-small-en" "$BGE_EMBEDDINGS_MODEL_PATH" "openvino" "torch"
+
+
+FROM builder AS builder_download_colpali
+
+COPY download_model.py .
+
+# Download all ColPali models
+RUN python download_model.py --colpali "$COLPALI_MODELS_BASE_PATH"
 
 
 FROM builder AS builder_repo_digest
@@ -81,6 +90,7 @@ FROM builder_repo_digest AS test
 
 COPY --from=builder_download_nltk /usr/share/nltk_data /usr/share/nltk_data
 COPY --from=builder_download_model "$BGE_EMBEDDINGS_MODEL_PATH" "$BGE_EMBEDDINGS_MODEL_PATH"
+COPY --from=builder_download_colpali "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODELS_BASE_PATH"
 
 RUN uvx "$POETRY" install --no-interaction --no-ansi --no-cache --with test --no-directory
 RUN uvx "$POETRY" run pytest tests
