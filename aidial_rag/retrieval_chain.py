@@ -21,7 +21,13 @@ from aidial_rag.image_processor.extract_pages import (
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.qa_chain_config import ChatChainConfig
-from aidial_rag.retrieval_api import RetrievalResults
+from aidial_rag.retrieval_api import (
+    Chunk,
+    Image,
+    Page,
+    RetrievalResults,
+    Source,
+)
 from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
 from aidial_rag.retrievers.description_retriever.description_retriever import (
@@ -131,8 +137,8 @@ async def create_retrieval_results(
     index_items: List[Document] = input.get("found_items", [])
     image_by_page: Dict[PageKey, str] = input.get("image_by_page", {})
 
-    images: List[RetrievalResults.Image] = []
-    chunks: List[RetrievalResults.Chunk] = []
+    images: List[Image] = []
+    chunks: List[Chunk] = []
     used_image_keys: Set[PageKey] = set()
 
     for index_item in index_items:
@@ -141,26 +147,33 @@ async def create_retrieval_results(
         chunk_id = chunk_metadata["chunk_id"]
         doc_record = doc_records[doc_id]
         doc_record_link = doc_records_links[doc_id]
-        chunk = doc_record.chunks[chunk_id]
-        chunk_data = RetrievalResults.Chunk(
+        doc_record_chunk = doc_record.chunks[chunk_id]
+        chunk_data = Chunk(
             attachment_url=doc_record_link.dial_link,
-            text=chunk.text,
-            source=chunk.metadata["source"],
-            source_display_name=chunk.metadata.get("source_display_name"),
-            page_number=chunk.metadata.get("page_number"),
+            text=doc_record_chunk.text,
+            source=Source(
+                url=doc_record_chunk.metadata["source"],
+                display_name=doc_record_chunk.metadata.get(
+                    "source_display_name"
+                ),
+            ),
+            page=None,
         )
 
-        if (page_number := chunk.metadata.get("page_number")) is not None:
+        if (
+            page_number := doc_record_chunk.metadata.get("page_number")
+        ) is not None:
+            chunk_data.page = Page(
+                number=page_number,
+                image_index=None,
+            )
+
             page_key = PageKey(doc_id, page_number)
             if page_key in image_by_page and page_key not in used_image_keys:
                 used_image_keys.add(page_key)
                 image_index = len(images)
-                images.append(
-                    RetrievalResults.Image(
-                        data=image_by_page[page_key],
-                    )
-                )
-                chunk_data.page_image_index = image_index
+                images.append(Image(data=image_by_page[page_key]))
+                chunk_data.page.image_index = image_index
 
         chunks.append(chunk_data)
 
