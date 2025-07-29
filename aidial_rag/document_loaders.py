@@ -30,7 +30,8 @@ from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.utils import format_size, get_bytes_length, timed_block
 
-# Create a stub for UnstructuredClient to avoid creating/destroying it in every request.
+# Create a stub for UnstructuredClient as a global object to avoid creating/destroying
+# it in every request.
 # We do not use unstructured api, but the langchain_unstructured will create the client
 # even for partition_via_api=False.
 # The UnstructuredClient registers close_clients as weakref.finalize which could be called
