@@ -30,9 +30,8 @@ def download_all_colpali_models(base_path: str):
         KNOWN_MODELS, get_model_processor_classes, get_model_local_path, get_model_cache_path
     )
     
-    for model_name, model_type in KNOWN_MODELS.items(): 
+    for model_name, model_type in KNOWN_MODELS.items():
         print(f"Downloading model {model_name} of type {model_type}")
-
         model_path = get_model_local_path(base_path, model_name)
         cache_path = get_model_cache_path(model_path)
         model_class, processor_class = get_model_processor_classes(model_type) 

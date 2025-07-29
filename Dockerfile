@@ -67,7 +67,10 @@ RUN python download_model.py embeddings "epam/bge-small-en" "$BGE_EMBEDDINGS_MOD
 
 FROM builder AS builder_download_colpali
 
-# Copy only the necessary files for ColPali model download
+# Copy __init__.py with folder structure to be able to import colpali_models.py in download_model.py
+COPY aidial_rag/__init__.py aidial_rag/
+COPY aidial_rag/retrievers/__init__.py aidial_rag/retrievers/
+COPY aidial_rag/retrievers/colpali_retriever/__init__.py aidial_rag/retrievers/colpali_retriever/
 COPY aidial_rag/retrievers/colpali_retriever/colpali_models.py aidial_rag/retrievers/colpali_retriever/
 COPY download_model.py ./
 
