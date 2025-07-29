@@ -20,6 +20,7 @@ CONVERT_TO_PDF_MIME_TYPES = [
     "application/vnd.oasis.opendocument.text",
     # Presentations
     "application/vnd.ms-powerpoint",
+    "application/vnd.ms-powerpoint.presentation.macroenabled.12",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/vnd.oasis.opendocument.presentation",
 ]
