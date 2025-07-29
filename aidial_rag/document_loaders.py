@@ -8,7 +8,6 @@ import aiohttp
 #  https://github.com/onnx/onnx/issues/6267
 # The onnx module should be imported before any unstructured_inference imports to avoid the issue
 import onnx  # noqa: F401
-from aidial_sdk import HTTPException
 from langchain.schema import Document
 from langchain_unstructured import UnstructuredLoader
 from pdf2image.exceptions import PDFInfoNotInstalledError
@@ -232,7 +231,7 @@ def get_document_chunks(
             partition_via_api=False,
         ).load()
     except ValueError as e:
-        raise HTTPException(
+        raise InvalidDocumentError(
             "Unable to load document content. Try another document format.",
         ) from e
     except (PDFInfoNotInstalledError, TesseractNotFoundError):

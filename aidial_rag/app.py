@@ -1,22 +1,23 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, assert_never
 
 from aidial_sdk import DIALApp, HTTPException
 from aidial_sdk.chat_completion import (
     ChatCompletion,
+    Choice,
     Message,
     Request,
     Response,
 )
 from langchain.schema import BaseRetriever, Document
 from langchain_core.runnables import Runnable
-from pydantic import ValidationError
 
-from aidial_rag.app_config import AppConfig, RequestConfig
+from aidial_rag.app_config import AppConfig
 from aidial_rag.attachment_link import (
     AttachmentLink,
+    create_document_loading_exception,
     format_document_loading_errors,
     get_attachment_links,
 )
@@ -27,6 +28,12 @@ from aidial_rag.commands import (
     process_commands,
 )
 from aidial_rag.config_digest import ConfigDigest
+from aidial_rag.configuration_endpoint import (
+    Configuration,
+    RequestConfig,
+    RequestType,
+    get_configuration,
+)
 from aidial_rag.dial_api_client import DialApiClient, create_dial_api_client
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
@@ -91,8 +98,13 @@ def doc_to_attach(
 def process_load_errors(
     docs_and_errors: List[DocumentRecord | BaseException],
     attachment_links: List[AttachmentLink],
-) -> Tuple[List[DocumentRecord], List[Tuple[BaseException, AttachmentLink]]]:
+) -> Tuple[
+    List[DocumentRecord],
+    List[AttachmentLink],
+    List[Tuple[BaseException, AttachmentLink]],
+]:
     document_records: List[DocumentRecord] = []
+    document_records_links: List[AttachmentLink] = []
     loading_errors: List[Tuple[BaseException, AttachmentLink]] = []
 
     for doc_or_error, link in zip(
@@ -100,6 +112,8 @@ def process_load_errors(
     ):
         if isinstance(doc_or_error, DocumentRecord):
             document_records.append(doc_or_error)
+            document_records_links.append(link)
+
         elif isinstance(doc_or_error, Exception):
             loading_errors.append((doc_or_error, link))
         else:
@@ -110,7 +124,7 @@ def process_load_errors(
                 status_code=500,
             ) from doc_or_error
 
-    return document_records, loading_errors
+    return document_records, document_records_links, loading_errors
 
 
 def create_indexing_tasks(
@@ -126,25 +140,30 @@ def create_indexing_tasks(
     ]
 
 
-def get_configuration(request: Request) -> dict:
-    if (
-        request.custom_fields is None
-        or request.custom_fields.configuration is None
-    ):
-        return {}
+async def _run_retrieval(
+    choice: Choice,
+    request_config: RequestConfig,
+    retrieval_chain: Runnable[Dict[str, Any], Dict[str, Any]],
+    messages: List[Message],
+    document_records: List[DocumentRecord],
+    document_records_links: List[AttachmentLink],
+):
+    chain_input = {
+        "chat_history": transform_history(messages),
+        "chat_chain_config": request_config.qa_chain.chat_chain,
+        "doc_records": document_records,
+        "doc_records_links": document_records_links,
+    }
 
-    custom_configuration_dict = request.custom_fields.configuration
+    retrieval_results = await retrieval_chain.pick("retrieval_results").ainvoke(
+        chain_input
+    )
 
-    # We want to validate the schema, but return the original dict to know which fields are not set
-    try:
-        RequestConfig.model_validate(custom_configuration_dict)  # type: ignore
-    except ValidationError as e:
-        raise HTTPException(
-            message=f"Invalid configuration: {e.errors()}",
-            status_code=400,
-        ) from e
-
-    return custom_configuration_dict
+    choice.add_attachment(
+        title="Retrieval results",
+        type=retrieval_results.CONTENT_TYPE,
+        data=retrieval_results.model_dump_json(indent=2),
+    )
 
 
 async def _run_rag(
@@ -153,12 +172,14 @@ async def _run_rag(
     retrieval_chain: Runnable[Dict[str, Any], Dict[str, Any]],
     messages: List[Message],
     document_records: List[DocumentRecord],
+    document_records_links: List[AttachmentLink],
 ):
     choice = request_context.choice
     chain_input = {
         "chat_history": transform_history(messages),
         "chat_chain_config": request_config.qa_chain.chat_chain,
         "doc_records": document_records,
+        "doc_records_links": document_records_links,
     }
 
     reference_items = await generate_answer(
@@ -203,25 +224,28 @@ class DialRAGApplication(ChatCompletion):
     def _merge_config_sources(
         self, request: Request, commands: Commands
     ) -> ConfigDigest:
-        request_config = self.app_config.request
+        configuration = merge_config(
+            Configuration(),
+            self.app_config.request.model_dump(exclude_none=True),
+        )
 
         custom_configuration_dict = get_configuration(request)
         if custom_configuration_dict:
             logger.info(
                 f"Request config from configuration: {custom_configuration_dict}"
             )
-            request_config = merge_config(
-                request_config, custom_configuration_dict
+            configuration = merge_config(
+                configuration, custom_configuration_dict
             )
 
         commands_config_dict = commands_to_config_dict(commands)
         if commands_config_dict:
             logger.info(f"Commands config: {commands_config_dict}")
-            request_config = merge_config(request_config, commands_config_dict)
+            configuration = merge_config(configuration, commands_config_dict)
 
         return ConfigDigest(
             app_config_path=str(self.app_config.config_path),
-            request_config=request_config,
+            configuration=configuration,
             from_custom_configuration=custom_configuration_dict,
             from_commands=commands_config_dict,
         )
@@ -243,7 +267,7 @@ class DialRAGApplication(ChatCompletion):
                 self.enable_debug_commands,
             )
             config_digest = self._merge_config_sources(request, commands)
-            request_config = config_digest.request_config
+            request_config = config_digest.configuration
 
             choice.set_state(
                 {
@@ -273,14 +297,17 @@ class DialRAGApplication(ChatCompletion):
                 index_storage,
                 config=request_config,
             )
-            document_records, loading_errors = process_load_errors(
-                docs_and_errors, attachment_links
+            document_records, document_records_links, loading_errors = (
+                process_load_errors(docs_and_errors, attachment_links)
             )
 
             if (
                 len(loading_errors) > 0
                 and not request_config.ignore_document_loading_errors
             ):
+                if request_config.request.type != RequestType.RAG:
+                    raise create_document_loading_exception(loading_errors)
+
                 choice.append_content(
                     format_document_loading_errors(loading_errors)
                 )
@@ -321,16 +348,30 @@ class DialRAGApplication(ChatCompletion):
                 )
 
             with profiler_if_enabled(choice, request_config.use_profiler):
-                await _run_rag(
-                    request_context,
-                    request_config,
-                    retrieval_chain,
-                    messages,
-                    document_records,
-                )
+                request_type = request_config.request.type
+                if request_type == RequestType.RETRIEVAL:
+                    return await _run_retrieval(
+                        choice,
+                        request_config,
+                        retrieval_chain,
+                        messages,
+                        document_records,
+                        document_records_links,
+                    )
+                elif request_type == RequestType.RAG:
+                    return await _run_rag(
+                        request_context,
+                        request_config,
+                        retrieval_chain,
+                        messages,
+                        document_records,
+                        document_records_links,
+                    )
+                else:
+                    assert_never(request_type)
 
     async def configuration(self, request):
-        return RequestConfig.model_json_schema()
+        return Configuration.model_json_schema()
 
 
 def lifespan(app_config: AppConfig):
