@@ -281,7 +281,8 @@ async def parse_document(
             parser_config,
         )
 
-        stageio.write(f"File type: {chunks[0].metadata['filetype']}\n")
+        # Unstructured does not set filetype for some document types
+        stageio.write(f"File type: {chunks[0].metadata.get('filetype')}\n")
         print_documents_stats(stageio, chunks)
 
         total_text_size = sum(
