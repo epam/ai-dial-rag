@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, assert_never
 
 from aidial_sdk import DIALApp, HTTPException
 from aidial_sdk.chat_completion import (
@@ -348,7 +348,8 @@ class DialRAGApplication(ChatCompletion):
                 )
 
             with profiler_if_enabled(choice, request_config.use_profiler):
-                if request_config.request.type == RequestType.RETRIEVAL:
+                request_type = request_config.request.type
+                if request_type == RequestType.RETRIEVAL:
                     return await _run_retrieval(
                         choice,
                         request_config,
@@ -357,8 +358,7 @@ class DialRAGApplication(ChatCompletion):
                         document_records,
                         document_records_links,
                     )
-
-                if request_config.request.type == RequestType.RAG:
+                elif request_type == RequestType.RAG:
                     return await _run_rag(
                         request_context,
                         request_config,
@@ -367,6 +367,8 @@ class DialRAGApplication(ChatCompletion):
                         document_records,
                         document_records_links,
                     )
+                else:
+                    assert_never(request_type)
 
     async def configuration(self, request):
         return Configuration.model_json_schema()

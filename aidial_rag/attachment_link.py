@@ -153,16 +153,16 @@ def get_attachment_links(
             yield link
 
 
-def _visit_leaf_exceptions(
+def _iter_leaf_exceptions(
     exception: BaseException,
 ) -> Generator[BaseException, None, None]:
     if isinstance(exception, DocumentProcessingError) and exception.__cause__:
         # We want to show the original cause of the error to the User.
-        yield from _visit_leaf_exceptions(exception.__cause__)
+        yield from _iter_leaf_exceptions(exception.__cause__)
     elif isinstance(exception, BaseExceptionGroup):
         # We could have multiple errors in the group because of the concurrent processing.
         for inner_exception in exception.exceptions:
-            yield from _visit_leaf_exceptions(inner_exception)
+            yield from _iter_leaf_exceptions(inner_exception)
     else:
         yield exception
 
@@ -170,7 +170,7 @@ def _visit_leaf_exceptions(
 def _get_user_facing_error_message(
     exception: BaseException,
 ) -> Generator[str, None, None]:
-    for leaf_exception in _visit_leaf_exceptions(exception):
+    for leaf_exception in _iter_leaf_exceptions(exception):
         if isinstance(leaf_exception, HTTPException):
             yield leaf_exception.message.replace("\n", " ")
         elif isinstance(leaf_exception, Timeout):
@@ -198,7 +198,7 @@ def format_document_loading_errors(
 
 
 def _get_status_codes(exception: BaseException) -> Generator[int, None, None]:
-    for leaf_exception in _visit_leaf_exceptions(exception):
+    for leaf_exception in _iter_leaf_exceptions(exception):
         if isinstance(leaf_exception, HTTPException):
             yield leaf_exception.status_code
         else:
