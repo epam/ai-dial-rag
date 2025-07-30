@@ -86,7 +86,7 @@ def create_docs_message(
         attributes = format_attributes(
             id=i,
             page_number=chunk.page.number if chunk.page else None,
-            source_url=chunk.source.url if chunk.source else None,
+            source_url=chunk.source.url,
         )
         docs_message.append(text_element(f"<doc {attributes}>\n{chunk.text}\n"))
 

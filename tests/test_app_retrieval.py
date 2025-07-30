@@ -83,16 +83,14 @@ async def test_retrieval_request(attachments):
         r"^iVBORw0KGgoAAAA.*CYII=$", retrieval_results.images[0].data
     )
 
-    assert all(
-        chunk.attachment_url == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
-        and chunk.source
-        == Source(
+    for chunk in retrieval_results.chunks[1:]:
+        assert chunk.attachment_url == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
+        assert chunk.source == Source(
             url="files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html",
             display_name="alps_wiki.html",
         )
-        and chunk.page is None
-        for chunk in retrieval_results.chunks[1:]
-    )
+        assert chunk.page is None
+
     assert retrieval_results.chunks[1].text is not None
     assert retrieval_results.chunks[1].text.startswith(
         "Techniques and tools Quantitative Cartography"
