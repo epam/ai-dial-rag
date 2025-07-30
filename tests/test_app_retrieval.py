@@ -84,7 +84,10 @@ async def test_retrieval_request(attachments):
     )
 
     for chunk in retrieval_results.chunks[1:]:
-        assert chunk.attachment_url == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
+        assert (
+            chunk.attachment_url
+            == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
+        )
         assert chunk.source == Source(
             url="files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html",
             display_name="alps_wiki.html",
