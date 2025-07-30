@@ -48,13 +48,18 @@ SINGLE_QUERY_TEMPLATE = HumanMessagePromptTemplate.from_template("{query}")
 
 REF_PATTERN = re.compile(r"<\[(\d+)\]>")
 
-INCLUDED_ATTRIBUTES = ["page_number", "source", "title"]
 
+def format_attributes(
+    id: int,
+    page_number: int | None,
+    source_url: str | None,
+) -> str:
+    attributes = [("id", str(id))]
+    if page_number is not None:
+        attributes.append(("page_number", str(page_number)))
+    if source_url:
+        attributes.append(("source", source_url))
 
-def format_attributes(i, metadata: Dict[str, int | str]) -> str:
-    attributes = [("id", i)] + [
-        (k, metadata[k]) for k in INCLUDED_ATTRIBUTES if k in metadata
-    ]
     return " ".join(f"{k}='{v}'" for k, v in attributes)
 
 
@@ -78,11 +83,15 @@ def create_docs_message(
     docs_message: List[MessageElement] = []
     docs_message.append(text_element("<context>"))
     for i, chunk in enumerate(retrieval_results.chunks, start=1):
-        attributes = format_attributes(i, chunk.model_dump(exclude_none=True))
+        attributes = format_attributes(
+            id=i,
+            page_number=chunk.page.number if chunk.page else None,
+            source_url=chunk.source.url,
+        )
         docs_message.append(text_element(f"<doc {attributes}>\n{chunk.text}\n"))
 
-        if chunk.page_image_index is not None:
-            image = retrieval_results.images[chunk.page_image_index]
+        if chunk.page is not None and chunk.page.image_index is not None:
+            image = retrieval_results.images[chunk.page.image_index]
             docs_message.append(image_element(image.data))
 
         docs_message.append(text_element("</doc>\n"))

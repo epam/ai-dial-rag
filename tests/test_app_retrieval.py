@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from aidial_rag.app import create_app
 from aidial_rag.app_config import AppConfig
-from aidial_rag.retrieval_api import RetrievalResults
+from aidial_rag.retrieval_api import Page, RetrievalResults, Source
 from tests.utils.config_override import (
     description_index_retries_override,  # noqa: F401
 )
@@ -68,13 +68,14 @@ async def test_retrieval_request(attachments):
         == "files/6iTkeGUs2CvUehhYLmMYXB/test_image.png"
     )
     assert chunk_from_image.text == ""
-    assert (
-        chunk_from_image.source == "files/6iTkeGUs2CvUehhYLmMYXB/test_image.png"
+    assert chunk_from_image.source == Source(
+        url="files/6iTkeGUs2CvUehhYLmMYXB/test_image.png",
+        display_name="test_image.png",
     )
-    assert chunk_from_image.source_display_name == "test_image.png"
-    assert chunk_from_image.text == ""
-    assert chunk_from_image.page_number == 1
-    assert chunk_from_image.page_image_index == 0
+    assert chunk_from_image.page == Page(
+        number=1,
+        image_index=0,
+    )
 
     assert len(retrieval_results.images) == 1
     assert retrieval_results.images[0].mime_type == "image/png"
@@ -82,14 +83,17 @@ async def test_retrieval_request(attachments):
         r"^iVBORw0KGgoAAAA.*CYII=$", retrieval_results.images[0].data
     )
 
-    assert all(
-        chunk.attachment_url == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
-        and chunk.source_display_name == "alps_wiki.html"
-        and chunk.source == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
-        and chunk.page_number is None
-        and chunk.page_image_index is None
-        for chunk in retrieval_results.chunks[1:]
-    )
+    for chunk in retrieval_results.chunks[1:]:
+        assert (
+            chunk.attachment_url
+            == "files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html"
+        )
+        assert chunk.source == Source(
+            url="files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html",
+            display_name="alps_wiki.html",
+        )
+        assert chunk.page is None
+
     assert retrieval_results.chunks[1].text is not None
     assert retrieval_results.chunks[1].text.startswith(
         "Techniques and tools Quantitative Cartography"
