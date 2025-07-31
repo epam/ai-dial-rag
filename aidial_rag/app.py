@@ -17,8 +17,6 @@ from langchain_core.runnables import Runnable
 from aidial_rag.app_config import AppConfig
 from aidial_rag.attachment_link import (
     AttachmentLink,
-    create_document_loading_exception,
-    format_document_loading_errors,
     get_attachment_links,
 )
 from aidial_rag.base_config import merge_config
@@ -37,10 +35,20 @@ from aidial_rag.configuration_endpoint import (
 from aidial_rag.dial_api_client import DialApiClient, create_dial_api_client
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
+from aidial_rag.errors import InvalidDocumentError
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.index_storage import (
+    INDEX_MIME_TYPE,
+    INDEX_MIME_TYPES_REGEX,
     IndexStorageHolder,
     link_to_index_url,
+)
+from aidial_rag.indexing_api import create_indexing_results_attachments
+from aidial_rag.indexing_results import (
+    DocumentIndexingResult,
+    create_document_loading_exception,
+    format_document_loading_errors,
+    has_document_loading_errors,
 )
 from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.qa_chain import generate_answer
@@ -98,49 +106,69 @@ def doc_to_attach(
     }
 
 
-def process_load_errors(
-    docs_and_errors: List[DocumentRecord | BaseException],
-    attachment_links: List[AttachmentLink],
+def _collect_document_records(
+    indexing_results: List[DocumentIndexingResult],
 ) -> Tuple[
     List[DocumentRecord],
     List[AttachmentLink],
-    List[Tuple[BaseException, AttachmentLink]],
 ]:
     document_records: List[DocumentRecord] = []
     document_records_links: List[AttachmentLink] = []
-    loading_errors: List[Tuple[BaseException, AttachmentLink]] = []
 
-    for doc_or_error, link in zip(
-        docs_and_errors, attachment_links, strict=True
-    ):
-        if isinstance(doc_or_error, DocumentRecord):
-            document_records.append(doc_or_error)
-            document_records_links.append(link)
+    for result in indexing_results:
+        if result.exception is None:
+            assert result.doc_record is not None
+            document_records.append(result.doc_record)
+            document_records_links.append(result.task.attachment_link)
 
-        elif isinstance(doc_or_error, Exception):
-            loading_errors.append((doc_or_error, link))
-        else:
-            # If the error is BaseException, but not Exception:
-            # GeneratorExit, KeyboardInterrupt, SystemExit etc.
-            raise HTTPException(
-                message=f"Internal error during document loading: {str(doc_or_error)}",
-                status_code=500,
-            ) from doc_or_error
+    return document_records, document_records_links
 
-    return document_records, document_records_links, loading_errors
+
+def _is_rag_index(attachment: AttachmentLink) -> bool:
+    """Check if the attachment is a RAG index."""
+
+    if attachment.type is None:
+        return False
+    if not INDEX_MIME_TYPES_REGEX.match(attachment.type):
+        return False
+    if attachment.type != INDEX_MIME_TYPE:
+        raise InvalidDocumentError(f"Unknown index type: {attachment.type}")
+    if not attachment.reference_url:
+        raise InvalidDocumentError("Index attachment must have a reference URL")
+    return True
 
 
 def create_indexing_tasks(
     attachment_links: List[AttachmentLink],
     dial_api_client: DialApiClient,
 ) -> List[IndexingTask]:
+    index_attachments = {
+        str(attachment.reference_url): attachment.dial_link
+        for attachment in attachment_links
+        if _is_rag_index(attachment)
+    }
+
     return [
         IndexingTask(
             attachment_link=link,
-            index_url=link_to_index_url(link, dial_api_client.bucket_id),
+            index_url=(
+                index_attachments.get(link.dial_link)
+                or link_to_index_url(link, dial_api_client.bucket_id)
+            ),
         )
         for link in attachment_links
+        if not _is_rag_index(link)
     ]
+
+
+def _return_indexing_results(
+    choice: Choice,
+    indexing_results: List[DocumentIndexingResult],
+) -> None:
+    attachments = create_indexing_results_attachments(indexing_results)
+    for attachment in attachments:
+        choice.add_attachment(attachment)
+    return
 
 
 async def _run_retrieval(
@@ -291,32 +319,36 @@ class DialRAGApplication(ChatCompletion):
                 dial_api_client
             )
 
-            # TODO: Allow to specify desired index URLs in the request
             indexing_tasks = create_indexing_tasks(
-                attachment_links, dial_api_client
+                attachment_links,
+                dial_api_client,
             )
 
-            docs_and_errors = await load_documents(
+            indexing_results = await load_documents(
                 request_context,
                 indexing_tasks,
                 index_storage,
                 config=request_config,
             )
-            document_records, document_records_links, loading_errors = (
-                process_load_errors(docs_and_errors, attachment_links)
-            )
+
+            if request_config.request.type == RequestType.INDEXING:
+                return _return_indexing_results(choice, indexing_results)
 
             if (
-                len(loading_errors) > 0
+                has_document_loading_errors(indexing_results)
                 and not request_config.ignore_document_loading_errors
             ):
                 if request_config.request.type != RequestType.RAG:
-                    raise create_document_loading_exception(loading_errors)
+                    raise create_document_loading_exception(indexing_results)
 
                 choice.append_content(
-                    format_document_loading_errors(loading_errors)
+                    format_document_loading_errors(indexing_results)
                 )
                 return
+
+            document_records, document_records_links = (
+                _collect_document_records(indexing_results)
+            )
 
             last_message_content = messages[-1].content
             if last_message_content is None:
