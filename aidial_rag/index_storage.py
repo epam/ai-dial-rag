@@ -110,10 +110,10 @@ class CachedStorage(IndexStorageBackend):
     def __init__(
         self,
         storage: IndexStorageBackend,
-        capacity: int = DEFAULT_IN_MEMORY_CACHE_CAPACITY,
+        cache: LRUCacheStorage,
     ):
         self._storage = storage
-        self._cache = LRUCacheStorage(capacity)
+        self._cache = cache
 
     async def load(self, url: str) -> bytes | None:
         data = await self._cache.load(url)
@@ -134,19 +134,16 @@ class IndexStorage:
     def __init__(
         self,
         dial_api_client: DialApiClient,
-        index_storage_config: IndexStorageConfig | None = None,
+        index_storage_config: IndexStorageConfig,
+        cache: LRUCacheStorage,
     ):
-        if index_storage_config is None:
-            index_storage_config = IndexStorageConfig()
         if index_storage_config.use_dial_file_storage:
             self._storage = CachedStorage(
                 DialFileStorage(dial_api_client),
-                index_storage_config.in_memory_cache_capacity,
+                cache,
             )
         else:
-            self._storage = LRUCacheStorage(
-                index_storage_config.in_memory_cache_capacity
-            )
+            self._storage = cache
 
     async def load(
         self,
@@ -187,3 +184,24 @@ class IndexStorage:
             f"Stored document {task.attachment_link} index with url: {task.index_url}"
         )
         return await self._storage.store(task.index_url, doc_record_bytes)
+
+
+class IndexStorageHolder:
+    def __init__(
+        self,
+        index_storage_config: IndexStorageConfig | None = None,
+    ):
+        if index_storage_config is None:
+            index_storage_config = IndexStorageConfig()
+
+        self._cache = LRUCacheStorage(
+            index_storage_config.in_memory_cache_capacity
+        )
+        self.config = index_storage_config
+
+    def get_storage(self, dial_api_client: DialApiClient) -> IndexStorage:
+        return IndexStorage(
+            dial_api_client=dial_api_client,
+            index_storage_config=self.config,
+            cache=self._cache,
+        )
