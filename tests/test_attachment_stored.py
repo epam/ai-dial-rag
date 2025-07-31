@@ -11,7 +11,7 @@ from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.documents import load_document
 from aidial_rag.errors import DocumentProcessingError, InvalidDocumentError
-from aidial_rag.index_storage import IndexStorage, link_to_index_url
+from aidial_rag.index_storage import IndexStorageHolder, link_to_index_url
 from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.request_context import RequestContext
@@ -55,7 +55,7 @@ def dial_api_client():
 
 @pytest.fixture
 def index_storage(dial_api_client):
-    return IndexStorage(dial_api_client=dial_api_client)
+    return IndexStorageHolder().get_storage(dial_api_client)
 
 
 @pytest.fixture
