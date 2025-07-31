@@ -20,7 +20,7 @@ class RequestType(StrEnum):
 
     RAG = "rag"
     RETRIEVAL = "retrieval"
-    # TODO: Add INDEXING request type
+    INDEXING = "indexing"
 
 
 class ApiRequest(BaseModel):

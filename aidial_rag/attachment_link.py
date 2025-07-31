@@ -1,14 +1,12 @@
 from collections.abc import Generator
 from pathlib import PurePosixPath
-from typing import List, Tuple
+from typing import List
 from urllib.parse import unquote, urljoin, urlparse
 
-from aidial_sdk import HTTPException
 from aidial_sdk.chat_completion import Message, Role
 from pydantic import BaseModel
-from requests.exceptions import Timeout
 
-from aidial_rag.errors import DocumentProcessingError, InvalidAttachmentError
+from aidial_rag.errors import InvalidAttachmentError
 from aidial_rag.request_context import RequestContext
 
 
@@ -78,12 +76,16 @@ class AttachmentLink(BaseModel):
     - absolute_url: The absolute URL. Should be used to get the content of the attached document.
     - display_name: The name of the attached document to display to the User. Does not include the bucket name for the documents in the Dial filesystem.
     - dial_metadata_url: The URL to get the metadata for the attached document. Could be None if the document is not in the Dial filesystem.
+    - type: The MIME type of the attached document. Could be None if not specified.
+    - reference_url: The URL to the original document, if it is different from the dial_link.
     """
 
     dial_link: str
     absolute_url: str
     display_name: str
     dial_metadata_url: str | None = None
+    type: str | None = None
+    reference_url: str | None = None
 
     def __str__(self) -> str:
         return self.dial_link
@@ -120,7 +122,11 @@ class AttachmentLink(BaseModel):
 
     @classmethod
     def from_link(
-        cls, request_context: RequestContext, link: str
+        cls,
+        request_context: RequestContext,
+        link: str,
+        type: str | None = None,
+        reference_url: str | None = None,
     ) -> "AttachmentLink":
         absolute_url = to_absolute_url(request_context, link)
         if request_context.is_dial_url(absolute_url) and absolute_url == link:
@@ -134,6 +140,8 @@ class AttachmentLink(BaseModel):
             dial_metadata_url=to_dial_metadata_url(
                 request_context, absolute_url, link
             ),
+            type=type,
+            reference_url=reference_url,
         )
 
 
@@ -149,74 +157,10 @@ def get_attachment_links(
         for attachment in message.custom_content.attachments:
             # Attachment url field is a link which could be an absolute URL or relative URL for the Dial file API.
             assert attachment.url is not None
-            link = AttachmentLink.from_link(request_context, attachment.url)
+            link = AttachmentLink.from_link(
+                request_context,
+                attachment.url,
+                attachment.type,
+                attachment.reference_url,
+            )
             yield link
-
-
-def _iter_leaf_exceptions(
-    exception: BaseException,
-) -> Generator[BaseException, None, None]:
-    if isinstance(exception, DocumentProcessingError) and exception.__cause__:
-        # We want to show the original cause of the error to the User.
-        yield from _iter_leaf_exceptions(exception.__cause__)
-    elif isinstance(exception, BaseExceptionGroup):
-        # We could have multiple errors in the group because of the concurrent processing.
-        for inner_exception in exception.exceptions:
-            yield from _iter_leaf_exceptions(inner_exception)
-    else:
-        yield exception
-
-
-def _get_user_facing_error_message(
-    exception: BaseException,
-) -> Generator[str, None, None]:
-    for leaf_exception in _iter_leaf_exceptions(exception):
-        if isinstance(leaf_exception, HTTPException):
-            yield leaf_exception.message.replace("\n", " ")
-        elif isinstance(leaf_exception, Timeout):
-            yield "Timed out during download"
-        else:
-            yield "Internal error"
-
-
-def format_document_loading_errors(
-    errors: List[Tuple[BaseException, AttachmentLink]],
-) -> str:
-    return "\n".join(
-        [
-            "I'm sorry, but I can't process the documents because of the following errors:\n",
-            "|Document|Error|",
-            "|---|---|",
-            *(
-                f"|{link.display_name}|{message}|"
-                for exc, link in errors
-                for message in _get_user_facing_error_message(exc)
-            ),
-            "\nPlease try again with different documents.",
-        ]
-    )
-
-
-def _get_status_codes(exception: BaseException) -> Generator[int, None, None]:
-    for leaf_exception in _iter_leaf_exceptions(exception):
-        if isinstance(leaf_exception, HTTPException):
-            yield leaf_exception.status_code
-        else:
-            yield 500
-
-
-def create_document_loading_exception(
-    errors: List[Tuple[BaseException, AttachmentLink]],
-) -> HTTPException:
-    # The min is used to make 4xx errors more important than 5xx errors,
-    # because we want to prioritize errors that are caused by the User's input.
-    status_code = min(
-        status_code for e, _ in errors for status_code in _get_status_codes(e)
-    )
-
-    error_message = format_document_loading_errors(errors)
-    return HTTPException(
-        status_code=status_code,
-        message=error_message,
-        display_message=error_message,
-    )
