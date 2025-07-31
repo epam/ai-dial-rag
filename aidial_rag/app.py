@@ -38,7 +38,10 @@ from aidial_rag.dial_api_client import DialApiClient, create_dial_api_client
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
-from aidial_rag.index_storage import IndexStorage, link_to_index_url
+from aidial_rag.index_storage import (
+    IndexStorageHolder,
+    link_to_index_url,
+)
 from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.qa_chain import generate_answer
 from aidial_rag.query_chain import create_get_query_chain
@@ -219,6 +222,9 @@ class DialRAGApplication(ChatCompletion):
                 f"The system prompt is set to a custom value: "
                 f"{self.app_config.request.qa_chain.chat_chain.system_prompt_template_override}."
             )
+        self.index_storage_holder = IndexStorageHolder(
+            self.app_config.index_storage
+        )
         super().__init__()
 
     def _merge_config_sources(
@@ -281,9 +287,8 @@ class DialRAGApplication(ChatCompletion):
             )
 
             dial_api_client = await create_dial_api_client(request_context)
-            index_storage = IndexStorage(
-                dial_api_client,
-                self.app_config.index_storage,
+            index_storage = self.index_storage_holder.get_storage(
+                dial_api_client
             )
 
             # TODO: Allow to specify desired index URLs in the request
