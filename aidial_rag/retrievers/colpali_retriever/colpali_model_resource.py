@@ -219,8 +219,9 @@ class ColpaliModelResource:
             if self.model_resource_config == config:
                 return
             self.model_resource_config = config
-            device = autodetect_device()
+            device = autodetect_device().value
             self.device = torch.device(device)
+            
 
             model_class, processor_class = get_model_processor_classes(
                 config.model_type
