@@ -50,11 +50,14 @@ def get_safe_model_name(model_name: str) -> str:
     return model_name.replace("/", "_")
 
 
-def get_model_local_path(base_path: str, model_name: str) -> str:
+def get_model_local_path(base_path: str, model_name: str) -> Path:
     """Get the local path for a model given base path and model name"""
     safe_name = get_safe_model_name(model_name)
-    return f"{base_path}/{safe_name}"
+    return Path(base_path) / safe_name
 
+def get_model_cache_path(model_path: Path) -> Path:
+    """Get the cache path for a model given model path"""
+    return model_path / "cache"
 
 # Path to pre-downloaded ColPali models for normal use in docker
 # Model names are used for local runs only

@@ -27,42 +27,28 @@ def download_all_colpali_models(base_path: str):
     
     # Import the KNOWN_MODELS map and utility functions from isolated module
     from aidial_rag.retrievers.colpali_retriever.colpali_models import (
-        KNOWN_MODELS, get_model_processor_classes, get_model_local_path
+        KNOWN_MODELS, get_model_processor_classes, get_model_local_path, get_model_cache_path
     )
     
-    for model_name, model_type in KNOWN_MODELS.items():
+    for model_name, model_type in KNOWN_MODELS.items(): 
         print(f"Downloading model {model_name} of type {model_type}")
-        
-        model_path = get_model_local_path(base_path, model_name)
-        
-        model_class, processor_class = get_model_processor_classes(model_type)
-        Path(model_path).mkdir(parents=True, exist_ok=True)
-        
-        # Download model and processor
-        model = model_class.from_pretrained(model_name)
-        processor = processor_class.from_pretrained(model_name)
-        
-        # Save model and processor
-        model.save_pretrained(model_path)
-        processor.save_pretrained(model_path)
-        
-        # saving just model and processor is not enough, we need to copy additional files
-        print("Copying additional files...")
-        important_files = [
-            "preprocessor_config.json",
-            "adapter_config.json",
-            "processor_config.json",
-        ]
-        
-        with tempfile.TemporaryDirectory() as temp_dir:
-            snapshot_download(model_name, local_dir=temp_dir, local_files_only=False)
-            for file_name in important_files:
-                source_file = os.path.join(temp_dir, file_name)
-                if os.path.exists(source_file):
-                    shutil.copy2(source_file, f"{model_path}/{file_name}")
-        
-        print(f"Successfully downloaded {model_name}")
 
+        model_path = get_model_local_path(base_path, model_name)
+        cache_path = get_model_cache_path(model_path)
+        model_class, processor_class = get_model_processor_classes(model_type) 
+        model_path.mkdir(parents=True, exist_ok=True)
+        
+        # download model repository for config files and adapters weights
+        from huggingface_hub import snapshot_download
+        snapshot_download(repo_id=model_name, local_dir=model_path, local_dir_use_symlinks=False, force_download=True)
+        
+        # download base model into cache directory
+        model = model_class.from_pretrained(model_name,local_files_only=False,
+            force_download=True,
+            cache_dir=cache_path 
+        )
+
+        print(f"Successfully downloaded {model_name}")
 
 def main():
     parser = argparse.ArgumentParser(

@@ -11,6 +11,9 @@ from aidial_rag.embeddings.detect_device import autodetect_device
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
+from aidial_rag.retrievers.colpali_retriever.colpali_models import get_model_local_path, get_model_cache_path
+
+from pathlib import Path
 
 # Path to pre-downloaded ColPali models for normal use in docker
 # Model names are used for local runs only
@@ -57,15 +60,7 @@ def get_model_processor_classes(
             raise ValueError("Invalid ColPali model type")
 
 
-def get_safe_model_name(model_name: str) -> str:
-    """Convert model name to safe directory name"""
-    return model_name.replace("/", "_")
 
-
-def get_model_local_path(base_path: str, model_name: str) -> str:
-    """Get the local path for a model given base path and model name"""
-    safe_name = get_safe_model_name(model_name)
-    return f"{base_path}/{safe_name}"
 
 
 class ColpaliModelResourceConfig(BaseModel):
@@ -229,18 +224,22 @@ class ColpaliModelResource:
 
             # Check if local model path exists otherwise use Hugging Face
             model_name = config.model_name
+            cache_path = None
             if COLPALI_MODELS_BASE_PATH:
                 local_model_path = get_model_local_path(
                     COLPALI_MODELS_BASE_PATH, model_name
                 )
                 if os.path.exists(local_model_path):
                     model_name = local_model_path
+                    cache_path = get_model_cache_path(local_model_path)
             self.model = model_class.from_pretrained(
                 model_name,
                 torch_dtype=torch.float16,
                 device_map=self.device,
+                cache_dir=cache_path if cache_path else None,
             ).eval()
             self.processor = processor_class.from_pretrained(model_name)
+            
             assert self.model is not None
             assert self.processor is not None
             assert self.device is not None
