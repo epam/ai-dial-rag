@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from aidial_rag.app import create_app
 from aidial_rag.app_config import AppConfig
-from aidial_rag.indexing_api import INDEX_MIME_TYPE
+from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.retrieval_api import Page, RetrievalResults, Source
 from tests.utils.config_override import (
     description_index_retries_override,  # noqa: F401

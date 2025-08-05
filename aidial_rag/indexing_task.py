@@ -1,3 +1,4 @@
+import hashlib
 from typing import List
 
 from pydantic import BaseModel, ConfigDict
@@ -5,8 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.errors import InvalidDocumentError
-from aidial_rag.index_storage import link_to_index_url
-from aidial_rag.indexing_api import INDEX_MIME_TYPE, INDEX_MIME_TYPES_REGEX
+from aidial_rag.index_mime_type import INDEX_MIME_TYPE, INDEX_MIME_TYPES_REGEX
 
 
 class IndexingTask(BaseModel):
@@ -30,6 +30,23 @@ def _is_rag_index(attachment: AttachmentLink) -> bool:
     if not attachment.reference_url:
         raise InvalidDocumentError("Index attachment must have a reference URL")
     return True
+
+
+def link_to_index_url(attachment_link: AttachmentLink, bucket_id: str) -> str:
+    # Number of characters in each directory part for index file paths
+    # This is treated as a part of an algorithm, not a configuration parameter,
+    # because if changed, the old index files will not be found.
+    INDEX_PATH_PART_SIZE = 8
+
+    key = hashlib.sha256(attachment_link.dial_link.encode()).hexdigest()
+
+    # split the key into parts to avoid too many files in one directory
+    dir_path = "/".join(
+        key[i : i + INDEX_PATH_PART_SIZE]
+        for i in range(0, len(key), INDEX_PATH_PART_SIZE)
+    )
+
+    return f"files/{bucket_id}/dial-rag-index/{dir_path}/index.bin"
 
 
 def create_indexing_tasks(
