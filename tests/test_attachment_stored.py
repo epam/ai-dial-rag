@@ -125,6 +125,7 @@ async def test_load_document_success(
         request_context,
         indexing_task,
         index_storage,
+        dial_api_client,
         config=request_config,
     )
     assert isinstance(doc_record, DocumentRecord)
@@ -172,6 +173,7 @@ async def test_load_document_invalid_document(
                 index_url=index_url,
             ),
             index_storage,
+            dial_api_client,
             config=request_config,
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)

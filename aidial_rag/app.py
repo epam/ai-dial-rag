@@ -288,6 +288,7 @@ class DialRAGApplication(ChatCompletion):
                 request_context,
                 indexing_tasks,
                 index_storage,
+                dial_api_client,
                 config=request_config,
             )
 
