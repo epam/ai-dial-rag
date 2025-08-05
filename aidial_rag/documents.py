@@ -302,9 +302,10 @@ async def load_document_task(
             doc_record=doc_record,
         )
     except DocumentProcessingError as e:
+        assert isinstance(e.__cause__, Exception)
         return DocumentIndexingFailure(
             task=task,
-            exception=e,
+            exception=e.__cause__,
         )
 
 

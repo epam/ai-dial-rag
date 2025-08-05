@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict
 from requests.exceptions import Timeout
 
 from aidial_rag.document_record import DocumentRecord
-from aidial_rag.errors import DocumentProcessingError
 from aidial_rag.indexing_task import IndexingTask
 
 
@@ -50,10 +49,7 @@ def get_indexing_failures(
 def _iter_leaf_exceptions(
     exception: BaseException,
 ) -> Generator[BaseException, None, None]:
-    if isinstance(exception, DocumentProcessingError) and exception.__cause__:
-        # We want to show the original cause of the error to the User.
-        yield from _iter_leaf_exceptions(exception.__cause__)
-    elif isinstance(exception, BaseExceptionGroup):
+    if isinstance(exception, BaseExceptionGroup):
         # We could have multiple errors in the group because of the concurrent processing.
         for inner_exception in exception.exceptions:
             yield from _iter_leaf_exceptions(inner_exception)
