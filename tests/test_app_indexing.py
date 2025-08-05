@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from aidial_rag.app import create_app
 from aidial_rag.app_config import AppConfig
+from aidial_rag.indexing_api import INDEX_MIME_TYPE
 from aidial_rag.retrieval_api import Page, RetrievalResults, Source
 from tests.utils.config_override import (
     description_index_retries_override,  # noqa: F401
@@ -58,7 +59,7 @@ async def test_indexing_request(attachments):
     index_attachments = [
         attachment
         for attachment in indexing_response_attachments
-        if attachment["type"] == "application/x.aidial-rag-index.v0"
+        if attachment["type"] == INDEX_MIME_TYPE
     ]
     assert len(index_attachments) == 2
 
@@ -211,7 +212,7 @@ async def test_unsupported_file(attachments):
     index_attachments = [
         attachment
         for attachment in indexing_response_attachments
-        if attachment["type"] == "application/x.aidial-rag-index.v0"
+        if attachment["type"] == INDEX_MIME_TYPE
     ]
     assert len(index_attachments) == 1
     assert index_attachments[0]["reference_url"] == attachments[0]["url"]
@@ -252,7 +253,7 @@ async def test_custom_index_path(attachments):
 
     index_attachments = [
         {
-            "type": "application/x.aidial-rag-index.v0",
+            "type": INDEX_MIME_TYPE,
             "url": "files/6iTkeGUs2CvUehhYLmMYXB/appdata/dial-rag/index/my_index_1",
             "reference_url": attachments[0]["url"],
         }
@@ -289,7 +290,7 @@ async def test_custom_index_path(attachments):
     index_attachments_result = [
         attachment
         for attachment in indexing_response_attachments
-        if attachment["type"] == "application/x.aidial-rag-index.v0"
+        if attachment["type"] == INDEX_MIME_TYPE
     ]
     assert len(index_attachments_result) == 1
     assert index_attachments_result == index_attachments

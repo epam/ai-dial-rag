@@ -38,12 +38,14 @@ from aidial_rag.documents import load_documents
 from aidial_rag.errors import InvalidDocumentError
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.index_storage import (
-    INDEX_MIME_TYPE,
-    INDEX_MIME_TYPES_REGEX,
     IndexStorageHolder,
     link_to_index_url,
 )
-from aidial_rag.indexing_api import create_indexing_results_attachments
+from aidial_rag.indexing_api import (
+    INDEX_MIME_TYPE,
+    INDEX_MIME_TYPES_REGEX,
+    create_indexing_results_attachments,
+)
 from aidial_rag.indexing_results import (
     DocumentIndexingResult,
     DocumentIndexingSuccess,
@@ -161,14 +163,13 @@ def create_indexing_tasks(
     ]
 
 
-def _return_indexing_results(
+def _add_indexing_results(
     choice: Choice,
     indexing_results: List[DocumentIndexingResult],
 ) -> None:
     attachments = create_indexing_results_attachments(indexing_results)
     for attachment in attachments:
         choice.add_attachment(attachment)
-    return
 
 
 async def _run_retrieval(
@@ -332,7 +333,7 @@ class DialRAGApplication(ChatCompletion):
             )
 
             if request_config.request.type == RequestType.INDEXING:
-                return _return_indexing_results(choice, indexing_results)
+                return _add_indexing_results(choice, indexing_results)
 
             indexing_failures = get_indexing_failures(indexing_results)
             if (

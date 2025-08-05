@@ -1,14 +1,23 @@
+import re
 from typing import ClassVar, Dict, List
 
 from aidial_sdk.chat_completion.request import Attachment
 from pydantic import BaseModel, Field
 
-from aidial_rag.index_storage import INDEX_MIME_TYPE
 from aidial_rag.indexing_results import (
     DocumentIndexingFailure,
     DocumentIndexingResult,
     DocumentIndexingSuccess,
     get_user_facing_error_message,
+)
+
+INDEX_MIME_TYPE = "application/x.aidial-rag-index.v0"
+
+INDEX_MIME_TYPES_REGEX = re.compile(r"^application/x\.aidial-rag-index\..*$")
+
+assert INDEX_MIME_TYPES_REGEX.match(INDEX_MIME_TYPE), (
+    f"Invalid INDEX_MIME_TYPE: {INDEX_MIME_TYPE}. "
+    f"It should match the regex {INDEX_MIME_TYPES_REGEX.pattern}."
 )
 
 
@@ -82,7 +91,7 @@ def create_indexing_results_attachments(
         Attachment(
             title="Indexing results",
             type=indexing_response.CONTENT_TYPE,
-            data=indexing_response.model_dump_json(indent=2),
+            data=indexing_response.model_dump_json(),
         )
     )
 
