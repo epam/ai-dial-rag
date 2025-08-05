@@ -36,7 +36,11 @@ from aidial_rag.errors import (
 )
 from aidial_rag.image_processor.extract_pages import is_image
 from aidial_rag.index_storage import IndexStorage
-from aidial_rag.indexing_results import DocumentIndexingResult
+from aidial_rag.indexing_results import (
+    DocumentIndexingFailure,
+    DocumentIndexingResult,
+    DocumentIndexingSuccess,
+)
 from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
@@ -289,19 +293,19 @@ async def load_document_task(
     index_storage: IndexStorage,
     config: RequestConfig,
 ) -> DocumentIndexingResult:
-    doc_record = None
-    exception = None
     try:
         doc_record = await load_document(
             request_context, task, index_storage, config
         )
+        return DocumentIndexingSuccess(
+            task=task,
+            doc_record=doc_record,
+        )
     except DocumentProcessingError as e:
-        exception = e
-    return DocumentIndexingResult(
-        task=task,
-        doc_record=doc_record,
-        exception=exception,
-    )
+        return DocumentIndexingFailure(
+            task=task,
+            exception=e,
+        )
 
 
 async def load_documents(

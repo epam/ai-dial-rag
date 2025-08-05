@@ -5,7 +5,9 @@ from pydantic import BaseModel, Field
 
 from aidial_rag.index_storage import INDEX_MIME_TYPE
 from aidial_rag.indexing_results import (
+    DocumentIndexingFailure,
     DocumentIndexingResult,
+    DocumentIndexingSuccess,
     get_user_facing_error_message,
 )
 
@@ -39,7 +41,7 @@ class IndexingResponse(BaseModel):
 
 
 def create_index_attachment(
-    indexing_result: DocumentIndexingResult,
+    indexing_result: DocumentIndexingSuccess,
 ) -> Attachment:
     """Creates an attachment for the indexing result."""
     return Attachment(
@@ -54,7 +56,7 @@ def create_indexing_response(
 ) -> IndexingResponse:
     doc_indexing_results: Dict[str, DocumentIndexingResultResponse] = {}
     for result in indexing_results:
-        if result.exception is not None:
+        if isinstance(result, DocumentIndexingFailure):
             doc_indexing_results[result.task.attachment_link.dial_link] = (
                 DocumentIndexingResultResponse(
                     errors=[
@@ -72,7 +74,7 @@ def create_indexing_results_attachments(
 ) -> List[Attachment]:
     index_attachments: List[Attachment] = []
     for result in indexing_results:
-        if result.exception is None:
+        if isinstance(result, DocumentIndexingSuccess):
             index_attachments.append(create_index_attachment(result))
 
     indexing_response = create_indexing_response(indexing_results)

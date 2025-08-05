@@ -46,9 +46,10 @@ from aidial_rag.index_storage import (
 from aidial_rag.indexing_api import create_indexing_results_attachments
 from aidial_rag.indexing_results import (
     DocumentIndexingResult,
+    DocumentIndexingSuccess,
     create_document_loading_exception,
     format_document_loading_errors,
-    has_document_loading_errors,
+    get_indexing_failures,
 )
 from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.qa_chain import generate_answer
@@ -116,8 +117,7 @@ def _collect_document_records(
     document_records_links: List[AttachmentLink] = []
 
     for result in indexing_results:
-        if result.exception is None:
-            assert result.doc_record is not None
+        if isinstance(result, DocumentIndexingSuccess):
             document_records.append(result.doc_record)
             document_records_links.append(result.task.attachment_link)
 
@@ -334,15 +334,16 @@ class DialRAGApplication(ChatCompletion):
             if request_config.request.type == RequestType.INDEXING:
                 return _return_indexing_results(choice, indexing_results)
 
+            indexing_failures = get_indexing_failures(indexing_results)
             if (
-                has_document_loading_errors(indexing_results)
+                indexing_failures
                 and not request_config.ignore_document_loading_errors
             ):
                 if request_config.request.type != RequestType.RAG:
-                    raise create_document_loading_exception(indexing_results)
+                    raise create_document_loading_exception(indexing_failures)
 
                 choice.append_content(
-                    format_document_loading_errors(indexing_results)
+                    format_document_loading_errors(indexing_failures)
                 )
                 return
 

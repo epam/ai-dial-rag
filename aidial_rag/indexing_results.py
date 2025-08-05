@@ -1,8 +1,8 @@
 from collections.abc import Generator
-from typing import List, Self
+from typing import List
 
 from aidial_sdk import HTTPException
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict
 from requests.exceptions import Timeout
 
 from aidial_rag.document_record import DocumentRecord
@@ -11,11 +11,23 @@ from aidial_rag.indexing_task import IndexingTask
 
 
 class DocumentIndexingResult(BaseModel):
-    """Result of the document indexing task."""
+    """Base class for indexing results of a document."""
 
     task: IndexingTask
-    doc_record: DocumentRecord | None = None
-    exception: Exception | None = None
+
+
+class DocumentIndexingSuccess(DocumentIndexingResult):
+    """Result of a successful indexing operation."""
+
+    doc_record: DocumentRecord
+
+
+class DocumentIndexingFailure(DocumentIndexingResult):
+    """Result of a failed indexing operation."""
+
+    exception: Exception
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def iter_leaf_exceptions(self) -> Generator[BaseException, None, None]:
         """Iterate over leaf exceptions in the result."""
@@ -23,21 +35,16 @@ class DocumentIndexingResult(BaseModel):
             return
         yield from _iter_leaf_exceptions(self.exception)
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    @model_validator(mode="after")
-    def check_doc_record_or_exception_is_not_none(self) -> Self:
-        """Ensure that either doc_record or exception is not None."""
-        if self.doc_record is None and self.exception is None:
-            raise ValueError("Either doc_record or exception must be provided.")
-        return self
-
-
-def has_document_loading_errors(
+def get_indexing_failures(
     indexing_results: List[DocumentIndexingResult],
-) -> bool:
-    """Check if there are any errors in the document loading results."""
-    return any(result.exception is not None for result in indexing_results)
+) -> List[DocumentIndexingFailure]:
+    """Returns a list of indexing failures from the indexing results."""
+    return [
+        result
+        for result in indexing_results
+        if isinstance(result, DocumentIndexingFailure)
+    ]
 
 
 def _iter_leaf_exceptions(
@@ -75,7 +82,7 @@ def get_user_facing_error_message(
 
 
 def format_document_loading_errors(
-    indexing_results: List[DocumentIndexingResult],
+    indexing_results: List[DocumentIndexingFailure],
 ) -> str:
     return "\n".join(
         [
@@ -93,7 +100,7 @@ def format_document_loading_errors(
 
 
 def create_document_loading_exception(
-    indexing_results: List[DocumentIndexingResult],
+    indexing_results: List[DocumentIndexingFailure],
 ) -> HTTPException:
     # The min is used to make 4xx errors more important than 5xx errors,
     # because we want to prioritize errors that are caused by the User's input.
