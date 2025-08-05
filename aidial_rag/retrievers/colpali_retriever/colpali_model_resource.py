@@ -11,9 +11,10 @@ from aidial_rag.embeddings.detect_device import autodetect_device
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
-from aidial_rag.retrievers.colpali_retriever.colpali_models import get_model_local_path, get_model_cache_path
-
-from pathlib import Path
+from aidial_rag.retrievers.colpali_retriever.colpali_models import (
+    get_model_cache_path,
+    get_model_local_path,
+)
 
 # Path to pre-downloaded ColPali models for normal use in docker
 # Model names are used for local runs only
@@ -58,9 +59,6 @@ def get_model_processor_classes(
             return ColQwen2, ColQwen2Processor
         case _:
             raise ValueError("Invalid ColPali model type")
-
-
-
 
 
 class ColpaliModelResourceConfig(BaseModel):
@@ -216,7 +214,6 @@ class ColpaliModelResource:
             self.model_resource_config = config
             device = autodetect_device().value
             self.device = torch.device(device)
-            
 
             model_class, processor_class = get_model_processor_classes(
                 config.model_type
@@ -239,7 +236,7 @@ class ColpaliModelResource:
                 cache_dir=cache_path if cache_path else None,
             ).eval()
             self.processor = processor_class.from_pretrained(model_name)
-            
+
             assert self.model is not None
             assert self.processor is not None
             assert self.device is not None
