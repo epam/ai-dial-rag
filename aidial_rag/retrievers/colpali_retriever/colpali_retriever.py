@@ -277,7 +277,7 @@ class ColpaliRetriever(BaseRetriever):
 
         stageio.write("Processing images\n")
 
-        # Collect all futures first (parallel processing)
+        # Collect all futures first
         futures = []
         async for image in images.agen:
             future = await batch_processor.add_item(

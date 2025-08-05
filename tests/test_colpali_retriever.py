@@ -20,7 +20,6 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResourceConfig,
-    ColpaliModelType,
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
     ColpaliRetriever,
@@ -74,7 +73,6 @@ def create_colpali_only_config():
     from aidial_rag.app_config import AppConfig
     from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
         ColpaliModelResourceConfig,
-        ColpaliModelType,
     )
 
     return AppConfig(
@@ -83,7 +81,6 @@ def create_colpali_only_config():
         config_path="config/azure_colpali.yaml",
         colpali_model_resource_config=ColpaliModelResourceConfig(
             model_name="vidore/colSmol-256M",
-            model_type=ColpaliModelType.COLIDEFICS,
         ),
     )
 
@@ -101,7 +98,6 @@ def mock_create_retriever(
     # Create model resource config from the index config for backward compatibility
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
-        model_type=ColpaliModelType.COLIDEFICS,
     )
     cached_model_resource = CachedColpaliModelResource(
         colpali_model_resource_config, colpali_index_config, use_cache=use_cache
@@ -177,26 +173,14 @@ def run_e2e_test(attachments, question, expected_text):
     return json_response
 
 
-def test_model_name_type_validation():
-    """Test that model name and type validation works correctly."""
+def test_model_name_validation():
+    """Test that model name validation works correctly."""
 
     # Test valid configuration
     valid_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
-        model_type=ColpaliModelType.COLIDEFICS,
     )
     assert valid_config.model_name == "vidore/colSmol-256M"
-    assert valid_config.model_type == ColpaliModelType.COLIDEFICS
-
-    # Test invalid configuration - should raise ValueError
-    with pytest.raises(
-        ValueError,
-        match="Model name 'vidore/colSmol-256M' is known to be of type 'ColIdefics'",
-    ):
-        ColpaliModelResourceConfig(
-            model_name="vidore/colSmol-256M",
-            model_type=ColpaliModelType.COLPALI,  # Wrong type
-        )
 
     # Test unknown model name - should raise error
     with pytest.raises(
@@ -204,7 +188,6 @@ def test_model_name_type_validation():
     ):
         ColpaliModelResourceConfig(
             model_name="unknown/model",
-            model_type=ColpaliModelType.COLPALI,
         )
 
 
@@ -221,7 +204,6 @@ async def test_colpali_retriever(local_server):
     # Setup ColPali model and index using Azure config
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
-        model_type=ColpaliModelType.COLIDEFICS,
     )
     colpali_index_config = ColpaliIndexConfig(
         image_size=512,
@@ -305,7 +287,6 @@ def colpali_model_resource():
 
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
-        model_type=ColpaliModelType.COLIDEFICS,
     )
     colpali_index_config = ColpaliIndexConfig(
         image_size=512,

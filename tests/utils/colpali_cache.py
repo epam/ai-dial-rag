@@ -168,7 +168,7 @@ class CachedColpaliModelResource(ColpaliModelResource):
         """Generate cache key for model configuration."""
         if self.model_resource_config is None:
             raise ValueError("Model resource config is required")
-        content = f"{self.model_resource_config.model_name}_{self.model_resource_config.model_type}"
+        content = f"{self.model_resource_config.model_name}"
         return hashlib.sha256(content.encode()).hexdigest()
 
     def get_model_processor_device(self) -> tuple[Any, Any, torch.device]:
