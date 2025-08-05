@@ -15,6 +15,7 @@ from aidial_rag.document_record import (
     DocumentRecord,
     IndexSettings,
 )
+from aidial_rag.indexing_api import INDEX_MIME_TYPE
 from aidial_rag.indexing_task import IndexingTask
 
 logger = logging.getLogger(__name__)
@@ -43,8 +44,6 @@ DEFAULT_IN_MEMORY_CACHE_CAPACITY = IndexStorageConfig().in_memory_cache_capacity
 
 
 SERIALIZATION_CONFIG = {"protocol": "pickle", "compress": "gzip"}
-
-INDEX_MIME_TYPE = "application/x.aidial-rag-index.v0"
 
 
 # Number of characters in each directory part for index file paths

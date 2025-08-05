@@ -36,6 +36,11 @@ from aidial_rag.errors import (
 )
 from aidial_rag.image_processor.extract_pages import is_image
 from aidial_rag.index_storage import IndexStorage
+from aidial_rag.indexing_results import (
+    DocumentIndexingFailure,
+    DocumentIndexingResult,
+    DocumentIndexingSuccess,
+)
 from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
@@ -282,16 +287,39 @@ async def load_document(
         return doc_record
 
 
+async def load_document_task(
+    request_context: RequestContext,
+    task: IndexingTask,
+    index_storage: IndexStorage,
+    config: RequestConfig,
+) -> DocumentIndexingResult:
+    try:
+        doc_record = await load_document(
+            request_context, task, index_storage, config
+        )
+        return DocumentIndexingSuccess(
+            task=task,
+            doc_record=doc_record,
+        )
+    except DocumentProcessingError as e:
+        assert isinstance(e.__cause__, Exception)
+        return DocumentIndexingFailure(
+            task=task,
+            exception=e.__cause__,
+        )
+
+
 async def load_documents(
     request_context: RequestContext,
     tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
     config: RequestConfig,
-) -> List[DocumentRecord | BaseException]:
+) -> List[DocumentIndexingResult]:
+    # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
+    # if ignore_document_loading_errors is not set in the config
     return await asyncio.gather(
         *[
-            load_document(request_context, task, index_storage, config)
+            load_document_task(request_context, task, index_storage, config)
             for task in tasks
         ],
-        return_exceptions=True,
     )

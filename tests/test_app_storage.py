@@ -1,5 +1,4 @@
 import json
-import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,20 +9,11 @@ from tests.utils.config_override import (
     description_index_retries_override,  # noqa: F401
 )
 from tests.utils.e2e_decorator import e2e_test
+from tests.utils.response_helpers import get_stage_names
 
 middleware_host = "http://localhost:8081"
 
 pytestmark = pytest.mark.usefixtures("description_index_retries_override")
-
-
-def _get_stage_names(response_json):
-    stages = response_json["choices"][0]["message"]["custom_content"]["stages"]
-    return [
-        re.sub(
-            r"\s*\[.*\]$", "", stage["name"]
-        ).strip()  # cut [0.03s] at the end of the stage name
-        for stage in stages
-    ]
 
 
 @pytest.mark.asyncio
@@ -59,7 +49,7 @@ async def test_retrieval_request(attachments):
         "mountain range" in json_response1["choices"][0]["message"]["content"]
     )
 
-    assert sorted(_get_stage_names(json_response1)) == [
+    assert sorted(get_stage_names(json_response1)) == [
         "Access document 'alps_wiki.html'",
         "Combined search",
         "Embeddings search",
@@ -94,7 +84,7 @@ async def test_retrieval_request(attachments):
 
     # No Processing and Storing indexes for the second request
     # because RAG uses cached indexes
-    assert sorted(_get_stage_names(json_response2)) == [
+    assert sorted(get_stage_names(json_response2)) == [
         "Access document 'alps_wiki.html'",
         "Combined search",
         "Embeddings search",
