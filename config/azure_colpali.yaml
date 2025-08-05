@@ -15,4 +15,3 @@ request:
         max_prompt_tokens: 8000 
 colpali_model_resource_config:
   model_name: vidore/colSmol-256M
-  model_type: ColIdefics

@@ -14,51 +14,13 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 from aidial_rag.retrievers.colpali_retriever.colpali_models import (
     get_model_cache_path,
     get_model_local_path,
+    get_model_processor_classes,
+    KNOWN_MODELS,
 )
 
 # Path to pre-downloaded ColPali models for normal use in docker
 # Model names are used for local runs only
 COLPALI_MODELS_BASE_PATH = os.environ.get("COLPALI_MODELS_BASE_PATH", None)
-
-
-class ColpaliModelType(StrEnum):
-    COLPALI = "ColPali"
-    COLQWEN = "ColQwen"
-    COLIDEFICS = "ColIdefics"
-
-
-# Mapping of known model names to their expected model types
-# can be extended with more models if needed
-KNOWN_MODELS = {
-    # ColIdefics models
-    "vidore/colSmol-256M": ColpaliModelType.COLIDEFICS,
-    "vidore/colpali-v1.3": ColpaliModelType.COLPALI,
-    "vidore/colqwen2-v1.0": ColpaliModelType.COLQWEN,
-}
-
-
-def get_model_processor_classes(
-    model_type: ColpaliModelType,
-) -> tuple[Any, Any]:
-    """Get model and processor classes for a given model type"""
-    from colpali_engine.models import (
-        ColIdefics3,
-        ColIdefics3Processor,
-        ColPali,
-        ColPaliProcessor,
-        ColQwen2,
-        ColQwen2Processor,
-    )
-
-    match model_type:
-        case ColpaliModelType.COLPALI:
-            return ColPali, ColPaliProcessor
-        case ColpaliModelType.COLIDEFICS:
-            return ColIdefics3, ColIdefics3Processor
-        case ColpaliModelType.COLQWEN:
-            return ColQwen2, ColQwen2Processor
-        case _:
-            raise ValueError("Invalid ColPali model type")
 
 
 class ColpaliModelResourceConfig(BaseModel):
@@ -69,32 +31,18 @@ class ColpaliModelResourceConfig(BaseModel):
             description="Model name, should be one of KNOWN_MODELS keys",
         ),
     ]
-    model_type: Annotated[
-        ColpaliModelType,
-        Field(
-            default=ColpaliModelType.COLIDEFICS,
-            description="Type of ColPali model",
-        ),
-    ]
 
-    def validate_consistency(self):
-        """validation of model name and type consistency"""
-        if self.model_name in KNOWN_MODELS:
-            expected_type = KNOWN_MODELS[self.model_name]
-            if self.model_type != expected_type:
-                raise ValueError(
-                    f"Model name '{self.model_name}' is known to be of type '{expected_type}', "
-                    f"but '{self.model_type}' was specified. Please use the correct model type."
-                )
-        else:
+    def validate_model_name(self):
+        """Validate that model name is known"""
+        if self.model_name not in KNOWN_MODELS:
             raise ValueError(
                 f"Model name '{self.model_name}' is not known. Please use one of the following: {list(KNOWN_MODELS.keys())}"
             )
 
     @model_validator(mode="after")
     def validate_model_consistency(self):
-        """Validate that model name and type are consistent."""
-        self.validate_consistency()
+        """Validate that model name is known."""
+        self.validate_model_name()
         return self
 
 
@@ -206,7 +154,7 @@ class ColpaliModelResource:
             self.__set_config(config)
 
     def __set_config(self, config: ColpaliModelResourceConfig):
-        config.validate_consistency()
+        config.validate_model_name()
 
         with self.lock:
             if self.model_resource_config == config:
@@ -216,7 +164,7 @@ class ColpaliModelResource:
             self.device = torch.device(device)
 
             model_class, processor_class = get_model_processor_classes(
-                config.model_type
+                config.model_name
             )
 
             # Check if local model path exists otherwise use Hugging Face

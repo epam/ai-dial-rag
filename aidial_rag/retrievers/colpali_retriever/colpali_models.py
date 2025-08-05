@@ -27,9 +27,9 @@ KNOWN_MODELS = {
 
 
 def get_model_processor_classes(
-    model_type: ColpaliModelType,
+    model_name: str,
 ) -> tuple[Any, Any]:
-    """Get model and processor classes for a given model type"""
+    """Get model and processor classes for a given model name"""
     from colpali_engine.models import (
         ColIdefics3,
         ColIdefics3Processor,
@@ -39,6 +39,11 @@ def get_model_processor_classes(
         ColQwen2Processor,
     )
 
+    if model_name not in KNOWN_MODELS:
+        raise ValueError(f"Unknown model name: {model_name}")
+    
+    model_type = KNOWN_MODELS[model_name]
+    
     match model_type:
         case ColpaliModelType.COLPALI:
             return ColPali, ColPaliProcessor
@@ -66,6 +71,5 @@ def get_model_cache_path(model_path: Path) -> Path:
     return model_path / "cache"
 
 
-# Path to pre-downloaded ColPali models for normal use in docker
-# Model names are used for local runs only
+# Path to pre-downloaded ColPali models
 COLPALI_MODELS_BASE_PATH = os.environ.get("COLPALI_MODELS_BASE_PATH", None)
