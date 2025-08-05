@@ -30,8 +30,6 @@ class DocumentIndexingFailure(DocumentIndexingResult):
 
     def iter_leaf_exceptions(self) -> Generator[BaseException, None, None]:
         """Iterate over leaf exceptions in the result."""
-        if self.exception is None:
-            return
         yield from _iter_leaf_exceptions(self.exception)
 
 
