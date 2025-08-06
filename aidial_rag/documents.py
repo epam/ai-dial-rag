@@ -6,8 +6,8 @@ from typing import Iterable, List
 
 from docarray import DocList
 
-from aidial_rag.app_config import RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag.content_stream import (
     LoggerStream,
     MarkdownStream,
@@ -36,6 +36,12 @@ from aidial_rag.errors import (
 )
 from aidial_rag.image_processor.extract_pages import is_image
 from aidial_rag.index_storage import IndexStorage
+from aidial_rag.indexing_results import (
+    DocumentIndexingFailure,
+    DocumentIndexingResult,
+    DocumentIndexingSuccess,
+)
+from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
@@ -249,11 +255,12 @@ def handle_document_processing_error(
 
 async def load_document(
     request_context: RequestContext,
-    attachment_link: AttachmentLink,
+    task: IndexingTask,
     index_storage: IndexStorage,
     colpali_model_resource: ColpaliModelResource,
     config: RequestConfig,
 ) -> DocumentRecord:
+    attachment_link = task.attachment_link
     with handle_document_processing_error(
         attachment_link, config.log_document_links
     ):
@@ -269,9 +276,7 @@ async def load_document(
             with timed_stage(
                 choice, f"Load indexes for '{attachment_link.display_name}'"
             ) as load_stage:
-                doc_record = await index_storage.load(
-                    attachment_link, index_settings, request_context
-                )
+                doc_record = await index_storage.load(task, index_settings)
                 if doc_record is None:
                     raise FailStageException()
                 print_chunks_stats(load_stage.content_stream, doc_record.chunks)
@@ -302,30 +307,52 @@ async def load_document(
             with timed_stage(
                 choice, f"Store indexes for '{attachment_link.display_name}'"
             ):
-                await index_storage.store(
-                    attachment_link, doc_record, request_context
-                )
+                await index_storage.store(task, doc_record)
 
         return doc_record
 
 
+async def load_document_task(
+    request_context: RequestContext,
+    task: IndexingTask,
+    index_storage: IndexStorage,
+    config: RequestConfig,
+    colpali_model_resource: ColpaliModelResource,
+) -> DocumentIndexingResult:
+    try:
+        doc_record = await load_document(
+            request_context, task, index_storage, colpali_model_resource, config
+        )
+        return DocumentIndexingSuccess(
+            task=task,
+            doc_record=doc_record,
+        )
+    except DocumentProcessingError as e:
+        assert isinstance(e.__cause__, Exception)
+        return DocumentIndexingFailure(
+            task=task,
+            exception=e.__cause__,
+        )
+
+
 async def load_documents(
     request_context: RequestContext,
-    attachment_links: Iterable[AttachmentLink],
+    tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
     colpali_model_resource: ColpaliModelResource,
     config: RequestConfig,
-) -> List[DocumentRecord | BaseException]:
+) -> List[DocumentIndexingResult]:
+    # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
+    # if ignore_document_loading_errors is not set in the config
     return await asyncio.gather(
         *[
-            load_document(
+            load_document_task(
                 request_context,
-                attachment_link,
+                task,
                 index_storage,
-                colpali_model_resource,
                 config,
+                colpali_model_resource,
             )
-            for attachment_link in attachment_links
+            for task in tasks
         ],
-        return_exceptions=True,
     )

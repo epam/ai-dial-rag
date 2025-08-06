@@ -108,6 +108,8 @@ class ColpaliBatchProcessor:
             # Only process if we have items
             if batch_items:
                 await self._process_batch(batch_items)
+            else:
+                break
 
     async def _process_batch(
         self, batch_items: List[Tuple[str, asyncio.Future]]

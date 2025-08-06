@@ -4,13 +4,16 @@ import pytest
 from aidial_sdk.chat_completion import Choice, Stage
 from pydantic import SecretStr
 
-from aidial_rag.app_config import IndexingConfig, RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.configuration_endpoint import RequestConfig
+from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.documents import load_document
 from aidial_rag.errors import DocumentProcessingError, InvalidDocumentError
-from aidial_rag.index_storage import IndexStorage
+from aidial_rag.index_storage import IndexStorageHolder, link_to_index_url
+from aidial_rag.indexing_config import IndexingConfig
+from aidial_rag.indexing_task import IndexingTask
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
@@ -33,9 +36,29 @@ def request_context():
     )
 
 
+class MockDialApiClient(DialApiClient):
+    def __init__(self):
+        self.bucket_id = "test_bucket"
+        self.storage = {}
+
+    async def get_file(self, relative_url):
+        if relative_url in self.storage:
+            return self.storage[relative_url]
+        return None
+
+    async def put_file(self, relative_url, data, content_type):
+        self.storage[relative_url] = data
+        return {}
+
+
 @pytest.fixture
-def index_storage():
-    return IndexStorage("http://localhost:8080")
+def dial_api_client():
+    return MockDialApiClient()
+
+
+@pytest.fixture
+def index_storage(dial_api_client):
+    return IndexStorageHolder().get_storage(dial_api_client)
 
 
 @pytest.fixture
@@ -84,6 +107,7 @@ async def test_load_document_success(
     mock_fetch,
     mock_check_document_access,
     request_context,
+    dial_api_client,
     index_storage,
     attachment_link,
 ):
@@ -94,10 +118,15 @@ async def test_load_document_success(
         MagicMock(), 0, 0, name
     )
 
+    indexing_task = IndexingTask(
+        attachment_link=attachment_link,
+        index_url=link_to_index_url(attachment_link, dial_api_client.bucket_id),
+    )
+
     # Download and store
     doc_record = await load_document(
         request_context,
-        attachment_link,
+        indexing_task,
         index_storage,
         ColpaliModelResource(None, request_context.indexing.colpali_index),
         config=request_config,
@@ -108,9 +137,7 @@ async def test_load_document_success(
     index_settings = request_config.indexing.collect_fields_that_rebuild_index()
 
     # Read stored value
-    doc = await index_storage.load(
-        attachment_link, index_settings, request_context
-    )
+    doc = await index_storage.load(indexing_task, index_settings)
     assert isinstance(doc, DocumentRecord)
     assert doc.document_bytes == b"This is a test byte array."
     assert len(doc.chunks) == 1
@@ -127,6 +154,7 @@ async def test_load_document_invalid_document(
     mock_fetch,
     mock_check_document_access,
     request_context,
+    dial_api_client,
     index_storage,
     attachment_link,
 ):
@@ -137,10 +165,16 @@ async def test_load_document_invalid_document(
         MagicMock(), 0, 0, name
     )
 
+    dial_api_client = MockDialApiClient()
+    index_url = link_to_index_url(attachment_link, dial_api_client.bucket_id)
+
     with pytest.raises(DocumentProcessingError) as exc_info:
         await load_document(
             request_context,
-            attachment_link,
+            IndexingTask(
+                attachment_link=attachment_link,
+                index_url=index_url,
+            ),
             index_storage,
             ColpaliModelResource(None, request_config.indexing.colpali_index),
             config=request_config,

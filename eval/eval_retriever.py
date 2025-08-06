@@ -3,22 +3,26 @@ import logging
 import os
 import sys
 from operator import itemgetter
+from typing import Dict, List, Tuple
 
 # Onnx 1.16.2 and 1.17.0 have DLL initialization issues for Windows
 #  https://github.com/onnx/onnx/issues/6267
 # The onnx module should be imported before any unstructured_inference and pandas imports to avoid the issue
 import onnx  # noqa: F401
 import pandas as pd
+from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag_eval.evaluate import evaluate
+from langchain.schema import BaseRetriever
 from langchain.schema.runnable import RunnablePassthrough
 from pydantic import SecretStr
 
-from aidial_rag.app import create_retriever
-from aidial_rag.app_config import IndexingConfig, RequestConfig
+from aidial_rag.app_config import IndexingConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
+from aidial_rag.document_record import DocumentRecord
 from aidial_rag.documents import load_document_impl
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
+from aidial_rag.retrieval_chain import create_retriever
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
 )
@@ -31,46 +35,45 @@ OUT_DIR = "eval/out"
 PORT = 5007
 
 
-def metrics_to_list(metrics_dict):
+def metrics_to_list(
+    metrics_dict: Dict[str, float|int]
+) -> List[Tuple[str, float|int]]:
     return [
         (k.replace(" ", "_").lower(), v)
         for k, v in metrics_dict.items()
     ]
 
 
-async def prepare_doc_records(document_link):
+async def prepare_doc_records(
+    document_link: str,
+    request_config: RequestConfig,
+):
     attachment_link = AttachmentLink(
         dial_link=document_link,
         absolute_url=document_link,
         display_name=document_link.split("/")[-1],
     )
 
-    index_config = IndexingConfig(
-        multimodal_index=None,
-        description_index=None,
-        colpali_index=None,
-    )
-
     doc_record = await load_document_impl(
         dial_config=DialConfig(dial_url="-", api_key=SecretStr("-")),
         dial_limited_resources=DialLimitedResources(user_limits_mock()),
         attachment_link=attachment_link,
-        io_stream=sys.stderr,
-        index_settings=index_config.collect_fields_that_rebuild_index(),
-        colpali_model_resource=ColpaliModelResource(index_config.colpali_index),
-        config=RequestConfig(indexing=index_config),
+        stage_stream=sys.stderr,
+        index_settings=request_config.indexing.collect_fields_that_rebuild_index(),
+        config=request_config,
     )
     return [doc_record]
 
 
-def prepare_retriever(doc_records):
+def prepare_retriever(
+    doc_records: List[DocumentRecord],
+    indexing_config: IndexingConfig,
+):
     retriever = create_retriever(
-        response_choice=None,
         dial_config=DialConfig(dial_url="-", api_key=SecretStr("-")),
         document_records=doc_records,
-        multimodal_index_config=None,
         colpali_model_resource=None,
-        colpali_index_config=None,
+        indexing_config=indexing_config,
     )
 
     retriever_chain = RunnablePassthrough().assign(
@@ -80,7 +83,12 @@ def prepare_retriever(doc_records):
     return retriever_chain
 
 
-async def generate_retrieval_results(retriever, doc_records, ground_truth_path, output_path):
+async def generate_retrieval_results(
+    retriever: BaseRetriever,
+    doc_records: List[DocumentRecord],
+    ground_truth_path: str,
+    output_path: str
+):
     logging.info("Read questions...")
     ground_truth_df = pd.read_parquet(ground_truth_path)
     logging.info(f"Questions: {len(ground_truth_df)}")
@@ -106,9 +114,22 @@ async def run_eval():
     DATA_DIR = "eval/data"
     OUT_DIR = "eval/out"
 
+    request_config = RequestConfig(
+        indexing=IndexingConfig(
+            multimodal_index=None,
+            description_index=None,
+        ),
+    )
+
     logging.info("Prepare retriever...")
-    doc_records = await prepare_doc_records(f"http://localhost:{PORT}/alps_wiki.pdf")
-    retriever = prepare_retriever(doc_records)
+    doc_records = await prepare_doc_records(
+        f"http://localhost:{PORT}/alps_wiki.pdf",
+        request_config,
+    )
+    retriever = prepare_retriever(
+        doc_records,
+        request_config.indexing,
+    )
 
     ground_truth_path = os.path.join(DATA_DIR, "alps_ground_truth_mixtral_v2.parquet")
 
