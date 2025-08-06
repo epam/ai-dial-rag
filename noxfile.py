@@ -7,7 +7,7 @@ import nox
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["tests"]
 
-SRCS = ("aidial_rag", "tests", "noxfile.py")
+SRCS = ("aidial_rag", "docs", "tests", "noxfile.py")
 
 
 @nox.session()
