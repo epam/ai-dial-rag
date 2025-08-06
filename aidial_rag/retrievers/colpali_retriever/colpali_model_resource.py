@@ -1,8 +1,7 @@
 import asyncio
 import os
 import threading
-from enum import StrEnum
-from typing import Annotated, Any, List, Optional, Tuple
+from typing import Annotated, List, Optional, Tuple
 
 import torch
 from pydantic import BaseModel, Field, model_validator
@@ -12,10 +11,10 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_models import (
+    KNOWN_MODELS,
     get_model_cache_path,
     get_model_local_path,
     get_model_processor_classes,
-    KNOWN_MODELS,
 )
 
 # Path to pre-downloaded ColPali models for normal use in docker
