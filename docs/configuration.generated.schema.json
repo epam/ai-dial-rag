@@ -1,0 +1,427 @@
+{
+  "$defs": {
+    "ApiRequest": {
+      "description": "Configuration for the Dial RAG API.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/RequestType",
+          "default": "rag",
+          "description": "Type of the request for the Dial RAG service."
+        }
+      },
+      "title": "ApiRequest",
+      "type": "object"
+    },
+    "ChatChainConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "llm": {
+          "$ref": "#/$defs/LlmConfig",
+          "default": {
+            "deployment_name": "gpt-4o-2024-05-13",
+            "max_prompt_tokens": 0,
+            "max_retries": 2
+          },
+          "description": "Configuration for the LLM used in the chat chain. The model should support vision if `num_page_images_to_use` is greater than 0."
+        },
+        "system_prompt_template_override": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Allow to override the system prompt template.",
+          "title": "System Prompt Template Override"
+        },
+        "use_history": {
+          "default": true,
+          "description": "Used to set whether to use the history for the answer generation. If true, the previous messages from the chat history would be passes to the model. If false, only the query (last user message or standalone question, depending on the `query_chain` settings) will be passed to the model for the answer generation.",
+          "title": "Use History",
+          "type": "boolean"
+        },
+        "num_page_images_to_use": {
+          "default": 4,
+          "description": "Sets number of page images to pass to the model for the answer generation. If is greater that 0, the model in `llm.deployment_name` should accept images in the user messages. Could be set to 0 (together with USE_MULTIMODAL_INDEX=False and USE_DESCRIPTION_INDEX=False) for text-only RAG.",
+          "title": "Num Page Images To Use",
+          "type": "integer"
+        },
+        "page_image_size": {
+          "default": 1536,
+          "description": "Sets the size of the page images to pass to the model for the answer generation.",
+          "title": "Page Image Size",
+          "type": "integer"
+        }
+      },
+      "title": "ChatChainConfig",
+      "type": "object"
+    },
+    "DescriptionIndexConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "llm": {
+          "$ref": "#/$defs/LlmConfig",
+          "default": {
+            "deployment_name": "gpt-4o-mini-2024-07-18",
+            "max_prompt_tokens": 0,
+            "max_retries": 1000000000
+          },
+          "description": "Configuration for the LLM used in the description index. The model should support vision. The model will be used for every page of the document, so cheap and fast models are preferred."
+        },
+        "estimated_task_tokens": {
+          "default": 4000,
+          "description": "Estimated number of the LLM tokens to be consumed by processing the description of a single page. This value is used to calculate the number of model requests to run in parallel based on the user's minute token limit.",
+          "title": "Estimated Task Tokens",
+          "type": "integer"
+        },
+        "time_limit_multiplier": {
+          "default": 1.5,
+          "description": "The multiplier allows to set the ratio between the estimated time for the image descriptions calculations and the timeout used for this operation.",
+          "title": "Time Limit Multiplier",
+          "type": "number"
+        },
+        "min_time_limit_sec": {
+          "default": 300,
+          "description": "The minimal time limit for the timeout for the image descriptions. Since the minute token limit is used in the Dial, the estimated time could have a relatively high margin of error for the small number of minutes. So, 5 minutes minimal time limit is recommended.",
+          "title": "Min Time Limit Sec",
+          "type": "number"
+        }
+      },
+      "title": "DescriptionIndexConfig",
+      "type": "object"
+    },
+    "HttpClientConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "default": 30,
+          "description": "Timeout for the whole request. Includes connection establishment, sending the request, and receiving the response.",
+          "title": "Timeout Seconds",
+          "type": "integer"
+        },
+        "connect_timeout_seconds": {
+          "default": 30,
+          "description": "Timeout for establishing a connection to the server.",
+          "title": "Connect Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "HttpClientConfig",
+      "type": "object"
+    },
+    "IndexingConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for the document indexing.",
+      "properties": {
+        "parser": {
+          "$ref": "#/$defs/ParserConfig",
+          "default": {
+            "max_document_text_size": 5242880,
+            "unstructured_chunk_size": 1000
+          }
+        },
+        "multimodal_index": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MultimodalIndexConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Enables MultimodalRetriever which uses multimodal embedding models for pages images search."
+        },
+        "description_index": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DescriptionIndexConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": {
+            "llm": {
+              "deployment_name": "gpt-4o-mini-2024-07-18",
+              "max_prompt_tokens": 0,
+              "max_retries": 1000000000
+            },
+            "estimated_task_tokens": 4000,
+            "time_limit_multiplier": 1.5,
+            "min_time_limit_sec": 300.0
+          },
+          "description": "Enables DescriptionRetriever which uses vision model to generate page images descriptions and perform search on them."
+        }
+      },
+      "title": "IndexingConfig",
+      "type": "object"
+    },
+    "LlmConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "deployment_name": {
+          "default": "gpt-4o-2024-05-13",
+          "description": "Used to set the deployment name of the LLM used in the chain. Could be useful if the model deployments have non-standard names in the Dial Core configuration.",
+          "title": "Deployment Name",
+          "type": "string"
+        },
+        "max_prompt_tokens": {
+          "default": 0,
+          "description": "Sets `max_prompt_tokens` for the history truncation for the LLM, if history is used. Requires `DEPLOYMENT_NAME` model to support he history truncation and `max_prompt_tokens` parameter. Could be set to `0` to disable the history truncation for models which does not support it, but will cause error it if max model context window will be reached.",
+          "title": "Max Prompt Tokens",
+          "type": "integer"
+        },
+        "max_retries": {
+          "default": 2,
+          "description": "Sets the number of retries to send the request to the LLM.",
+          "title": "Max Retries",
+          "type": "integer"
+        }
+      },
+      "title": "LlmConfig",
+      "type": "object"
+    },
+    "Metric": {
+      "enum": [
+        "cosine_sim",
+        "euclidean_dist",
+        "sqeuclidean_dist",
+        "inner_product"
+      ],
+      "title": "Metric",
+      "type": "string"
+    },
+    "MultimodalIndexConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for the multimodal index.",
+      "properties": {
+        "embeddings_model": {
+          "default": "multimodalembedding@001",
+          "description": "The name of the multimodal embeddings model to use. The model should support both text and images. The change of the model will require index rebuilding. Example of supported models: `multimodalembedding@001`, `azure-ai-vision-embeddings`, `amazon.titan-embed-image-v1`.",
+          "title": "Embeddings Model",
+          "type": "string"
+        },
+        "metric": {
+          "$ref": "#/$defs/Metric",
+          "default": "sqeuclidean_dist",
+          "description": "Metric to use for the embeddings search. Possible values: `sqeuclidean_dist` or `cosine_sim`. Use `sqeuclidean_dist` for `multimodalembedding@001` and `cosine_sim` for the `azure-ai-vision-embeddings` and `azure-ai-vision-embeddings`."
+        },
+        "image_size": {
+          "default": 1536,
+          "description": "Sets the size of the page images that will be used for the multimodal embeddings model.",
+          "title": "Image Size",
+          "type": "integer"
+        },
+        "estimated_task_tokens": {
+          "default": 500,
+          "description": "The number of the `embeddings_model` tokens to be consumed by calculating embeddings of a single page image. This value is used to calculate the number of model requests to run in parallel based on the user's minute token limit. Should be 500 for `multimodalembedding@001`, 1 for the `azure-ai-vision-embeddings` and 75 for `amazon.titan-embed-image-v1`.",
+          "title": "Estimated Task Tokens",
+          "type": "integer"
+        },
+        "time_limit_multiplier": {
+          "default": 1.5,
+          "description": "The multiplier allows to set the ratio between the estimated time for the image embeddings calculations and the timeout used for this operation.",
+          "title": "Time Limit Multiplier",
+          "type": "number"
+        },
+        "min_time_limit_sec": {
+          "default": 300,
+          "description": "The minimal time limit for the timeout for the image embeddings calculations. Since the minute token limit is used in the Dial, the estimated time could have a relatively high margin of error for the small number of minutes. So, 5 minutes minimal time limit is recommended.",
+          "title": "Min Time Limit Sec",
+          "type": "number"
+        }
+      },
+      "title": "MultimodalIndexConfig",
+      "type": "object"
+    },
+    "ParserConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_document_text_size": {
+          "anyOf": [
+            {
+              "pattern": "^\\s*(\\d*\\.?\\d+)\\s*(\\w+)?",
+              "type": "string"
+            },
+            {
+              "minimum": 0,
+              "type": "integer"
+            }
+          ],
+          "default": "5MiB",
+          "description": "Limits the size of the document the RAG will accept for processing. This limit is applied to the size of the text extracted from the document, not the size of the attached document itself. Could be integer for bytes, or a pydantic.ByteSize compatible string.",
+          "title": "Max Document Text Size"
+        },
+        "unstructured_chunk_size": {
+          "default": 1000,
+          "description": "Sets the chunk size for unstructured document loader.",
+          "title": "Unstructured Chunk Size",
+          "type": "integer"
+        }
+      },
+      "title": "ParserConfig",
+      "type": "object"
+    },
+    "QAChainConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "chat_chain": {
+          "$ref": "#/$defs/ChatChainConfig",
+          "default": {
+            "llm": {
+              "deployment_name": "gpt-4o-2024-05-13",
+              "max_prompt_tokens": 0,
+              "max_retries": 2
+            },
+            "system_prompt_template_override": null,
+            "use_history": true,
+            "num_page_images_to_use": 4,
+            "page_image_size": 1536
+          },
+          "description": "Configuration for the chat chain which generates the answer for the user question based on the retrieved context."
+        },
+        "query_chain": {
+          "$ref": "#/$defs/QueryChainConfig",
+          "default": {
+            "llm": {
+              "deployment_name": "gpt-4o-2024-05-13",
+              "max_prompt_tokens": 0,
+              "max_retries": 2
+            },
+            "use_history": true
+          },
+          "description": "Configuration for the query chain which reformulates the user question to standalone question for the retrieval based on the chat history."
+        }
+      },
+      "title": "QAChainConfig",
+      "type": "object"
+    },
+    "QueryChainConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "llm": {
+          "$ref": "#/$defs/LlmConfig",
+          "default": {
+            "deployment_name": "gpt-4o-2024-05-13",
+            "max_prompt_tokens": 0,
+            "max_retries": 2
+          },
+          "description": "Configuration for the LLM used in the query chain. The model should support tool calling if `use_history` is enabled."
+        },
+        "use_history": {
+          "default": true,
+          "description": "Used to set whether to use the history for the chat history summarization to the standalone question for retrieval. If true, the previous messages from the chat history would be passes to the model to make a standalone question. If false, the last user message was assumed to be a standalone question and be used for retrieval as is.",
+          "title": "Use History",
+          "type": "boolean"
+        }
+      },
+      "title": "QueryChainConfig",
+      "type": "object"
+    },
+    "RequestType": {
+      "description": "Enumeration of request types for Dial RAG.",
+      "enum": [
+        "rag",
+        "retrieval",
+        "indexing"
+      ],
+      "title": "RequestType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Configuration for the Dial RAG service.\nThis schema will be provided by the /configuration endpoint and the object\nis accepted as a custom_fields.configuration in the chat completion request.\nBased on the app_config.RequestConfig - request-related part of the application\nconfiguration, but also includes the fields available in the Dial RAG API only.",
+  "properties": {
+    "ignore_document_loading_errors": {
+      "default": false,
+      "description": "Ignore errors during document loading. Used for Web RAG for the request with multiple documents.",
+      "title": "Ignore Document Loading Errors",
+      "type": "boolean"
+    },
+    "use_profiler": {
+      "default": false,
+      "description": "Use profiler to collect performance metrics for the request.",
+      "title": "Use Profiler",
+      "type": "boolean"
+    },
+    "log_document_links": {
+      "default": false,
+      "description": "Allows writing the links of the attached documents to the logs with log levels higher than DEBUG.\n\nIf enabled, Dial RAG will log the links to the documents for log messages with levels from INFO to CRITICAL where relevant. For example, an ERROR log message with an exception during document processing will contain the link to the document.\n\nIf disabled, only log messages with DEBUG level may contain the links to the documents, to avoid logging sensitive information. For example, the links to the documents will not be logged for the ERROR log messages with an exception during document processing.",
+      "title": "Log Document Links",
+      "type": "boolean"
+    },
+    "download": {
+      "$ref": "#/$defs/HttpClientConfig",
+      "default": {
+        "timeout_seconds": 30,
+        "connect_timeout_seconds": 30
+      },
+      "description": "Configuration for downloading the attached documents."
+    },
+    "check_access": {
+      "$ref": "#/$defs/HttpClientConfig",
+      "default": {
+        "timeout_seconds": 30,
+        "connect_timeout_seconds": 30
+      },
+      "description": "Configuration for checking access to the documents in the Dial."
+    },
+    "indexing": {
+      "$ref": "#/$defs/IndexingConfig",
+      "default": {
+        "parser": {
+          "max_document_text_size": 5242880,
+          "unstructured_chunk_size": 1000
+        },
+        "multimodal_index": null,
+        "description_index": {
+          "estimated_task_tokens": 4000,
+          "llm": {
+            "deployment_name": "gpt-4o-mini-2024-07-18",
+            "max_prompt_tokens": 0,
+            "max_retries": 1000000000
+          },
+          "min_time_limit_sec": 300.0,
+          "time_limit_multiplier": 1.5
+        }
+      }
+    },
+    "qa_chain": {
+      "$ref": "#/$defs/QAChainConfig",
+      "default": {
+        "chat_chain": {
+          "llm": {
+            "deployment_name": "gpt-4o-2024-05-13",
+            "max_prompt_tokens": 16000,
+            "max_retries": 2
+          },
+          "num_page_images_to_use": 4,
+          "page_image_size": 1536,
+          "system_prompt_template_override": null,
+          "use_history": true
+        },
+        "query_chain": {
+          "llm": {
+            "deployment_name": "gpt-4o-2024-05-13",
+            "max_prompt_tokens": 8000,
+            "max_retries": 2
+          },
+          "use_history": true
+        }
+      }
+    },
+    "request": {
+      "$ref": "#/$defs/ApiRequest",
+      "default": {
+        "type": "rag"
+      },
+      "description": "Configuration for the Dial RAG API request."
+    }
+  },
+  "title": "Configuration",
+  "type": "object"
+}

@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "DocumentIndexingResultResponse": {
+      "description": "Result of the indexing process for a single document.",
+      "properties": {
+        "errors": {
+          "description": "List of errors that occurred during the indexing process, if any.",
+          "items": {
+            "$ref": "#/$defs/Error"
+          },
+          "title": "Errors",
+          "type": "array"
+        }
+      },
+      "title": "DocumentIndexingResultResponse",
+      "type": "object"
+    },
+    "Error": {
+      "description": "Error that occurred during the indexing process.",
+      "properties": {
+        "message": {
+          "description": "Error message describing the issue that occurred during the indexing process.",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "title": "Error",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "indexing_result": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DocumentIndexingResultResponse"
+      },
+      "description": "Dictionary mapping document URLs to their indexing results.",
+      "title": "Indexing Result",
+      "type": "object"
+    }
+  },
+  "title": "IndexingResponse",
+  "type": "object"
+}
