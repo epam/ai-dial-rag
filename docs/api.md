@@ -228,6 +228,7 @@ Example of the retrieval results JSON for the above request:
         },
         ...
     ]
+}
 ```
 
 The retrieval results JSON contains two lists:
