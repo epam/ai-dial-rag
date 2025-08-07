@@ -128,7 +128,7 @@ async def test_load_document_success(
         request_context,
         indexing_task,
         index_storage,
-        ColpaliModelResource(None, request_context.indexing.colpali_index),
+        ColpaliModelResource(None, request_config.indexing.colpali_index),
         config=request_config,
     )
     assert isinstance(doc_record, DocumentRecord)
