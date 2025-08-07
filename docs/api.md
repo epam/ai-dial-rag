@@ -37,9 +37,9 @@ The index attachment is based on the [Dial Unified API attachments](https://docs
 
 ```json
 {
-    'type': 'application/x.aidial-rag-index.v0',
-    'url': 'files/<bucket>/<path to index file>',
-    'reference_url': '<url to the document the index file is based on>',
+    "type": "application/x.aidial-rag-index.v0",
+    "url": "files/<bucket>/<path to index file>",
+    "reference_url": "<url to the document the index file is based on>"
 }
 ```
 The index attachment should use `url` field to point to the index file in the Dial storage. The `data` field for the embedded file content is not supported.
@@ -114,11 +114,11 @@ In case of errors during the indexing process, there will be no index attachment
 Example of the indexing response JSON in case of if `my_document.custom_format` was used instead `my_document.pdf`:
 ```json
 {
-    'indexing_result': {
-        'files/<bucket>/my_document.custom_format': {
-            'errors': [
+    "indexing_result": {
+        "files/<bucket>/my_document.custom_format": {
+            "errors": [
                 {
-                    'message': 'Unable to load document content. Try another document format.'
+                    "message": "Unable to load document content. Try another document format."
                 }
             ]
         }
