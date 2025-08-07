@@ -41,14 +41,17 @@ class DocumentPageEmbedding:
 
     embedding: np.ndarray
     chunk_ids: List[int]
-    doc_idx: int
+    doc_idx_page_idx: Tuple[int, int]  # [doc_idx, page_idx]
 
     def __init__(
-        self, embedding: np.ndarray, chunk_ids: List[int], doc_idx: int
+        self,
+        embedding: np.ndarray,
+        chunk_ids: List[int],
+        doc_idx_page_idx: Tuple[int, int],
     ):
         self.embedding = embedding
         self.chunk_ids = chunk_ids
-        self.doc_idx = doc_idx
+        self.doc_idx_page_idx = doc_idx_page_idx
 
 
 class ColpaliRetriever(BaseRetriever):
@@ -61,14 +64,15 @@ class ColpaliRetriever(BaseRetriever):
 
     def _score_documents_with_embeddings(
         self, query_embeddings: Tensor
-    ) -> List[Tuple[float, int]]:
-        """Score all documents against the query embeddings and return sorted (score, doc_idx) pairs."""
+    ) -> List[Tuple[float, Tuple[int, int]]]:
+        """Score all documents against the query embeddings and return sorted (score, (doc_idx, page_idx)) pairs."""
         query_embeddings = query_embeddings.half()
 
         page_scores = []
         page_indices = []
 
-        for doc_id, doc_embedding in enumerate(self.document_embeddings):
+        for doc_embedding in self.document_embeddings:
+            doc_idx_page_idx = doc_embedding.doc_idx_page_idx
             image_embedding = torch.from_numpy(doc_embedding.embedding).half()
             score = (
                 self.processor.score_multi_vector(
@@ -78,7 +82,7 @@ class ColpaliRetriever(BaseRetriever):
                 .item()
             )
             page_scores.append(score)
-            page_indices.append(doc_id)
+            page_indices.append(doc_idx_page_idx)
 
         if not page_scores:
             return []
@@ -87,34 +91,39 @@ class ColpaliRetriever(BaseRetriever):
         doc_scores.sort(key=lambda x: x, reverse=True)
         return doc_scores
 
-    def _score_documents(self, query: str) -> List[Tuple[float, int]]:
+    def _score_documents(
+        self, query: str
+    ) -> List[Tuple[float, Tuple[int, int]]]:
         """Score all documents against the query and return sorted (score, doc_idx) pairs."""
         query_embeddings_list = self.embed_queries([query])
         query_embeddings = query_embeddings_list[0]  # Get the single embedding
         return self._score_documents_with_embeddings(query_embeddings)
 
-    async def _ascore_documents(self, query: str) -> List[Tuple[float, int]]:
+    async def _ascore_documents(
+        self, query: str
+    ) -> List[Tuple[float, Tuple[int, int]]]:
         """Async version of _score_documents"""
         query_embeddings_list = await self.aembed_queries([query])
         query_embeddings = query_embeddings_list[0]  # Get the single embedding
         return self._score_documents_with_embeddings(query_embeddings)
 
     def _collect_top_k_chunks(
-        self, doc_scores: List[Tuple[float, int]]
+        self, doc_scores: List[Tuple[float, Tuple[int, int]]]
     ) -> List[Document]:
         """Collect top k chunks from sorted document scores."""
         metadata_chunks = []
-        for _, page_idx in doc_scores:
+        for _, doc_idx_page_idx in doc_scores:
+            doc_idx, page_idx = doc_idx_page_idx
             doc_embedding = self.document_embeddings[page_idx]
 
-            # Add chunks from this document one by one until we reach top k
+            # Add chunks from this document page one by one until we reach top k
             for chunk_id in doc_embedding.chunk_ids:
                 if len(metadata_chunks) >= self.k:
                     return metadata_chunks
 
                 metadata_chunks.append(
                     to_metadata_doc(
-                        doc_embedding.doc_idx,
+                        doc_idx,
                         chunk_id,
                         retrieval_type=RetrievalType.IMAGE,
                     )
@@ -169,7 +178,7 @@ class ColpaliRetriever(BaseRetriever):
                         DocumentPageEmbedding(
                             embedding=page_embedding.embeddings,
                             chunk_ids=chunks_in_page,
-                            doc_idx=doc_idx,
+                            doc_idx_page_idx=(doc_idx, page_idx),
                         )
                     )
 

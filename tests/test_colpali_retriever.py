@@ -15,6 +15,7 @@ from aidial_rag.document_record import (
 )
 from aidial_rag.documents import parse_content_type
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
+from aidial_rag.retrieval_chain import _make_retrieval_stage_default
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
@@ -84,14 +85,13 @@ def create_colpali_only_config():
         ),
     )
 
-from aidial_rag.retrieval_chain import _make_retrieval_stage_default
 
 def mock_create_retriever(
     dial_config,
     document_records,
     indexing_config,
     colpali_model_resource,
-    make_retrieval_stage = _make_retrieval_stage_default,
+    make_retrieval_stage=_make_retrieval_stage_default,
 ):
     """Mock create_retriever to return only ColPali retriever with cached model."""
     use_cache = not os.environ.get("REFRESH", "").lower() == "true"
@@ -100,20 +100,21 @@ def mock_create_retriever(
         model_name="vidore/colSmol-256M",
     )
     cached_model_resource = CachedColpaliModelResource(
-        colpali_model_resource_config, indexing_config.colpali_index, use_cache=use_cache
+        colpali_model_resource_config,
+        indexing_config.colpali_index,
+        use_cache=use_cache,
     )
 
     colpali_retriever = make_retrieval_stage(
-                ColpaliRetriever.from_doc_records(
-                    cached_model_resource,
-                    indexing_config.colpali_index,
-                    document_records,
-                    7,
-                ),
-                "Colpali search",
-            )
+        ColpaliRetriever.from_doc_records(
+            cached_model_resource,
+            indexing_config.colpali_index,
+            document_records,
+            7,
+        ),
+        "Colpali search",
+    )
     return colpali_retriever
-
 
 
 def create_cached_app_config():
@@ -164,12 +165,8 @@ def run_e2e_test(attachments, question, expected_text):
             "max_tokens": 1000,
             "temperature": 0.0,
             "custom_fields": {
-                "configuration": {
-                    "indexing": {
-                        "description_index": None
-                    }
-                }
-            }
+                "configuration": {"indexing": {"description_index": None}}
+            },
         },
         timeout=100.0,
     )
@@ -276,7 +273,9 @@ async def test_colpali_retrieval_e2e(attachments):
     Tests the complete flow from document upload to answer generation.
     """
     # Patch create_retriever to use only ColPali retriever
-    with patch("aidial_rag.retrieval_chain.create_retriever", new=mock_create_retriever):
+    with patch(
+        "aidial_rag.retrieval_chain.create_retriever", new=mock_create_retriever
+    ):
         run_e2e_test(
             attachments=attachments,
             question=COLPALI_TEST_CONFIG["query"],

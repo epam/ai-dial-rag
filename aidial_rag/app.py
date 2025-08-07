@@ -63,23 +63,9 @@ from aidial_rag.repository_digest import (
 from aidial_rag.request_context import RequestContext, create_request_context
 from aidial_rag.resources.cpu_pools import init_cpu_pools
 from aidial_rag.retrieval_chain import create_retrieval_chain
-from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
-from aidial_rag.retrievers.bm25_retriever import BM25Retriever
-
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
 )
-from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
-    ColpaliRetriever,
-)
-from aidial_rag.retrievers.description_retriever.description_retriever import (
-    DescriptionRetriever,
-)
-from aidial_rag.retrievers.multimodal_retriever import (
-    MultimodalIndexConfig,
-    MultimodalRetriever,
-)
-from aidial_rag.retrievers.semantic_retriever import SemanticRetriever
 from aidial_rag.stages import RetrieverStage
 from aidial_rag.transform_history import transform_history
 from aidial_rag.utils import profiler_if_enabled, timed_stage
