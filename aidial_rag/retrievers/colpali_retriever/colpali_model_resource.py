@@ -58,15 +58,19 @@ class ColpaliBatchProcessor:
         self.pending_items: DefaultDict[
             int, List[Tuple[str, asyncio.Future]]
         ] = DefaultDict(list)
-        self.processing_task: Optional[asyncio.Task] = None
+
         self.process_batch_func = process_batch_func
         self.pool_func = pool_func
         self.batch_size = batch_size
         self.batch_wait_time = batch_wait_time
         self._lock = asyncio.Lock()
+
+        self.processing_task: Optional[asyncio.Task] = (
+            None  # current processing task
+        )
         self.processing_queue = []  # queue of ids to process
         self.ids_to_reuse = []  # ids to reuse for new tasks
-        self.items_count = 0
+        self.items_count = 0  # total items in queue
 
         # Validate pool function
         if pool_func is not None and not callable(pool_func):
