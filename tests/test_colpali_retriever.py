@@ -79,7 +79,7 @@ def create_colpali_only_config():
     return AppConfig(
         dial_url=MIDDLEWARE_HOST,
         enable_debug_commands=True,
-        config_path="config/azure_colpali.yaml",
+        config_path="config/azure_colsmol256m.yaml",
         colpali_model_resource_config=ColpaliModelResourceConfig(
             model_name="vidore/colSmol-256M",
         ),
@@ -206,6 +206,7 @@ async def test_colpali_retriever(local_server):
     Unit test for ColPali retriever that checks if retrieved page number is correct.
     """
     use_cache = not os.environ.get("REFRESH", "").lower() == "true"
+
     # Load and process document
     text_chunks, buffer, mime_type = await load_document("alps_wiki.pdf")
     chunks_list = await build_chunks_list(text_chunks)
