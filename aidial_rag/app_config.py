@@ -11,6 +11,9 @@ from pydantic_settings.sources import PathType, YamlConfigSettingsSource
 from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag.index_storage import IndexStorageConfig
 from aidial_rag.resources.cpu_pools import CpuPoolsConfig
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResourceConfig,
+)
 
 
 class AppConfig(BaseSettings):
@@ -38,6 +41,9 @@ class AppConfig(BaseSettings):
 
     cpu_pools: CpuPoolsConfig = Field(default=CpuPoolsConfig())
     index_storage: IndexStorageConfig = Field(default=IndexStorageConfig())
+    colpali_model_resource_config: ColpaliModelResourceConfig | None = Field(
+        default=None
+    )
     request: RequestConfig = Field(default=RequestConfig())
 
     model_config = SettingsConfigDict(
