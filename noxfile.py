@@ -78,8 +78,8 @@ def update_docs(session):
     session.run(
         "python",
         "./generate_json_schema.py",
-        "aidial_rag.retrieval_api.RetrievalResults",
-        "docs/retrieval_results.generated.schema.json",
+        "aidial_rag.retrieval_api.RetrievalResponse",
+        "docs/retrieval_response.generated.schema.json",
     )
     session.run(
         "python",
