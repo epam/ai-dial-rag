@@ -52,8 +52,7 @@ langchain-huggingface = "^0.1.2"
 langchain-unstructured = "^0.1.6"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
-# intermediate version since old version didn't support torch 2.7. new release supports only transformers>=4.53 but optimum-intel[openvino] latest release requires <4.53
-colpali-engine = { git = "https://github.com/illuin-tech/colpali.git", rev = "6f126a136c22d2230a5557eb809dd9134277e1f6" }
+colpali-engine = "^0.3.12"
 "pdfminer.six" = "20231228"
 
 
