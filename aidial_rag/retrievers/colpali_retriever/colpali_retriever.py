@@ -210,13 +210,17 @@ class ColpaliRetriever(BaseRetriever):
             self.embed_queries, pool_func=run_in_heavy_query_embeddings_pool
         )
 
+        id = await query_batch_processor.register_processing_id()
+
         query_embeddings_list = []
 
         for query in queries:
             # Add query to batch processor
-            future = await query_batch_processor.add_item(query)
+            future = await query_batch_processor.add_item(query, id)
             query_embedding = await future
             query_embeddings_list.append(query_embedding)
+
+        await query_batch_processor.unregister_processing_id(id)
 
         return query_embeddings_list
 
@@ -286,11 +290,13 @@ class ColpaliRetriever(BaseRetriever):
 
         stageio.write("Processing images\n")
 
+        id = await batch_processor.register_processing_id()
+
         # Collect all futures first
         futures = []
         async for image in images.agen:
             future = await batch_processor.add_item(
-                image
+                image, id
             )  # await to get the Future
             futures.append(future)
 
@@ -300,6 +306,8 @@ class ColpaliRetriever(BaseRetriever):
                 image_embedding = await future
                 image_embeddings_list.append(image_embedding)
                 pbar.update()
+
+        await batch_processor.unregister_processing_id(id)
 
         # Pad embeddings to same shape
         if image_embeddings_list:

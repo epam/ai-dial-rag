@@ -1,7 +1,7 @@
 import asyncio
 import os
 import threading
-from typing import Annotated, List, Optional, Tuple
+from typing import Annotated, DefaultDict, List, Optional, Tuple
 
 import torch
 from pydantic import BaseModel, Field, model_validator
@@ -18,7 +18,7 @@ from aidial_rag.retrievers.colpali_retriever.colpali_models import (
 )
 
 # Path to pre-downloaded ColPali models for normal use in docker
-# Model names are used for local runs only
+# if None model will be downloaded from Hugging Face
 COLPALI_MODELS_BASE_PATH = os.environ.get("COLPALI_MODELS_BASE_PATH", None)
 
 
@@ -55,26 +55,47 @@ class ColpaliBatchProcessor:
         batch_size: int = 8,
         batch_wait_time: float = 0.05,
     ):
-        self.pending_items: List[
-            Tuple[str, asyncio.Future]
-        ] = []  # (image, future)
+        self.pending_items: DefaultDict[
+            int, List[Tuple[str, asyncio.Future]]
+        ] = DefaultDict(list)
         self.processing_task: Optional[asyncio.Task] = None
         self.process_batch_func = process_batch_func
         self.pool_func = pool_func
         self.batch_size = batch_size
         self.batch_wait_time = batch_wait_time
         self._lock = asyncio.Lock()
+        self.processing_queue = []  # queue of ids to process
+        self.ids_to_reuse = []  # ids to reuse for new tasks
+        self.items_count = 0
 
         # Validate pool function
         if pool_func is not None and not callable(pool_func):
             raise ValueError("pool_func must be callable")
 
-    async def add_item(self, item: str) -> asyncio.Future:
+    async def register_processing_id(self) -> int:
+        """Return id to process requests to create fair queue."""
+        async with self._lock:
+            id = None
+            if self.ids_to_reuse:
+                id = self.ids_to_reuse.pop()
+            else:
+                id = len(self.processing_queue)
+                self.processing_queue.append(id)
+
+            return id
+
+    async def unregister_processing_id(self, id: int):
+        """Unregister processing id."""
+        async with self._lock:
+            self.ids_to_reuse.append(id)
+
+    async def add_item(self, item: str, id: int) -> asyncio.Future:
         """Add item to batch, return future for the result."""
         future = asyncio.Future()
 
         async with self._lock:
-            self.pending_items.append((item, future))
+            self.pending_items[id].append((item, future))
+            self.items_count += 1
 
             # Start processing task if not already running
             if self.processing_task is None or self.processing_task.done():
@@ -85,25 +106,33 @@ class ColpaliBatchProcessor:
         return future
 
     async def _process_batches(self):
-        """Process batches"""
+        """Process batches. Iterates over queue and get 1 item if possible from id then put id in the end of the queue to make fair queue."""
         while True:
             batch_items = []
             should_wait = False
 
             async with self._lock:
-                if len(self.pending_items) < self.batch_size:
+                if self.items_count < self.batch_size:
                     should_wait = True
-                elif len(self.pending_items) == 0:
+                elif self.items_count == 0:
                     break  # No more items, exit processing
 
             # Wait to collect more items
             if should_wait:
                 await asyncio.sleep(self.batch_wait_time)
+
             async with self._lock:
-                if self.pending_items:
-                    batch_size = min(len(self.pending_items), self.batch_size)
-                    batch_items = self.pending_items[:batch_size]
-                    self.pending_items = self.pending_items[batch_size:]
+                if self.items_count > 0:
+                    batch_size = min(self.items_count, self.batch_size)
+                    while len(batch_items) < batch_size:
+                        # taking from the front of the queue
+                        id = self.processing_queue.pop(0)
+                        if len(self.pending_items[id]) > 0:
+                            batch_items.append(self.pending_items[id].pop(0))
+                            self.items_count -= 1
+
+                        # add back to queue and move to the next
+                        self.processing_queue.append(id)
 
             # Only process if we have items
             if batch_items:
