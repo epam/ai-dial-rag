@@ -32,18 +32,14 @@ from aidial_rag.configuration_endpoint import (
     RequestType,
     get_configuration,
 )
-from aidial_rag.dial_api_client import DialApiClient, create_dial_api_client
+from aidial_rag.dial_api_client import create_dial_api_client
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
-from aidial_rag.errors import InvalidDocumentError
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.index_storage import (
     IndexStorageHolder,
-    link_to_index_url,
 )
 from aidial_rag.indexing_api import (
-    INDEX_MIME_TYPE,
-    INDEX_MIME_TYPES_REGEX,
     create_indexing_results_attachments,
 )
 from aidial_rag.indexing_results import (
@@ -53,7 +49,7 @@ from aidial_rag.indexing_results import (
     format_document_loading_errors,
     get_indexing_failures,
 )
-from aidial_rag.indexing_task import IndexingTask
+from aidial_rag.indexing_task import create_indexing_tasks
 from aidial_rag.qa_chain import generate_answer
 from aidial_rag.query_chain import create_get_query_chain
 from aidial_rag.repository_digest import (
@@ -127,43 +123,6 @@ def _collect_document_records(
             document_records_links.append(result.task.attachment_link)
 
     return document_records, document_records_links
-
-
-def _is_rag_index(attachment: AttachmentLink) -> bool:
-    """Check if the attachment is a RAG index."""
-
-    if attachment.type is None:
-        return False
-    if not INDEX_MIME_TYPES_REGEX.match(attachment.type):
-        return False
-    if attachment.type != INDEX_MIME_TYPE:
-        raise InvalidDocumentError(f"Unknown index type: {attachment.type}")
-    if not attachment.reference_url:
-        raise InvalidDocumentError("Index attachment must have a reference URL")
-    return True
-
-
-def create_indexing_tasks(
-    attachment_links: List[AttachmentLink],
-    dial_api_client: DialApiClient,
-) -> List[IndexingTask]:
-    index_attachments = {
-        str(attachment.reference_url): attachment.dial_link
-        for attachment in attachment_links
-        if _is_rag_index(attachment)
-    }
-
-    return [
-        IndexingTask(
-            attachment_link=link,
-            index_url=(
-                index_attachments.get(link.dial_link)
-                or link_to_index_url(link, dial_api_client.bucket_id)
-            ),
-        )
-        for link in attachment_links
-        if not _is_rag_index(link)
-    ]
 
 
 def _add_indexing_results(
@@ -336,6 +295,7 @@ class DialRAGApplication(ChatCompletion):
                 request_context,
                 indexing_tasks,
                 index_storage,
+                dial_api_client,
                 self.colpali_model_resource,
                 config=request_config,
             )

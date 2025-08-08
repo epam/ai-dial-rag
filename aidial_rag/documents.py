@@ -16,6 +16,7 @@ from aidial_rag.content_stream import (
     SupportsWriteStr,
 )
 from aidial_rag.converter import convert_document_if_needed
+from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import (
     load_attachment,
@@ -41,7 +42,7 @@ from aidial_rag.indexing_results import (
     DocumentIndexingResult,
     DocumentIndexingSuccess,
 )
-from aidial_rag.indexing_task import IndexingTask
+from aidial_rag.indexing_task import IndexingTask, validate_indexing_task
 from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
@@ -257,6 +258,7 @@ async def load_document(
     request_context: RequestContext,
     task: IndexingTask,
     index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
     colpali_model_resource: ColpaliModelResource,
     config: RequestConfig,
 ) -> DocumentRecord:
@@ -264,10 +266,12 @@ async def load_document(
     with handle_document_processing_error(
         attachment_link, config.log_document_links
     ):
+        validate_indexing_task(task, dial_api_client)
         index_settings = config.indexing.collect_fields_that_rebuild_index()
 
         choice = request_context.choice
 
+        # TODO: Move check_document_access to the DialApiClient
         await check_document_access(request_context, attachment_link, config)
 
         doc_record = None
@@ -316,12 +320,18 @@ async def load_document_task(
     request_context: RequestContext,
     task: IndexingTask,
     index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
     config: RequestConfig,
     colpali_model_resource: ColpaliModelResource,
 ) -> DocumentIndexingResult:
     try:
         doc_record = await load_document(
-            request_context, task, index_storage, colpali_model_resource, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            colpali_model_resource,
+            config,
         )
         return DocumentIndexingSuccess(
             task=task,
@@ -339,6 +349,7 @@ async def load_documents(
     request_context: RequestContext,
     tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
     colpali_model_resource: ColpaliModelResource,
     config: RequestConfig,
 ) -> List[DocumentIndexingResult]:
@@ -350,6 +361,7 @@ async def load_documents(
                 request_context,
                 task,
                 index_storage,
+                dial_api_client,
                 config,
                 colpali_model_resource,
             )

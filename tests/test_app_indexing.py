@@ -6,13 +6,18 @@ from fastapi.testclient import TestClient
 
 from aidial_rag.app import create_app
 from aidial_rag.app_config import AppConfig
-from aidial_rag.indexing_api import INDEX_MIME_TYPE
+from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.retrieval_api import Page, RetrievalResults, Source
 from tests.utils.config_override import (
     description_index_retries_override,  # noqa: F401
 )
 from tests.utils.e2e_decorator import e2e_test
-from tests.utils.response_helpers import get_stage_names
+from tests.utils.response_helpers import (
+    get_attachments,
+    get_index_attachments,
+    get_indexing_result_json,
+    get_stage_names,
+)
 
 middleware_host = "http://localhost:8081"
 
@@ -52,18 +57,12 @@ async def test_indexing_request(attachments):
     )
 
     assert indexing_response.status_code == 200
+    indexing_json = indexing_response.json()
 
-    indexing_response_attachments = indexing_response.json()["choices"][0][
-        "message"
-    ]["custom_content"]["attachments"]
-    index_attachments = [
-        attachment
-        for attachment in indexing_response_attachments
-        if attachment["type"] == INDEX_MIME_TYPE
-    ]
+    indexing_response_attachments = get_attachments(indexing_json)
+    index_attachments = get_index_attachments(indexing_response_attachments)
     assert len(index_attachments) == 2
 
-    indexing_json = json.loads(indexing_response.text)
     indexing_stage_names = get_stage_names(indexing_json)
     assert sorted(indexing_stage_names) == [
         "Access document 'alps_wiki.html'",
@@ -121,9 +120,7 @@ async def test_indexing_request(attachments):
         "Standalone question",
     ]
 
-    attachments = json_response["choices"][0]["message"]["custom_content"][
-        "attachments"
-    ]
+    attachments = get_attachments(json_response)
     assert len(attachments) == 1
     attachment = attachments[0]
     assert attachment["type"] == RetrievalResults.CONTENT_TYPE
@@ -204,28 +201,17 @@ async def test_unsupported_file(attachments):
     )
 
     assert indexing_response.status_code == 200
-    indexing_response_attachments = indexing_response.json()["choices"][0][
-        "message"
-    ]["custom_content"]["attachments"]
+    indexing_response_attachments = get_attachments(indexing_response.json())
 
     # alps_wiki.html should be indexed successfully
-    index_attachments = [
-        attachment
-        for attachment in indexing_response_attachments
-        if attachment["type"] == INDEX_MIME_TYPE
-    ]
+    index_attachments = get_index_attachments(indexing_response_attachments)
     assert len(index_attachments) == 1
     assert index_attachments[0]["reference_url"] == attachments[0]["url"]
 
-    indexing_result_attachment = next(
-        attachment
-        for attachment in indexing_response_attachments
-        if attachment["type"]
-        == "application/x.aidial-rag.indexing-response+json"
-    )
-
     # test_file.csv should have an error, since it is not supported
-    indexing_result_json = json.loads(indexing_result_attachment["data"])
+    indexing_result_json = get_indexing_result_json(
+        indexing_response_attachments
+    )
     assert indexing_result_json == {
         "indexing_result": {
             attachments[1]["url"]: {
@@ -284,13 +270,78 @@ async def test_custom_index_path(attachments):
     )
 
     assert indexing_response.status_code == 200
-    indexing_response_attachments = indexing_response.json()["choices"][0][
-        "message"
-    ]["custom_content"]["attachments"]
-    index_attachments_result = [
-        attachment
-        for attachment in indexing_response_attachments
-        if attachment["type"] == INDEX_MIME_TYPE
-    ]
+    indexing_response_attachments = get_attachments(indexing_response.json())
+    index_attachments_result = get_index_attachments(
+        indexing_response_attachments
+    )
     assert len(index_attachments_result) == 1
     assert index_attachments_result == index_attachments
+
+
+@pytest.mark.asyncio
+@e2e_test(filenames=["alps_wiki.html"])
+async def test_invalid_custom_index_path(attachments):
+    assert len(attachments) == 1
+
+    app = create_app(
+        app_config=AppConfig(
+            dial_url=middleware_host,
+        )
+    )
+    client = TestClient(app)
+
+    index_attachments = [
+        {
+            "type": INDEX_MIME_TYPE,
+            "url": "files/test_bucket/dial-rag-index/wrong_index_path/index.bin",
+            "reference_url": attachments[0]["url"],
+        }
+    ]
+
+    indexing_response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "messages": [
+                {
+                    "role": "user",
+                    "custom_content": {
+                        "attachments": attachments + index_attachments,
+                    },
+                }
+            ],
+            "custom_fields": {
+                "configuration": {
+                    "request": {
+                        "type": "indexing",
+                    }
+                }
+            },
+        },
+        timeout=60.0,
+    )
+
+    assert indexing_response.status_code == 200
+    indexing_response_attachments = get_attachments(indexing_response.json())
+    index_attachments_result = get_index_attachments(
+        indexing_response_attachments
+    )
+    assert len(index_attachments_result) == 0
+
+    indexing_result_json = get_indexing_result_json(
+        indexing_response_attachments
+    )
+    assert indexing_result_json == {
+        "indexing_result": {
+            attachments[0]["url"]: {
+                "errors": [
+                    {
+                        "message": "Index URL files/test_bucket/dial-rag-index/wrong_index_path/index.bin "
+                        "does not match the expected index path files/test_bucket/dial-rag-index/7b2c7c63"
+                        "/4edd181b/4e740914/a25bbca2/14293b02/3a6860ca/93141399/c018f739/index.bin.",
+                    }
+                ]
+            }
+        },
+    }
