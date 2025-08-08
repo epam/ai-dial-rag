@@ -239,7 +239,7 @@ class ColpaliRetriever(BaseRetriever):
         )
 
     @staticmethod
-    def _process_images_batch_gpu(
+    def _process_images_batch(
         images_batch: List[str], processor, model, device
     ) -> List[torch.Tensor]:
         """Process a batch of images using the ColPali model on GPU."""
@@ -278,9 +278,9 @@ class ColpaliRetriever(BaseRetriever):
                 "ColpaliModelResource did not return a valid model."
             )
 
-        # Get or create batch processor with GPU processing method
+        # Get or create batch processor with processing method
         batch_processor = colpali_model_resource.get_batch_processor(
-            lambda images: ColpaliRetriever._process_images_batch_gpu(
+            lambda images: ColpaliRetriever._process_images_batch(
                 images, processor, model, device
             ),
             pool_func=run_in_heavy_indexing_embeddings_pool,
