@@ -1,4 +1,3 @@
-import hashlib
 import logging
 from abc import ABC, abstractmethod
 from typing import cast
@@ -7,7 +6,6 @@ import aiohttp
 from cachetools import LRUCache
 from pydantic import ByteSize, Field
 
-from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.base_config import BaseConfig
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_record import (
@@ -15,7 +13,7 @@ from aidial_rag.document_record import (
     DocumentRecord,
     IndexSettings,
 )
-from aidial_rag.indexing_api import INDEX_MIME_TYPE
+from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.indexing_task import IndexingTask
 
 logger = logging.getLogger(__name__)
@@ -44,24 +42,6 @@ DEFAULT_IN_MEMORY_CACHE_CAPACITY = IndexStorageConfig().in_memory_cache_capacity
 
 
 SERIALIZATION_CONFIG = {"protocol": "pickle", "compress": "gzip"}
-
-
-# Number of characters in each directory part for index file paths
-# This is treated as a part of an algorithm, not a configuration parameter,
-# because if changed, the old index files will not be found.
-INDEX_PATH_PART_SIZE = 8
-
-
-def link_to_index_url(attachment_link: AttachmentLink, bucket_id: str) -> str:
-    key = hashlib.sha256(attachment_link.dial_link.encode()).hexdigest()
-
-    # split the key into parts to avoid too many files in one directory
-    dir_path = "/".join(
-        key[i : i + INDEX_PATH_PART_SIZE]
-        for i in range(0, len(key), INDEX_PATH_PART_SIZE)
-    )
-
-    return f"files/{bucket_id}/dial-rag-index/{dir_path}/index.bin"
 
 
 class IndexStorageBackend(ABC):
