@@ -31,13 +31,13 @@ To run the Indexing or Retrieval part of the RAG pipeline, you need to set the `
 
 The DIAL RAG uses special type of attachments to represent the index files for the documents. The index attachments are used both as output of the indexing requests and as an input for the retrieval or RAG requests.
 
-The DIAL RAG recognizes the index attachment by MIME types matching `application/x.aidial-rag-index.*`. Currently, only index type `application/x.aidial-rag-index.v0` is supported, but it may be extended in the new versions of the DIAL RAG.
+The DIAL RAG recognizes the index attachment by MIME types matching `application/x.aidial-rag.index.*`. Currently, only index type `application/x.aidial-rag.index.v0` is supported, but it may be extended in the new versions of the DIAL RAG.
 
 The index attachment is based on the [DIAL Unified API attachments](https://docs.dialx.ai/tutorials/developers/chat/chat-objects#attachments) and has the following structure:
 
 ```json
 {
-    "type": "application/x.aidial-rag-index.v0",
+    "type": "application/x.aidial-rag.index.v0",
     "url": "files/<bucket>/<path to index file>",
     "reference_url": "<url to the document the index file is based on>"
 }
@@ -90,7 +90,7 @@ Example of response message with successful indexing results for the above reque
     "custom_content": {
         "attachments": [
             {
-                "type": "application/x.aidial-rag-index.v0",
+                "type": "application/x.aidial-rag.index.v0",
                 "url": "files/<dial-rag bucket>/<path inside dial-rag bucket>/index.bin",
                 "reference_url": "files/<bucket>/my_document.pdf"
             },
@@ -155,7 +155,7 @@ Example of the indexing request for a single `my_document.pdf` document with a s
                         "url": "files/<bucket>/my_document.pdf"
                     },
                     {
-                        "type": "application/x.aidial-rag-index.v0",
+                        "type": "application/x.aidial-rag.index.v0",
                         "url": "files/<bucket>/appdata/my_document.index",
                         "reference_url": "files/<bucket>/my_document.pdf"
                     }
@@ -203,9 +203,9 @@ Example of the retrieval request for a single `my_document.pdf` document:
 }
 ```
 
-The response for this request will have a message with an empty content (because the generation of the final response is not run). The retrieval results will be as a JSON document in the attachment with MIME type `application/vnd.aidial.rag.retrieval-results+json` and follows the [Retrieval results schema](./retrieval_results.generated.schema.json).
+The response for this request will have a message with an empty content (because the generation of the final response is not run). The retrieval response will be as a JSON document in the attachment with MIME type `application/x.aidial-rag.retrieval-response+json` and follows the [Retrieval response schema](./retrieval_response.generated.schema.json).
 
-Example of the retrieval results JSON for the above request:
+Example of the retrieval response JSON for the above request:
 ```json
 {
     "chunks": [
@@ -233,7 +233,7 @@ Example of the retrieval results JSON for the above request:
 }
 ```
 
-The retrieval results JSON contains two lists:
+The retrieval response JSON contains two lists:
 - **`chunks`** - a list of retrieved document chunks in the order of relevance to the user query. Each chunk contains:
   - **`attachment_url`** - the URL of the attached document, the chunk belongs to. Exactly matches with the `attachment.url` field in the request.
   - **`source`** - the source this chunk belongs to. The source could be a document or some part of the document, like a page or a section. The source object contains:
