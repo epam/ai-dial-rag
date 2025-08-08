@@ -1,4 +1,3 @@
-import hashlib
 import pickle
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -13,6 +12,7 @@ from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
     ColpaliModelResourceConfig,
 )
+from tests.utils.llm_cache import get_cache_key
 
 
 class CachedModel:
@@ -39,7 +39,6 @@ class CachedModel:
 
     def _get_input_hash(self, kwargs: Dict[str, Any]) -> str:
         """Generate hash from input kwargs."""
-        import hashlib
 
         # For images, hash the pixel_values
         if "pixel_values" in kwargs:
@@ -54,7 +53,8 @@ class CachedModel:
             # Fallback: hash the entire kwargs
             raise ValueError("No input found in kwargs")
 
-        hash_result = hashlib.md5(hash_input).hexdigest()  # noqa: S324
+        hash_result = get_cache_key(str(hash_input))
+
         return hash_result
 
     def _load_cached_data(self) -> None:
@@ -169,7 +169,7 @@ class CachedColpaliModelResource(ColpaliModelResource):
         if self.model_resource_config is None:
             raise ValueError("Model resource config is required")
         content = f"{self.model_resource_config.model_name}"
-        return hashlib.sha256(content.encode()).hexdigest()
+        return get_cache_key(content)
 
     def get_model_processor_device(self) -> tuple[Any, Any, torch.device]:
         """Get model, processor, and device with caching support."""
