@@ -74,6 +74,7 @@ async def test_retrievers(local_server):
         embeddings_index=embeddings_index,
         multimodal_embeddings_index=None,
         description_embeddings_index=None,
+        colpali_embeddings_index=None,
         document_bytes=buffer,
         mime_type=mime_type,
     )
@@ -136,6 +137,7 @@ async def test_pdf_with_no_text(local_server):
         embeddings_index=None,
         multimodal_embeddings_index=None,
         description_embeddings_index=None,
+        colpali_embeddings_index=None,
         document_bytes=buffer,
         mime_type=mime_type,
     )

@@ -7,6 +7,9 @@ from aidial_rag.base_config import (
 )
 from aidial_rag.document_loaders import ParserConfig
 from aidial_rag.document_record import IndexSettings
+from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
+    ColpaliIndexConfig,
+)
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionIndexConfig,
 )
@@ -28,6 +31,9 @@ class IndexingConfig(BaseConfig):
         default=DescriptionIndexConfig(),
         description="Enables DescriptionRetriever which uses vision model to generate page images "
         "descriptions and perform search on them.",
+    )
+    colpali_index: ColpaliIndexConfig | None = Field(
+        default=None, description="Enables ColpaliRetriever"
     )
 
     def collect_fields_that_rebuild_index(self) -> IndexSettings:
