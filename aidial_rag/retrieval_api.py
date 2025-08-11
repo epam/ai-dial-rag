@@ -66,11 +66,11 @@ class Chunk(BaseModel):
     )
 
 
-class RetrievalResults(BaseModel):
-    """Results of the Dial RAG retrieval process."""
+class RetrievalResponse(BaseModel):
+    """Response with the results of the Dial RAG retrieval process."""
 
     CONTENT_TYPE: ClassVar[str] = (
-        "application/vnd.aidial.rag.retrieval-results+json"
+        "application/x.aidial-rag.retrieval-response+json"
     )
 
     chunks: List[Chunk] = Field(

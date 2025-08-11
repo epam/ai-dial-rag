@@ -123,7 +123,7 @@
       "type": "object"
     }
   },
-  "description": "Results of the Dial RAG retrieval process.",
+  "description": "Response with the results of the Dial RAG retrieval process.",
   "properties": {
     "chunks": {
       "description": "List of chunks found by retriever in the order of their relevance.",
@@ -142,6 +142,6 @@
       "type": "array"
     }
   },
-  "title": "RetrievalResults",
+  "title": "RetrievalResponse",
   "type": "object"
 }
