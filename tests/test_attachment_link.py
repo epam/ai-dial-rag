@@ -1,10 +1,12 @@
 from unittest.mock import MagicMock
 
+import aiohttp
 import pytest
 from aidial_sdk.chat_completion import Choice
 from pydantic import SecretStr
 
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.errors import InvalidAttachmentError
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
@@ -12,15 +14,19 @@ from tests.utils.user_limits_mock import user_limits_mock
 
 
 @pytest.fixture
-def request_context():
+async def request_context_coro():
     return RequestContext(
         dial_url="http://core.dial",
         api_key=SecretStr(""),
         choice=Choice(queue=MagicMock(), choice_index=0),
+        dial_api_client=DialApiClient(
+            client_session=aiohttp.ClientSession(), bucket_id=""
+        ),
         dial_limited_resources=DialLimitedResources(user_limits_mock()),
     )
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "link, expected_absolute_url, expected_display_name",
     [
@@ -92,15 +98,17 @@ def request_context():
         ),
     ],
 )
-def test_attachment_link_from_link(
-    request_context, link, expected_absolute_url, expected_display_name
+async def test_attachment_link_from_link(
+    request_context_coro, link, expected_absolute_url, expected_display_name
 ):
+    request_context = await request_context_coro
     attachment_link = AttachmentLink.from_link(request_context, link)
     assert attachment_link.dial_link == link
     assert attachment_link.absolute_url == expected_absolute_url
     assert attachment_link.display_name == expected_display_name
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "link",
     [
@@ -108,11 +116,13 @@ def test_attachment_link_from_link(
         "file.txt",
     ],
 )
-def test_attachment_link_errors(request_context, link):
+async def test_attachment_link_errors(request_context_coro, link):
+    request_context = await request_context_coro
     with pytest.raises(InvalidAttachmentError):
         AttachmentLink.from_link(request_context, link)
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "link, expected_dial_link, expected_absolute_url, expected_metadata_url",
     [
@@ -126,23 +136,24 @@ def test_attachment_link_errors(request_context, link):
             "files/bucket/file.txt",
             "files/bucket/file.txt",
             "http://core.dial/v1/files/bucket/file.txt",
-            "http://core.dial/v1/metadata/files/bucket/file.txt",
+            "metadata/files/bucket/file.txt",
         ),
         (
             "http://core.dial/v1/files/bucket/file.txt",
             "files/bucket/file.txt",
             "http://core.dial/v1/files/bucket/file.txt",
-            "http://core.dial/v1/metadata/files/bucket/file.txt",
+            "metadata/files/bucket/file.txt",
         ),
     ],
 )
-def test_metadata_url(
-    request_context,
+async def test_metadata_url(
+    request_context_coro,
     link,
     expected_dial_link,
     expected_absolute_url,
     expected_metadata_url,
 ):
+    request_context = await request_context_coro
     attachment_link = AttachmentLink.from_link(request_context, link)
     assert attachment_link.dial_link == expected_dial_link
     assert attachment_link.absolute_url == expected_absolute_url

@@ -32,7 +32,6 @@ from aidial_rag.configuration_endpoint import (
     RequestType,
     get_configuration,
 )
-from aidial_rag.dial_api_client import create_dial_api_client
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
@@ -248,7 +247,7 @@ class DialRAGApplication(ChatCompletion):
         self, request: Request, response: Response
     ) -> None:
         loop = asyncio.get_running_loop()
-        with create_request_context(
+        async with create_request_context(
             self.app_config.dial_url, request, response
         ) as request_context:
             choice = request_context.choice
@@ -274,21 +273,19 @@ class DialRAGApplication(ChatCompletion):
                 get_attachment_links(request_context, messages)
             )
 
-            dial_api_client = await create_dial_api_client(request_context)
             index_storage = self.index_storage_holder.get_storage(
-                dial_api_client
+                request_context.dial_api_client
             )
 
             indexing_tasks = create_indexing_tasks(
                 attachment_links,
-                dial_api_client,
+                request_context.dial_api_client,
             )
 
             indexing_results = await load_documents(
                 request_context,
                 indexing_tasks,
                 index_storage,
-                dial_api_client,
                 config=request_config,
             )
 

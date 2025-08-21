@@ -1,4 +1,5 @@
 import sys
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -20,8 +21,9 @@ async def load_document(name):
         display_name=name,
     )
 
+    dial_api_client = MagicMock()
     _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
+        dial_api_client, attachment_link
     )
     mime_type, _ = parse_content_type(content_type)
     chunks = await parse_document(

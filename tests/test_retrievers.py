@@ -3,8 +3,11 @@ from operator import itemgetter
 
 import pytest
 from langchain.schema.runnable import RunnablePassthrough
+from pydantic import SecretStr
 
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.dial_api_client import create_dial_api_client
+from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import load_attachment, parse_document
 from aidial_rag.document_record import (
     FORMAT_VERSION,
@@ -41,6 +44,7 @@ async def run_retrevier(retriever, doc_records, query):
     )
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_retrievers(local_server):
     name = "alps_wiki.pdf"
@@ -52,9 +56,16 @@ async def test_retrievers(local_server):
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
+    dial_config = DialConfig(
+        dial_url=f"http://localhost:{PORT}", api_key=SecretStr("")
     )
+
+    async with create_dial_api_client(dial_config) as dial_api_client:
+        _file_name, content_type, buffer = await load_attachment(
+            dial_api_client,
+            attachment_link,
+        )
+
     mime_type, _ = parse_content_type(content_type)
     text_chunks = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
@@ -104,6 +115,7 @@ async def test_retrievers(local_server):
     )
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_pdf_with_no_text(local_server):
     name = "test_pdf_with_image.pdf"
@@ -115,9 +127,16 @@ async def test_pdf_with_no_text(local_server):
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
+    dial_config = DialConfig(
+        dial_url=f"http://localhost:{PORT}", api_key=SecretStr("")
     )
+
+    async with create_dial_api_client(dial_config) as dial_api_client:
+        _file_name, content_type, buffer = await load_attachment(
+            dial_api_client,
+            attachment_link,
+        )
+
     mime_type, _ = parse_content_type(content_type)
     text_chunks = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type

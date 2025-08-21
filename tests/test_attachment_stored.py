@@ -24,11 +24,17 @@ request_config = RequestConfig(
 
 
 @pytest.fixture
-def request_context():
+def dial_api_client():
+    return MockDialApiClient()
+
+
+@pytest.fixture
+def request_context(dial_api_client):
     return RequestContext(
         dial_url="http://localhost:8080",
         api_key=SecretStr("ABRAKADABRA"),
         choice=Choice(queue=MagicMock(), choice_index=0),
+        dial_api_client=dial_api_client,
         dial_limited_resources=DialLimitedResources(user_limits_mock()),
     )
 
@@ -37,6 +43,7 @@ class MockDialApiClient(DialApiClient):
     def __init__(self):
         self.bucket_id = "test_bucket"
         self.storage = {}
+        self._client_session = None
 
     async def get_file(self, relative_url):
         if relative_url in self.storage:
@@ -46,11 +53,6 @@ class MockDialApiClient(DialApiClient):
     async def put_file(self, relative_url, data, content_type):
         self.storage[relative_url] = data
         return {}
-
-
-@pytest.fixture
-def dial_api_client():
-    return MockDialApiClient()
 
 
 @pytest.fixture
@@ -85,7 +87,7 @@ async def test_attachment_test(mock_fetch, request_context, attachment_link):
     headers = request_context.get_file_access_headers(absolute_url)
 
     filename, _content_type, bytes_value = await load_attachment(
-        attachment_link, headers
+        request_context.dial_api_client, attachment_link, headers
     )
 
     assert filename == "folder 1/file-example_PDF 500_kB.pdf"
@@ -104,7 +106,6 @@ async def test_load_document_success(
     mock_fetch,
     mock_check_document_access,
     request_context,
-    dial_api_client,
     index_storage,
     attachment_link,
 ):
@@ -115,9 +116,10 @@ async def test_load_document_success(
         MagicMock(), 0, 0, name
     )
 
+    bucket_id = request_context.dial_api_client.bucket_id
     indexing_task = IndexingTask(
         attachment_link=attachment_link,
-        index_url=link_to_index_url(attachment_link, dial_api_client.bucket_id),
+        index_url=link_to_index_url(attachment_link, bucket_id),
     )
 
     # Download and store
@@ -125,7 +127,6 @@ async def test_load_document_success(
         request_context,
         indexing_task,
         index_storage,
-        dial_api_client,
         config=request_config,
     )
     assert isinstance(doc_record, DocumentRecord)
@@ -151,7 +152,6 @@ async def test_load_document_invalid_document(
     mock_fetch,
     mock_check_document_access,
     request_context,
-    dial_api_client,
     index_storage,
     attachment_link,
 ):
@@ -162,8 +162,8 @@ async def test_load_document_invalid_document(
         MagicMock(), 0, 0, name
     )
 
-    dial_api_client = MockDialApiClient()
-    index_url = link_to_index_url(attachment_link, dial_api_client.bucket_id)
+    bucket_id = request_context.dial_api_client.bucket_id
+    index_url = link_to_index_url(attachment_link, bucket_id)
 
     with pytest.raises(DocumentProcessingError) as exc_info:
         await load_document(
@@ -173,7 +173,6 @@ async def test_load_document_invalid_document(
                 index_url=index_url,
             ),
             index_storage,
-            dial_api_client,
             config=request_config,
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)
