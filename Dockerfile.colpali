@@ -1,12 +1,11 @@
-# Extend the base image to download ColPali models
+# Multi-stage build for ColPali model download
+# Stage 1: Download ColPali model
 # Set base image with default value
 ARG BASE_IMAGE_NAME=epam/ai-dial-rag:latest
-FROM ${BASE_IMAGE_NAME}
+FROM ${BASE_IMAGE_NAME} AS colpali_downloader
 
 # Set environment variables for ColPali models
 ENV COLPALI_MODELS_BASE_PATH=/colpali_models
-# Set base image name as environment variable
-ENV BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
 # Set specific model to download with default value
 ARG COLPALI_MODEL_NAME=vidore/colSmol-256M
 ENV COLPALI_MODEL_NAME=${COLPALI_MODEL_NAME}
@@ -23,6 +22,31 @@ COPY download_model.py ./
 
 # Download the specified ColPali model
 RUN python download_model.py colpali "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODEL_NAME"
+
+# Stage 2: Final image with downloaded model
+# Set base image with default value (needed again for second stage)
+ARG BASE_IMAGE_NAME=epam/ai-dial-rag:latest
+FROM ${BASE_IMAGE_NAME}
+
+# Set environment variables for ColPali models
+ENV COLPALI_MODELS_BASE_PATH=/colpali_models
+# Set base image name as environment variable
+ENV BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
+# Set specific model to download with default value
+ARG COLPALI_MODEL_NAME=vidore/colSmol-256M
+ENV COLPALI_MODEL_NAME=${COLPALI_MODEL_NAME}
+
+# Copy the downloaded ColPali model from the downloader stage
+COPY --from=colpali_downloader --chown=appuser "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODELS_BASE_PATH"
+
+# Verify environment variable and model files are accessible
+USER root
+RUN echo "Verifying ColPali model setup:" && \
+    echo "COLPALI_MODELS_BASE_PATH: $COLPALI_MODELS_BASE_PATH" && \
+    echo "COLPALI_MODEL_NAME: $COLPALI_MODEL_NAME" && \
+    ls -la "$COLPALI_MODELS_BASE_PATH" && \
+    echo "Model directory contents:" && \
+    ls -la "$COLPALI_MODELS_BASE_PATH"/*/ 2>/dev/null || echo "No model subdirectories found"
 
 # Switch back to appuser
 USER appuser
