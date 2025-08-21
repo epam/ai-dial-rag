@@ -9,7 +9,6 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV BGE_EMBEDDINGS_MODEL_PATH=/embeddings_model/bge-small-en
-ENV COLPALI_MODELS_BASE_PATH=/colpali_models
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -25,9 +24,6 @@ RUN apt-get update && \
 
 
 FROM base AS builder
-
-# Needed to install some dependencies from git repositories
-RUN apt-get update && apt-get install -y git
 
 # Getting uv from distroless docker
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -65,19 +61,6 @@ COPY download_model.py .
 RUN python download_model.py embeddings "epam/bge-small-en" "$BGE_EMBEDDINGS_MODEL_PATH" "openvino" "torch"
 
 
-FROM builder AS builder_download_colpali
-
-# Copy __init__.py with folder structure to be able to import colpali_models.py in download_model.py
-COPY aidial_rag/__init__.py aidial_rag/
-COPY aidial_rag/retrievers/__init__.py aidial_rag/retrievers/
-COPY aidial_rag/retrievers/colpali_retriever/__init__.py aidial_rag/retrievers/colpali_retriever/
-COPY aidial_rag/retrievers/colpali_retriever/colpali_models.py aidial_rag/retrievers/colpali_retriever/
-COPY download_model.py ./
-
-# Download all ColPali models
-RUN python download_model.py colpali "$COLPALI_MODELS_BASE_PATH"
-
-
 FROM builder AS builder_repo_digest
 
 # Install git in builder to collect repository digest
@@ -95,7 +78,6 @@ FROM builder_repo_digest AS test
 
 COPY --from=builder_download_nltk /usr/share/nltk_data /usr/share/nltk_data
 COPY --from=builder_download_model "$BGE_EMBEDDINGS_MODEL_PATH" "$BGE_EMBEDDINGS_MODEL_PATH"
-COPY --from=builder_download_colpali "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODELS_BASE_PATH"
 
 RUN uvx "$POETRY" install --no-interaction --no-ansi --no-cache --with test --no-directory
 RUN uvx "$POETRY" run pytest tests
@@ -114,7 +96,6 @@ COPY --from=builder --chown=appuser /opt/uv/python /opt/uv/python
 COPY --from=builder --chown=appuser /opt/venv /opt/venv
 COPY --from=builder_download_nltk --chown=appuser /usr/share/nltk_data /usr/share/nltk_data
 COPY --from=builder_download_model --chown=appuser "$BGE_EMBEDDINGS_MODEL_PATH" "$BGE_EMBEDDINGS_MODEL_PATH"
-COPY --from=builder_download_colpali --chown=appuser "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODELS_BASE_PATH"
 COPY --chown=appuser ./config /config
 COPY --chown=appuser ./aidial_rag /aidial_rag
 COPY --from=builder_repo_digest --chown=appuser /opt/repository-digest.json /opt/repository-digest.json
