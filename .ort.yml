@@ -131,3 +131,6 @@ resolutions:
     - message: ".*PyPI::nvidia-cublas-cu12:12\\.6\\.4\\.1.*"
       reason: "CANT_FIX_EXCEPTION"
       comment: "NVIDIA proprietary license: https://developer.nvidia.com/cublas"
+    - message: ".*PyPI::kiwisolver:1\\.4\\.7.*"
+      reason: "CANT_FIX_EXCEPTION"
+      comment: "BSD 3-Clause License: https://github.com/nucleic/kiwisolver/blob/main/LICENSE"
