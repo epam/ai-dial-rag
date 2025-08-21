@@ -29,13 +29,13 @@ The Dial RAG provides a set of configuration files with predefined settings for 
 You can set the environment variable `DIAL_RAG__CONFIG_PATH` to point to the required configuration file depending on the Dial environment and available models.
 
 The following configuration files are available in the `config` directory:
-- `config/aws_description.yaml` - AWS environment with description retriever, which uses `Claude 3 Haiku` model for page images descriptions and `Claude 3.5 Sonnet` for the answer generation.
-- `config/aws_embedding.yaml` - AWS environment with multimodal retriever, which uses `amazon.titan-embed-image-v1` model for page images embeddings and `Claude 3.5 Sonnet` for the answer generation.
-- `config/azure_description.yaml` - Azure environment with description retriever, which uses `GPT-4o mini` model for page images descriptions and `GPT-4o` for the answer generation.
-- `config/azure_embedding.yaml` - Azure environment with multimodal retriever, which uses `azure-ai-vision-embeddings` model for page images embeddings and `GPT-4o` for the answer generation.
-- `config/gcp_description.yaml` - GCP environment with description retriever, which uses `Gemini 1.5 Flash` model for page images descriptions and `Gemini 1.5 Pro` for the answer generation.
-- `config/gcp_embedding.yaml` - GCP environment with multimodal retriever, which uses Google `multimodalembedding@001` model for page images embeddings and `Gemini 1.5 Pro` for the answer generation.
-- `config/azure_with_gcp_embedding.yaml` - mixed environment which assumes that you have and access to both Azure and GCP models in the Dial. It uses Google `multimodalembedding@001` model for page images embeddings and `GPT-4o` for the answer generation.
+- `config/aws_description.yaml` - AWS environment with description retriever, which uses `Claude Haiku 4.5` model for page images descriptions and `Claude Sonnet 3.5` for the answer generation.
+- `config/aws_embedding.yaml` - AWS environment with multimodal retriever, which uses `amazon.titan-embed-image-v1` model for page images embeddings and `Claude Sonnet 3.5` for the answer generation.
+- `config/azure_description.yaml` - Azure environment with description retriever, which uses `GPT-4.1 mini` model for page images descriptions and `GPT-4.1` for the answer generation.
+- `config/azure_embedding.yaml` - Azure environment with multimodal retriever, which uses `azure-ai-vision-embeddings` model for page images embeddings and `GPT-4.1` for the answer generation.
+- `config/gcp_description.yaml` - GCP environment with description retriever, which uses `Gemini 2.5 Flash` model for page images descriptions and `Gemini 2.5 Pro` for the answer generation.
+- `config/gcp_embedding.yaml` - GCP environment with multimodal retriever, which uses Google `multimodalembedding@001` model for page images embeddings and `Gemini 2.5 Pro` for the answer generation.
+- `config/azure_with_gcp_embedding.yaml` - mixed environment which assumes that you have and access to both Azure and GCP models in the Dial. It uses Google `multimodalembedding@001` model for page images embeddings and `GPT-4.1` for the answer generation.
 
 If you are running the Dial RAG in a different environment, you can create your own configuration file based on one of the provided files and set the `DIAL_RAG__CONFIG_PATH` environment variable to point to it. If you need a small change in the configuration (for example to change the model name), you can point the `DIAL_RAG__CONFIG_PATH` to the existing file and override the required settings using the environment variables. See the [Additional environment variables](#additional-environment-variables) section for the list of available settings.
 

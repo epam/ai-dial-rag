@@ -88,7 +88,7 @@ async def test_chat_completion(attachments):
 async def test_chat_completion_gemini(attachments):
     run_simple_test(
         attachments,
-        "/model gemini-1.5-pro-002\nWhat is the highest peak in the Alps?",
+        "/model gemini-2.5-pro\nWhat is the highest peak in the Alps?",
         ["Mont Blanc"],
     )
 
@@ -215,7 +215,7 @@ async def test_model_command():
         json={
             "model": "dial-rag",
             "messages": [
-                {"role": "user", "content": "/model gemini-1.5-flash-001\nHi!"}
+                {"role": "user", "content": "/model gemini-2.5-flash\nHi!"}
             ],
         },
         timeout=60.0,

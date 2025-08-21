@@ -1,149 +1,78 @@
-"""
-Page description class
-"""
-
-# pylint: disable=C0301,C0103,C0303,C0411,W1203
-
-import enum
-import json
 import logging
-from dataclasses import dataclass
+from typing import List
 
-from dataclasses_json import dataclass_json
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
 
-@enum.unique
-class ImageDetails(enum.Enum):
-    LOW = "low"
-    HIGH = "high"
-    AUTO = "auto"
+PAGE_DESCRIPTION_PROMPT_TEMPLATE = """
+Please create detailed description of provided image.
+Ignore page header, footer, basic logo and background.
+Describe all images (illustration), tables.
+Text with bullet points is NOT a table or image.
+
+Use only provided information.
+DO NOT make up answer.
+
+Provide answer as a PageDescription function call.
+Make sure to properly escape special characters, like double quotes, in string fields.
+"""
 
 
-@dataclass_json
-@dataclass(frozen=True)
-class PageChart:
-    """
-    PageChart class
-    """
+class ImageDescription(BaseModel):
+    """Image description"""
 
-    description: str
-    type: str
-    keyfact: str
+    image_summary: str = Field(
+        description="the summary of the image description"
+    )
+    keyfact: str = Field(description="the most important fact from the image")
 
 
-@dataclass_json
-@dataclass(frozen=True)
-class PageImage:
-    """
-    PageImage class
-    """
+class TableDescription(BaseModel):
+    """Table description"""
 
-    description: str
-    keyfact: str
+    table_summary: str = Field(
+        description="the summary of the table description"
+    )
+    keyfact: str = Field(description="the most important fact from the table")
 
 
-@dataclass_json
-@dataclass(frozen=True)
-class PageTable:
-    """
-    PageTable class
-    """
+class PageDescription(BaseModel):
+    """Page description"""
 
-    description: str
-    keyfact: str
+    page_summary: str = Field(description="the summary of the page description")
+    keyfact: str = Field(description="the most important fact from the page")
+    images: List[ImageDescription] = Field(
+        description="the array of the descriptions for the images on the page",
+        default_factory=list,
+    )
+    tables: List[TableDescription] = Field(
+        description="the array of the descriptions for the tables on the page",
+        default_factory=list,
+    )
 
+    # We do not want to log user data outside of DEBUG log level
+    model_config = ConfigDict(hide_input_in_errors=True)
 
-@dataclass_json
-@dataclass(frozen=True)
-class PageDescription:
-    """
-    Page description class
-    """
-
-    page_summary: str
-    key_fact: str
-    image_quality: ImageDetails
-    image_quality_explanation: str
-    images: list[PageImage]
-    tables: list[PageTable]
-
-    @classmethod
-    def from_json_str(cls, json_str: str) -> "PageDescription":
-        """
-        Convert from json string
-        """
-        json_page = json.loads(json_str)
-
-        page_summary = json_page["page_summary"]
-        keyfact = json_page["keyfact"]
-
-        image_quality_str = json_page["image_quality"]["level"]
-        image_quality_str = image_quality_str.lower()
-        if image_quality_str == "detailed":
-            image_quality = ImageDetails.HIGH
-        elif image_quality_str == "normal":
-            image_quality = ImageDetails.LOW
-        else:
-            image_quality = ImageDetails.AUTO
-        image_quality_explanation = json_page["image_quality"]["explanation"]
-
-        # all image (illustration) descriptions
-        images: list[PageImage] = []
-        for image_json in json_page["images"]:
-            if "image" in image_json:
-                image_description = image_json["image"]["description"]
-                image_keyfact = image_json["image"]["keyfact"]
-            else:
-                image_description = image_json["description"]
-                image_keyfact = image_json["keyfact"]
-
-            if "no images are present" in image_description.lower():
-                continue
-
-            images.append(PageImage(image_description, image_keyfact))
-
-        # embedding for all table descriptions
-        tables: list[PageTable] = []
-        for table_json in json_page["tables"]:
-            if "table" in table_json:
-                table_description = table_json["table"]["description"]
-                table_keyfact = table_json["table"]["keyfact"]
-            else:
-                table_description = table_json["description"]
-                table_keyfact = table_json["keyfact"]
-
-            if "no tables are present" in table_description.lower():
-                continue
-
-            tables.append(PageTable(table_description, table_keyfact))
-        result = cls(
-            page_summary,
-            keyfact,
-            image_quality,
-            image_quality_explanation,
-            images,
-            tables,
-        )
-        return result
-
-    def to_chunks(self) -> list[str]:
-        page_chunk_list: list[str] = []
+    def to_chunks(self) -> List[str]:
+        page_chunk_list: List[str] = []
 
         def add_into_page_chunk_list(chunk: str):
             chunk = chunk.replace("\n", " ").replace("\r", " ")
             page_chunk_list.append(chunk)
 
         add_into_page_chunk_list(self.page_summary)
-        add_into_page_chunk_list(self.key_fact)
+
+        if self.keyfact:
+            add_into_page_chunk_list(self.keyfact)
 
         for image in self.images:
-            add_into_page_chunk_list(image.description)
+            add_into_page_chunk_list(image.image_summary)
             add_into_page_chunk_list(image.keyfact)
 
         for table in self.tables:
-            add_into_page_chunk_list(table.description)
+            add_into_page_chunk_list(table.table_summary)
             add_into_page_chunk_list(table.keyfact)
 
         return page_chunk_list

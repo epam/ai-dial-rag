@@ -2,13 +2,11 @@ import asyncio
 import logging
 import sys
 import time
-from typing import Any, List, Sequence, Tuple
+from typing import Dict, List, Literal, Sequence, Tuple, TypeAlias
 
 import numpy as np
-from langchain_community.callbacks import OpenAICallbackHandler
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.retrievers import BaseRetriever
 from langchain_openai.chat_models.base import BaseChatOpenAI
 from pydantic import Field
@@ -26,10 +24,8 @@ from aidial_rag.resources.dial_limited_resources import (
     map_with_resource_limits,
 )
 from aidial_rag.retrievers.description_retriever.page_description import (
-    PageDescription,
-)
-from aidial_rag.retrievers.description_retriever.prompts import (
     PAGE_DESCRIPTION_PROMPT_TEMPLATE,
+    PageDescription,
 )
 from aidial_rag.retrievers.embeddings_index import (
     EmbeddingsIndex,
@@ -47,6 +43,9 @@ MAX_RETRIES = 1_000_000_000  # One billion retries should be enough
 
 
 logger = logging.getLogger(__name__)
+
+
+MessageContent: TypeAlias = str | List[str | Dict]
 
 
 class DescriptionIndexConfig(BaseConfig):
@@ -168,7 +167,7 @@ class DescriptionRetriever(BaseRetriever):
 
 
 async def _calculate_embeddings(
-    llm,
+    llm: BaseChatOpenAI,
     dial_limited_resources: DialLimitedResources,
     index_config: DescriptionIndexConfig,
     extracted_images: AsyncGeneratorWithTotal,
@@ -207,97 +206,75 @@ def _extract_chunks(
     return page_indexes, description_chunks
 
 
-def _build_prompt(image_base64, image_details, image_max_size):
+def _build_prompt(
+    image_base64: str,
+    image_details: Literal["low", "high", "auto"],
+) -> MessageContent:
     prompt_template = PAGE_DESCRIPTION_PROMPT_TEMPLATE
-    content = [{"type": "text", "text": prompt_template}]
+    content: MessageContent = [{"type": "text", "text": prompt_template}]
     image_content = {
         "type": "image_url",
         "image_url": {
             "url": f"data:image/png;base64,{image_base64}",
-            "detail": image_details,  # 'low', 'high', or 'auto'
+            "detail": image_details,
         },
     }
     content.append(image_content)
     return content
 
 
-async def _invoke_image_list_prompt(llm: BaseChatOpenAI, prompt: Any) -> str:
+async def _invoke_image_list_prompt(
+    llm: BaseChatOpenAI,
+    prompt: MessageContent,
+) -> PageDescription:
     start_time = time.perf_counter()
 
     message = HumanMessage(prompt)
 
-    cb = OpenAICallbackHandler()
-    llm_chain = llm | StrOutputParser()
-    content = await llm_chain.ainvoke(
-        input=[message], config={"callbacks": [cb]}
+    llm_chain = llm.with_structured_output(
+        schema=PageDescription,
+        method="function_calling",
+        include_raw=True,
     )
-
+    response = await llm_chain.ainvoke(input=[message])
     end_time = time.perf_counter()
     logger.debug(f"LLM Time ({llm}): {end_time - start_time:.2f}s")
-    logger.debug(f"LLM Response: {content}")
+
+    raw_response = response["raw"]
+    logger.debug("LLM Response: %s", raw_response)
+
+    usage = raw_response.usage_metadata
     logger.debug(
-        f"{cb.total_tokens=} ({cb.prompt_tokens=}, {cb.completion_tokens=})"
+        f"{usage['total_tokens']=} ({usage['input_tokens']=}, {usage['output_tokens']=})"
     )
 
-    return _get_fixed_json(content)
+    if (parsing_error := response.get("parsing_error")) is not None:
+        # Some models, like Claude Haiku, may break the tool calls format in rare cases.
+        # Fall back to using the raw tool calls output as a page description.
+        logger.warning(
+            "Failed to parse PageDescription tool calls response. Falling back to raw tool calls output."
+        )
+
+        # We do not want to log user data outside of DEBUG log level
+        # parsing_error contains parts of JSON with user data
+        logger.debug("Parsing error: %s", parsing_error)
+
+        raw_tool_call_args = "\n".join(
+            str(tool_call.get("function", {}).get("arguments", ""))
+            for tool_call in raw_response.additional_kwargs.get(
+                "tool_calls", []
+            )
+        )
+        return PageDescription(page_summary=raw_tool_call_args, keyfact="")
+
+    return response["parsed"]
 
 
 async def _get_page_description(
-    llm, page_bitmap_base64: str
+    llm: BaseChatOpenAI,
+    page_bitmap_base64: str,
 ) -> PageDescription:
     logger.debug("Generated description for the page.")
-    prompt = _build_prompt(
-        page_bitmap_base64, "low", MAX_PNG_SIZE_FOR_DESCRIPTION
-    )
-    page_description_str = await _invoke_image_list_prompt(llm, prompt)
-
-    return PageDescription.from_json_str(page_description_str)
-
-
-def _get_fixed_json(text: str) -> str:
-    """
-    Extract JSON from text
-    """
-    text = text.replace(", ]", "]").replace(",]", "]").replace(",\n]", "]")
-
-    # check if JSON is in code block
-    if "```json" in text:
-        open_bracket = text.find("```json")
-        close_bracket = text.rfind("```")
-        if open_bracket != -1 and close_bracket != -1:
-            return text[open_bracket + 7 : close_bracket].strip()
-
-    # check if JSON is in brackets
-    tmp_text = text.replace("{", "[").replace("}", "]")
-    open_bracket = tmp_text.find("[")
-    if open_bracket == -1:
-        return text
-
-    close_bracket = tmp_text.rfind("]")
-    if close_bracket == -1:
-        return text
-
-    return text[open_bracket : close_bracket + 1]
-
-
-def split_text_by_separators(
-    text: str, separators: list[str], min_word_count: int
-) -> list[str]:
-    """
-    Split text by separators
-    """
-    result = []
-    current_chunk = ""
-    for char in text:
-        if char in separators:  # it's a separator
-            # we need to have at least min_word_count words in the chunk
-            if current_chunk and len(current_chunk.split()) >= min_word_count:
-                result.append(current_chunk)
-                current_chunk = ""
-            else:
-                current_chunk += char
-        else:
-            current_chunk += char
-    if current_chunk:
-        result.append(current_chunk)
-    return result
+    prompt = _build_prompt(page_bitmap_base64, "low")
+    page_description = await _invoke_image_list_prompt(llm, prompt)
+    return page_description

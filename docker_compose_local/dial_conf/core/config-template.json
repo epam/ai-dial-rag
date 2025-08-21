@@ -263,61 +263,31 @@
       "displayVersion": "32K 0613",
       "iconUrl": "gpt4.svg"
     },
-    "gemini-1.5-pro-001": {
+    "gemini-2.5-pro": {
       "type": "chat",
-      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-pro-001/chat/completions",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-2.5-pro/chat/completions",
       "upstreams": [
         {
-          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-pro-001/chat/completions",
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-2.5-pro/chat/completions",
           "key": "${REMOTE_DIAL_API_KEY}"
         }
       ],
-      "displayName": "Gemini 1.5 Pro",
+      "displayName": "Gemini 2.5 Pro",
       "iconUrl": "Gemini-Pro-Vision.svg",
       "inputAttachmentTypes": [
         "*/*"
       ]
     },
-    "gemini-1.5-pro-002": {
+    "gemini-2.5-flash": {
       "type": "chat",
-      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-pro-002/chat/completions",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-2.5-flash/chat/completions",
       "upstreams": [
         {
-          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-pro-002/chat/completions",
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-2.5-flash/chat/completions",
           "key": "${REMOTE_DIAL_API_KEY}"
         }
       ],
-      "displayName": "Gemini 1.5 Pro",
-      "iconUrl": "Gemini-Pro-Vision.svg",
-      "inputAttachmentTypes": [
-        "*/*"
-      ]
-    },
-    "gemini-1.5-flash-001": {
-      "type": "chat",
-      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-flash-001/chat/completions",
-      "upstreams": [
-        {
-          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-flash-001/chat/completions",
-          "key": "${REMOTE_DIAL_API_KEY}"
-        }
-      ],
-      "displayName": "Gemini 1.5 Flash",
-      "iconUrl": "Gemini-Pro-Vision.svg",
-      "inputAttachmentTypes": [
-        "*/*"
-      ]
-    },
-    "gemini-1.5-flash-002": {
-      "type": "chat",
-      "endpoint": "http://adapter-dial:5000/openai/deployments/gemini-1.5-flash-002/chat/completions",
-      "upstreams": [
-        {
-          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gemini-1.5-flash-002/chat/completions",
-          "key": "${REMOTE_DIAL_API_KEY}"
-        }
-      ],
-      "displayName": "Gemini 1.5 Flash",
+      "displayName": "Gemini 2.5 Flash",
       "iconUrl": "Gemini-Pro-Vision.svg",
       "inputAttachmentTypes": [
         "*/*"
@@ -354,6 +324,38 @@
       ],
       "displayName": "Anthropic Claude",
       "displayVersion": "3 Haiku",
+      "iconUrl": "anthropic.svg",
+      "inputAttachmentTypes": [
+        "image/*"
+      ]
+    },
+    "anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/anthropic.claude-haiku-4-5-20251001-v1:0/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/anthropic.claude-haiku-4-5-20251001-v1:0/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Anthropic Claude",
+      "displayVersion": "4.5 Haiku",
+      "iconUrl": "anthropic.svg",
+      "inputAttachmentTypes": [
+        "image/*"
+      ]
+    },
+    "claude-haiku-4-5@20251001": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/claude-haiku-4-5@20251001/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/claude-haiku-4-5@20251001/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "Claude 4.5 Haiku (VertexAI)",
+      "displayVersion": "Claude 4.5 Haiku (VertexAI)",
       "iconUrl": "anthropic.svg",
       "inputAttachmentTypes": [
         "image/*"
@@ -433,14 +435,14 @@
         "gpt-5-nano-2025-08-07": {},
         "gpt-4-32k": {},
         "gpt-4-32k-0613": {},
-        "gemini-1.5-pro-001": {},
-        "gemini-1.5-pro-002": {},
-        "gemini-1.5-flash-001": {},
-        "gemini-1.5-flash-002": {},
+        "gemini-2.5-pro": {},
+        "gemini-2.5-flash": {},
         "multimodalembedding@001": {},
         "amazon.titan-embed-image-v1": {},
         "anthropic.claude-v3-opus": {},
         "anthropic.claude-v3-haiku": {},
+        "anthropic.claude-haiku-4-5-20251001-v1:0": {},
+        "claude-haiku-4-5@20251001": {},
         "anthropic.claude-v3-sonnet": {},
         "anthropic.claude-v3-5-sonnet": {},
         "anthropic.claude-v3-5-sonnet-v2": {},

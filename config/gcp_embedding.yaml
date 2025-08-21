@@ -8,9 +8,9 @@ request:
   qa_chain:
     chat_chain:
       llm:
-        deployment_name: gemini-1.5-pro-002
+        deployment_name: gemini-2.5-pro
         max_prompt_tokens: 16000
     query_chain:
       llm:
-        deployment_name: gemini-1.5-pro-002
+        deployment_name: gemini-2.5-pro
         max_prompt_tokens: 8000
