@@ -204,6 +204,7 @@ class ColpaliModelResource:
             # Check if local model path exists otherwise use Hugging Face
             model_name = config.model_name
             cache_path = None
+            print(f"COLPALI_MODELS_BASE_PATH: {COLPALI_MODELS_BASE_PATH}")
             if COLPALI_MODELS_BASE_PATH:
                 local_model_path = get_model_local_path(
                     COLPALI_MODELS_BASE_PATH, model_name
@@ -211,6 +212,9 @@ class ColpaliModelResource:
                 if os.path.exists(local_model_path):
                     model_name = local_model_path
                     cache_path = get_model_cache_path(local_model_path)
+                    print(f"loading model from local path: {local_model_path}")
+                else:
+                    print("loading model from hugging face")
             self.model = model_class.from_pretrained(
                 model_name,
                 torch_dtype=torch.float16,
