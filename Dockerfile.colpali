@@ -1,11 +1,11 @@
 # Set base image with default value
 ARG BASE_IMAGE_NAME=epam/ai-dial-rag:latest
 
-# Set environment variables for ColPali models
-ENV COLPALI_MODELS_BASE_PATH=/colpali_models
-
 # Stage 1: Download ColPali model
 FROM ${BASE_IMAGE_NAME} AS colpali_downloader
+
+# Set environment variables for ColPali models
+ENV COLPALI_MODELS_BASE_PATH=/colpali_models
 
 # Set specific model to download with default value
 ARG COLPALI_MODEL_NAME=vidore/colSmol-256M
@@ -26,6 +26,9 @@ RUN python download_model.py colpali "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODEL
 
 # Stage 2: Final image with downloaded model
 FROM ${BASE_IMAGE_NAME}
+
+# Set environment variables for ColPali models
+ENV COLPALI_MODELS_BASE_PATH=/colpali_models
 
 # Set specific model to download with default value
 ARG COLPALI_MODEL_NAME=vidore/colSmol-256M
