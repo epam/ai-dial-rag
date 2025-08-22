@@ -29,7 +29,7 @@ rank-bm25 = "0.2.2"
 sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
 tiktoken = "^0.7.0"
 cachetools = "5.3.1"
-# for now using 0.16.11 because in newer versions nsjoson package was included into dependencies which had GPL license
+# Using 0.16.11 to avoid GPL license from ndjson package dependency in newer versions
 unstructured = {version = "0.16.11", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
 libmagic = "1.0"
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
