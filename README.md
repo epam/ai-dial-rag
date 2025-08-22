@@ -361,6 +361,19 @@ The `docker_compose_local` folder contains the Docker Compose file and auxiliary
     ```
 
 
+## Building docker file with predownloaded ColPali model
+Due to large weight of each model, a separate docker image was created to avoid making the base image hold those weights when they are not needed.
+
+`Dockerfile.colpali` - additional docker file that saves into the image one of the ColPali models.
+
+There are a few arguments for building the image:
+
+- `BASE_IMAGE_NAME` - argument that allows you to set the base image name for ai-dial-rag, default is `epam/ai-dial-rag:latest`
+- `COLPALI_MODEL_NAME` - name of the ColPali model to download, default is `vidore/colSmol-256M`
+
+And environment variable:
+- `COLPALI_MODELS_BASE_PATH` - path where to store models inside the image, default is `/colpali_models`
+
 
 ## Lint
 

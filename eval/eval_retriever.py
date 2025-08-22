@@ -23,6 +23,9 @@ from aidial_rag.document_record import DocumentRecord
 from aidial_rag.documents import load_document_impl
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrieval_chain import create_retriever
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
 from aidial_rag.retrievers_postprocess import get_text_chunks
 from tests.utils.local_http_server import start_local_server
 from tests.utils.user_limits_mock import user_limits_mock
@@ -69,6 +72,7 @@ def prepare_retriever(
     retriever = create_retriever(
         dial_config=DialConfig(dial_url="-", api_key=SecretStr("-")),
         document_records=doc_records,
+        colpali_model_resource=None,
         indexing_config=indexing_config,
     )
 

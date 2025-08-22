@@ -58,7 +58,7 @@ FROM builder AS builder_download_model
 COPY download_model.py .
 
 # Model: https://huggingface.co/epam/bge-small-en
-RUN python download_model.py "epam/bge-small-en" "$BGE_EMBEDDINGS_MODEL_PATH" "openvino" "torch"
+RUN python download_model.py embeddings "epam/bge-small-en" "$BGE_EMBEDDINGS_MODEL_PATH" "openvino" "torch"
 
 
 FROM builder AS builder_repo_digest

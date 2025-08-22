@@ -33,11 +33,26 @@ class CpuPoolsConfig(BaseConfig):
         description="Embedding process for the query. Should be `1`, unless you have a lot of cores.",
     )
 
+    heavy_indexing_embeddings_pool: int = Field(
+        default=1,
+        description="Embedding process for gpu heavy tasks."
+        "Needed not to block ligher tasks on indexing_embeddings_pool. "
+        "Should be `1`",
+    )
+    heavy_query_embeddings_pool: int = Field(
+        default=1,
+        description="Embedding process for gpu heavy tasks for queries."
+        "Needed not to block ligher tasks on query_embeddings_pool."
+        "Should be `1`",
+    )
+
 
 class CpuPools:
     indexing_cpu_pool: ThreadPoolExecutor
     indexing_embeddings_pool: ThreadPoolExecutor
     query_embeddings_pool: ThreadPoolExecutor
+    heavy_indexing_embeddings_pool: ThreadPoolExecutor
+    heavyquery_embeddings_pool: ThreadPoolExecutor
 
     def __init__(self, config: CpuPoolsConfig) -> None:
         # Using ThreadPoolExecutor instead of ProcessPoolExecutor, because
@@ -58,6 +73,16 @@ class CpuPools:
             thread_name_prefix="query_embeddings",
         )
 
+        self.heavy_indexing_embeddings_pool = ThreadPoolExecutor(
+            max_workers=config.heavy_indexing_embeddings_pool,
+            thread_name_prefix="heavy_indexing_embeddings",
+        )
+
+        self.heavy_query_embeddings_pool = ThreadPoolExecutor(
+            max_workers=config.heavy_query_embeddings_pool,
+            thread_name_prefix="heavy_query_embeddings",
+        )
+
     def _run_in_pool(self, pool, func, *args, **kwargs):
         return asyncio.get_running_loop().run_in_executor(
             pool, func, *args, **kwargs
@@ -74,6 +99,16 @@ class CpuPools:
     def run_in_query_embeddings_pool(self, func, *args, **kwargs):
         return self._run_in_pool(
             self.query_embeddings_pool, func, *args, **kwargs
+        )
+
+    def run_in_heavy_indexing_embeddings_pool(self, func, *args, **kwargs):
+        return self._run_in_pool(
+            self.heavy_indexing_embeddings_pool, func, *args, **kwargs
+        )
+
+    def run_in_heavy_query_embeddings_pool(self, func, *args, **kwargs):
+        return self._run_in_pool(
+            self.heavy_query_embeddings_pool, func, *args, **kwargs
         )
 
     _instance = None
@@ -103,6 +138,8 @@ async def init_cpu_pools(config: CpuPoolsConfig):
     await cpu_pools.run_in_indexing_cpu_pool(sum, range(10))
     await cpu_pools.run_in_indexing_embeddings_pool(sum, range(10))
     await cpu_pools.run_in_query_embeddings_pool(sum, range(10))
+    await cpu_pools.run_in_heavy_indexing_embeddings_pool(sum, range(10))
+    await cpu_pools.run_in_heavy_query_embeddings_pool(sum, range(10))
 
 
 def run_in_indexing_cpu_pool(func, *args, **kwargs):
@@ -117,5 +154,17 @@ def run_in_indexing_embeddings_pool(func, *args, **kwargs):
 
 def run_in_query_embeddings_pool(func, *args, **kwargs):
     return CpuPools.instance().run_in_query_embeddings_pool(
+        func, *args, **kwargs
+    )
+
+
+def run_in_heavy_indexing_embeddings_pool(func, *args, **kwargs):
+    return CpuPools.instance().run_in_heavy_indexing_embeddings_pool(
+        func, *args, **kwargs
+    )
+
+
+def run_in_heavy_query_embeddings_pool(func, *args, **kwargs):
+    return CpuPools.instance().run_in_heavy_query_embeddings_pool(
         func, *args, **kwargs
     )
