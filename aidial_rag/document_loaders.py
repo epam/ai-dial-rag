@@ -19,13 +19,13 @@ from unstructured_pytesseract.pytesseract import TesseractNotFoundError
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.base_config import BaseConfig, IndexRebuildTrigger
 from aidial_rag.content_stream import SupportsWriteStr
+from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.errors import InvalidDocumentError
 from aidial_rag.image_processor.extract_pages import (
     are_image_pages_supported,
     extract_number_of_pages,
 )
 from aidial_rag.print_stats import print_documents_stats
-from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.utils import format_size, get_bytes_length, timed_block
 
@@ -85,18 +85,17 @@ class ParserConfig(BaseConfig):
 
 
 async def download_attachment(
-    url, headers, download_config: HttpClientConfig
+    url: str, session: aiohttp.ClientSession, download_config: HttpClientConfig
 ) -> tuple[str, bytes]:
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            url, headers=headers, timeout=download_config.get_client_timeout()
-        ) as response:
-            response.raise_for_status()
-            content_type = response.headers.get("Content-Type", "")
+    async with session.get(
+        url, timeout=download_config.get_client_timeout()
+    ) as response:
+        response.raise_for_status()
+        content_type = response.headers.get("Content-Type", "")
 
-            content = await response.read()  # Await the coroutine
-            logging.debug(f"Downloaded {url}: {len(content)} bytes")
-            return content_type, content
+        content = await response.read()
+        logging.debug(f"Downloaded {url}: {len(content)} bytes")
+        return content_type, content
 
 
 def add_source_metadata(
@@ -121,7 +120,7 @@ def add_pdf_source_metadata(
 
 
 async def load_dial_document_metadata(
-    request_context: RequestContext,
+    dial_api_client: DialApiClient,
     attachment_link: AttachmentLink,
     config: HttpClientConfig,
 ) -> dict:
@@ -131,29 +130,36 @@ async def load_dial_document_metadata(
     metadata_url = attachment_link.dial_metadata_url
     assert metadata_url is not None
 
-    headers = request_context.get_file_access_headers(metadata_url)
-    async with aiohttp.ClientSession(
-        timeout=config.get_client_timeout()
-    ) as session:
-        async with session.get(metadata_url, headers=headers) as response:
-            if not response.ok:
-                error_message = f"{response.status} {response.reason}"
-                raise InvalidDocumentError(error_message)
-            return await response.json()
+    async with dial_api_client.session.get(
+        metadata_url, timeout=config.get_client_timeout()
+    ) as response:
+        if not response.ok:
+            error_message = f"{response.status} {response.reason}"
+            raise InvalidDocumentError(error_message)
+        return await response.json()
 
 
 async def load_attachment(
+    dial_api_client: DialApiClient,
     attachment_link: AttachmentLink,
-    headers: dict,
     download_config: HttpClientConfig | None = None,
 ) -> tuple[str, str, bytes]:
     if download_config is None:
         download_config = HttpClientConfig()
-    absolute_url = attachment_link.absolute_url
     file_name = attachment_link.display_name
-    content_type, attachment_bytes = await download_attachment(
-        absolute_url, headers, download_config
-    )
+
+    if attachment_link.is_dial_document:
+        content_type, attachment_bytes = await download_attachment(
+            attachment_link.dial_link, dial_api_client.session, download_config
+        )
+    else:
+        # Use separate session for non-Dial documents
+        # to avoid passing Dial headers to non-Dial servers
+        async with aiohttp.ClientSession() as session:
+            content_type, attachment_bytes = await download_attachment(
+                attachment_link.absolute_url, session, download_config
+            )
+
     if attachment_bytes:
         return file_name, content_type, attachment_bytes
     raise InvalidDocumentError(

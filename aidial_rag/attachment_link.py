@@ -61,9 +61,10 @@ def to_dial_metadata_url(
     if not request_context.is_dial_url(absolute_url):
         return None
 
-    return urljoin(
+    absolute_metadata_url = urljoin(
         request_context.dial_metadata_base_url, link, allow_fragments=True
     )
+    return to_dial_relative_url(request_context, absolute_metadata_url)
 
 
 class AttachmentLink(BaseModel):

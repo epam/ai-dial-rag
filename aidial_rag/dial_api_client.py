@@ -1,19 +1,20 @@
 import io
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 import aiohttp
 
-from aidial_rag.request_context import RequestContext
+from aidial_rag.dial_config import DialConfig
 
 
-async def _get_bucket_id(dial_base_url, headers: dict) -> str:
+async def _get_bucket_id(session: aiohttp.ClientSession, headers: dict) -> str:
     relative_url = (
         "bucket"  # /v1/ is already included in the base url for the Dial API
     )
-    async with aiohttp.ClientSession(base_url=dial_base_url) as session:
-        async with session.get(relative_url, headers=headers) as response:
-            response.raise_for_status()
-            data = await response.json()
-            return data["bucket"]
+    async with session.get(relative_url, headers=headers) as response:
+        response.raise_for_status()
+        data = await response.json()
+        return data["bucket"]
 
 
 def _to_form_data(key: str, data: bytes, content_type: str) -> aiohttp.FormData:
@@ -25,39 +26,35 @@ def _to_form_data(key: str, data: bytes, content_type: str) -> aiohttp.FormData:
 
 
 class DialApiClient:
-    def __init__(self, dial_api_base_url: str, headers: dict, bucket_id: str):
+    def __init__(self, client_session: aiohttp.ClientSession, bucket_id: str):
+        self._client_session = client_session
         self.bucket_id = bucket_id
 
-        self._dial_api_base_url = dial_api_base_url
-        self._headers = headers
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        return self._client_session
 
     async def get_file(self, relative_url: str) -> bytes | None:
-        async with aiohttp.ClientSession(
-            base_url=self._dial_api_base_url
-        ) as session:
-            async with session.get(
-                relative_url, headers=self._headers
-            ) as response:
-                response.raise_for_status()
-                return await response.read()
+        async with self.session.get(relative_url) as response:
+            response.raise_for_status()
+            return await response.read()
 
     async def put_file(
         self, relative_url: str, data: bytes, content_type: str
     ) -> dict:
-        async with aiohttp.ClientSession(
-            base_url=self._dial_api_base_url
-        ) as session:
-            form_data = _to_form_data(relative_url, data, content_type)
-            async with session.put(
-                relative_url, data=form_data, headers=self._headers
-            ) as response:
-                response.raise_for_status()
-                return await response.json()
+        form_data = _to_form_data(relative_url, data, content_type)
+        async with self.session.put(relative_url, data=form_data) as response:
+            response.raise_for_status()
+            return await response.json()
 
 
+@asynccontextmanager
 async def create_dial_api_client(
-    request_context: RequestContext,
-) -> DialApiClient:
-    headers = request_context.get_api_key_headers()
-    bucket_id = await _get_bucket_id(request_context.dial_base_url, headers)
-    return DialApiClient(request_context.dial_base_url, headers, bucket_id)
+    config: DialConfig,
+) -> AsyncGenerator[DialApiClient, None]:
+    headers = {"api-key": config.api_key.get_secret_value()}
+    async with aiohttp.ClientSession(
+        base_url=config.dial_base_url, headers=headers
+    ) as session:
+        bucket_id = await _get_bucket_id(session, headers)
+        yield DialApiClient(session, bucket_id)

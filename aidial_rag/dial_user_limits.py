@@ -1,7 +1,6 @@
-import aiohttp
 from pydantic import BaseModel, Field
 
-from aidial_rag.dial_config import DialConfig
+from aidial_rag.dial_api_client import DialApiClient
 
 
 class TokenStats(BaseModel):
@@ -20,18 +19,15 @@ class UserLimitsForModel(BaseModel):
 
 
 async def get_user_limits_for_model(
-    dial_config: DialConfig, deployment_name: str
+    dial_api_client: DialApiClient, deployment_name: str
 ) -> UserLimitsForModel:
     """Returns the user limits for the specified model deployment.
 
     See https://epam-rail.com/dial_api#tag/Limits for the API documentation.
     """
-    headers = {"Api-Key": dial_config.api_key.get_secret_value()}
-    limits_url = (
-        f"{dial_config.dial_url}/v1/deployments/{deployment_name}/limits"
-    )
-    async with aiohttp.ClientSession() as session:
-        async with session.get(limits_url, headers=headers) as response:
-            response.raise_for_status()
-            limits_json = await response.json()
-            return UserLimitsForModel.model_validate(limits_json)
+
+    limits_relative_url = f"deployments/{deployment_name}/limits"
+    async with dial_api_client.session.get(limits_relative_url) as response:
+        response.raise_for_status()
+        limits_json = await response.json()
+        return UserLimitsForModel.model_validate(limits_json)

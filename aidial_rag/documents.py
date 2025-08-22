@@ -78,7 +78,9 @@ async def check_document_access(
     ) as access_stage:
         try:
             await load_dial_document_metadata(
-                request_context, attachment_link, config.check_access
+                request_context.dial_api_client,
+                attachment_link,
+                config.check_access,
             )
         except InvalidDocumentError as e:
             access_stage.append_content(e.message)
@@ -102,6 +104,7 @@ def get_default_image_chunk(attachment_link: AttachmentLink):
 
 
 async def load_document_impl(
+    dial_api_client: DialApiClient,
     dial_config: DialConfig,
     dial_limited_resources: DialLimitedResources,
     attachment_link: AttachmentLink,
@@ -116,16 +119,9 @@ async def load_document_impl(
         )
     io_stream = MultiStream(MarkdownStream(stage_stream), logger_stream)
 
-    absolute_url = attachment_link.absolute_url
-    headers = (
-        {"api-key": dial_config.api_key.get_secret_value()}
-        if absolute_url.startswith(dial_config.dial_url)
-        else {}
-    )
-
     file_name, content_type, original_doc_bytes = await load_attachment(
+        dial_api_client,
         attachment_link,
-        headers,
         download_config=config.download,
     )
     logger.debug(f"Successfully loaded document {file_name} of {content_type}")
@@ -235,10 +231,10 @@ async def load_document(
     request_context: RequestContext,
     task: IndexingTask,
     index_storage: IndexStorage,
-    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> DocumentRecord:
     attachment_link = task.attachment_link
+    dial_api_client = request_context.dial_api_client
     with handle_document_processing_error(
         attachment_link, config.log_document_links
     ):
@@ -247,7 +243,6 @@ async def load_document(
 
         choice = request_context.choice
 
-        # TODO: Move check_document_access to the DialApiClient
         await check_document_access(request_context, attachment_link, config)
 
         doc_record = None
@@ -270,6 +265,7 @@ async def load_document(
                 io_stream = doc_stage.content_stream
                 try:
                     doc_record = await load_document_impl(
+                        dial_api_client,
                         request_context.dial_config,
                         request_context.dial_limited_resources,
                         attachment_link,
@@ -295,12 +291,11 @@ async def load_document_task(
     request_context: RequestContext,
     task: IndexingTask,
     index_storage: IndexStorage,
-    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> DocumentIndexingResult:
     try:
         doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context, task, index_storage, config
         )
         return DocumentIndexingSuccess(
             task=task,
@@ -318,16 +313,13 @@ async def load_documents(
     request_context: RequestContext,
     tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
-    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> List[DocumentIndexingResult]:
     # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
     # if ignore_document_loading_errors is not set in the config
     return await asyncio.gather(
         *[
-            load_document_task(
-                request_context, task, index_storage, dial_api_client, config
-            )
+            load_document_task(request_context, task, index_storage, config)
             for task in tasks
         ],
     )
