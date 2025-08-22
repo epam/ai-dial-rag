@@ -135,6 +135,9 @@ resolutions:
     - message: ".*PyPI::nvidia-curand-cu12:10\\.3\\.7\\.77.*"
       reason: "CANT_FIX_EXCEPTION"
       comment: "NVIDIA proprietary license"
+    - message: ".*PyPI::nvidia-cusparselt-cu12:0\\.6\\.3.*"
+      reason: "CANT_FIX_EXCEPTION"
+      comment: "NVIDIA proprietary license"
 
 
 
