@@ -22,7 +22,7 @@ license_choices:
       choice: FTL
     - package_id: PyPI::python-dateutil:2.9.0.post0
       license_choices:
-      - given: Apache-2.0 OR BSD License OR Dual License
+      - given: (Apache-2.0 OR BSD License) OR Dual License
         choice: BSD-3-Clause
 resolutions:
   rule_violations:
