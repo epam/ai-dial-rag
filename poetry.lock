@@ -2831,17 +2831,6 @@ fast = ["fastnumbers (>=2.0.0)"]
 icu = ["PyICU (>=1.0.0)"]
 
 [[package]]
-name = "ndjson"
-version = "0.3.1"
-description = "JsonDecoder for ndjson"
-optional = false
-python-versions = "*"
-files = [
-    {file = "ndjson-0.3.1-py2.py3-none-any.whl", hash = "sha256:839c22275e6baa3040077b83c005ac24199b94973309a8a1809be962c753a410"},
-    {file = "ndjson-0.3.1.tar.gz", hash = "sha256:bf9746cb6bb1cb53d172cda7f154c07c786d665ff28341e4e689b796b229e5d6"},
-]
-
-[[package]]
 name = "nest-asyncio"
 version = "1.6.0"
 description = "Patch asyncio to allow nested event loops"
@@ -6602,13 +6591,13 @@ files = [
 
 [[package]]
 name = "unstructured"
-version = "0.16.14"
+version = "0.16.11"
 description = "A library that prepares raw documents for downstream ML tasks."
 optional = false
 python-versions = "<3.13,>=3.9.0"
 files = [
-    {file = "unstructured-0.16.14-py3-none-any.whl", hash = "sha256:7b3c2eb21e65d2f61240de7a5241fd7734d97be2c9cfa5f70934e10470318131"},
-    {file = "unstructured-0.16.14.tar.gz", hash = "sha256:cec819461090226cd478429c1e0fda19a66ba49ab9ade1ea1fd9ec79c279d7ac"},
+    {file = "unstructured-0.16.11-py3-none-any.whl", hash = "sha256:a92d5bc2c2b7bb23369641fb7a7f0daba1775639199306ce4cd83ca564a03763"},
+    {file = "unstructured-0.16.11.tar.gz", hash = "sha256:33ebf68aae11ce33c8a96335296557b5abd8ba96eaba3e5a1554c0b9eee40bb5"},
 ]
 
 [package.dependencies]
@@ -6623,7 +6612,6 @@ google-cloud-vision = {version = "*", optional = true, markers = "extra == \"pdf
 html5lib = "*"
 langdetect = "*"
 lxml = "*"
-ndjson = "*"
 networkx = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 nltk = "*"
 numpy = "<2"
@@ -7157,4 +7145,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "ff287a8b0392421786ca7b60885cf607f4e9db430c6976f87ad0e0369e4625d0"
+content-hash = "57cbd95540139408c18d98e62251353f527f0dd2eef3a8973df15bbe990ef1c8"
