@@ -52,10 +52,9 @@ class DialApiClient:
 async def create_dial_api_client(
     config: DialConfig,
 ) -> AsyncGenerator[DialApiClient, None]:
-    dial_base_url = f"{config.dial_url}/v1/"
     headers = {"api-key": config.api_key.get_secret_value()}
     async with aiohttp.ClientSession(
-        base_url=dial_base_url, headers=headers
+        base_url=config.dial_base_url, headers=headers
     ) as session:
         bucket_id = await _get_bucket_id(session, headers)
         yield DialApiClient(session, bucket_id)

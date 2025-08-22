@@ -1,12 +1,13 @@
 import sys
 from operator import itemgetter
 
+import aiohttp
 import pytest
 from langchain.schema.runnable import RunnablePassthrough
 from pydantic import SecretStr
 
 from aidial_rag.attachment_link import AttachmentLink
-from aidial_rag.dial_api_client import create_dial_api_client
+from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import load_attachment, parse_document
 from aidial_rag.document_record import (
@@ -44,7 +45,6 @@ async def run_retrevier(retriever, doc_records, query):
     )
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_retrievers(local_server):
     name = "alps_wiki.pdf"
@@ -60,9 +60,11 @@ async def test_retrievers(local_server):
         dial_url=f"http://localhost:{PORT}", api_key=SecretStr("")
     )
 
-    async with create_dial_api_client(dial_config) as dial_api_client:
+    async with aiohttp.ClientSession(
+        base_url=dial_config.dial_base_url
+    ) as session:
         _file_name, content_type, buffer = await load_attachment(
-            dial_api_client,
+            DialApiClient(session, bucket_id=""),
             attachment_link,
         )
 
@@ -115,7 +117,6 @@ async def test_retrievers(local_server):
     )
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_pdf_with_no_text(local_server):
     name = "test_pdf_with_image.pdf"
@@ -131,9 +132,11 @@ async def test_pdf_with_no_text(local_server):
         dial_url=f"http://localhost:{PORT}", api_key=SecretStr("")
     )
 
-    async with create_dial_api_client(dial_config) as dial_api_client:
+    async with aiohttp.ClientSession(
+        base_url=dial_config.dial_base_url
+    ) as session:
         _file_name, content_type, buffer = await load_attachment(
-            dial_api_client,
+            DialApiClient(session, bucket_id=""),
             attachment_link,
         )
 
