@@ -25,7 +25,7 @@ from aidial_rag.retrieval_api import (
     Chunk,
     Image,
     Page,
-    RetrievalResults,
+    RetrievalResponse,
     Source,
 )
 from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
@@ -134,10 +134,10 @@ async def create_image_by_page(
 
 
 @chain
-async def create_retrieval_results(
+async def create_retrieval_response(
     input: Dict[str, Any],
-) -> RetrievalResults:
-    """Create retrieval results from the input data."""
+) -> RetrievalResponse:
+    """Create retrieval response from the input data."""
     doc_records: List[DocumentRecord] = input.get("doc_records", [])
     doc_records_links: List[AttachmentLink] = input.get("doc_records_links", [])
     index_items: List[Document] = input.get("found_items", [])
@@ -183,7 +183,7 @@ async def create_retrieval_results(
 
         chunks.append(chunk_data)
 
-    return RetrievalResults(
+    return RetrievalResponse(
         chunks=chunks,
         images=images,
     )
@@ -301,6 +301,6 @@ async def create_retrieval_chain(
         .assign(query=query_chain)
         .assign(found_items=(itemgetter("query") | retriever))
         .assign(image_by_page=create_image_by_page)
-        .assign(retrieval_results=create_retrieval_results)
+        .assign(retrieval_response=create_retrieval_response)
     )
     return retrieval_chain

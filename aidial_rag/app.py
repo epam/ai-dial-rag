@@ -149,14 +149,14 @@ async def _run_retrieval(
         "doc_records_links": document_records_links,
     }
 
-    retrieval_results = await retrieval_chain.pick("retrieval_results").ainvoke(
-        chain_input
-    )
+    retrieval_response = await retrieval_chain.pick(
+        "retrieval_response"
+    ).ainvoke(chain_input)
 
     choice.add_attachment(
-        title="Retrieval results",
-        type=retrieval_results.CONTENT_TYPE,
-        data=retrieval_results.model_dump_json(indent=2),
+        title="Retrieval response",
+        type=retrieval_response.CONTENT_TYPE,
+        data=retrieval_response.model_dump_json(indent=2),
     )
 
 

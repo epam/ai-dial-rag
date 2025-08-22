@@ -7,7 +7,13 @@ import nox
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["tests"]
 
-SRCS = ("aidial_rag", "tests", "noxfile.py")
+SRCS = (
+    "aidial_rag",
+    "docs",
+    "tests",
+    "noxfile.py",
+    "generate_json_schema.py",
+)
 
 
 @nox.session()
@@ -72,6 +78,24 @@ def update_docs(session):
         "<!-- generated-app-config-env-end -->",
         "--heading-offset",
         "4",
+    )
+    session.run(
+        "python",
+        "./generate_json_schema.py",
+        "aidial_rag.retrieval_api.RetrievalResponse",
+        "docs/retrieval_response.generated.schema.json",
+    )
+    session.run(
+        "python",
+        "./generate_json_schema.py",
+        "aidial_rag.indexing_api.IndexingResponse",
+        "docs/indexing_response.generated.schema.json",
+    )
+    session.run(
+        "python",
+        "./generate_json_schema.py",
+        "aidial_rag.configuration_endpoint.Configuration",
+        "docs/configuration.generated.schema.json",
     )
 
 
