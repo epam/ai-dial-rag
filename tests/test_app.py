@@ -268,6 +268,21 @@ async def test_presentation_ppt(attachments):
 
 
 @pytest.mark.asyncio
+@e2e_test(filenames=["test_presentation.pptm"])
+async def test_presentation_pptm(attachments):
+    run_simple_test(
+        attachments,
+        "What are the nodes connected to the System on the chart drawn by hand?",
+        ["plugins", "addons"],
+    )
+    run_simple_test(
+        attachments,
+        "What is the number of sales for the quarter with the highest sales?",
+        ["8.2"],
+    )
+
+
+@pytest.mark.asyncio
 @e2e_test(filenames=["test_presentation.odp"])
 async def test_presentation_odp(attachments):
     run_simple_test(
