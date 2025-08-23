@@ -31,7 +31,6 @@ tiktoken = "^0.7.0"
 cachetools = "5.3.1"
 # Using 0.16.11 to avoid GPL license from ndjson package dependency in newer versions
 unstructured = {version = "0.16.11", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
-libmagic = "1.0"
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 nltk = "^3.9.1"
 humanfriendly = "10.0"
