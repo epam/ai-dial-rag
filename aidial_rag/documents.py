@@ -6,8 +6,8 @@ from typing import Iterable, List
 
 from docarray import DocList
 
-from aidial_rag.app_config import RequestConfig
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag.content_stream import (
     LoggerStream,
     MarkdownStream,
@@ -16,6 +16,7 @@ from aidial_rag.content_stream import (
     SupportsWriteStr,
 )
 from aidial_rag.converter import convert_document_if_needed
+from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import (
     load_attachment,
@@ -36,7 +37,12 @@ from aidial_rag.errors import (
 )
 from aidial_rag.image_processor.extract_pages import is_image
 from aidial_rag.index_storage import IndexStorage
-from aidial_rag.indexing_task import IndexingTask
+from aidial_rag.indexing_results import (
+    DocumentIndexingFailure,
+    DocumentIndexingResult,
+    DocumentIndexingSuccess,
+)
+from aidial_rag.indexing_task import IndexingTask, validate_indexing_task
 from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
@@ -229,16 +235,19 @@ async def load_document(
     request_context: RequestContext,
     task: IndexingTask,
     index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
     config: RequestConfig,
 ) -> DocumentRecord:
     attachment_link = task.attachment_link
     with handle_document_processing_error(
         attachment_link, config.log_document_links
     ):
+        validate_indexing_task(task, dial_api_client)
         index_settings = config.indexing.collect_fields_that_rebuild_index()
 
         choice = request_context.choice
 
+        # TODO: Move check_document_access to the DialApiClient
         await check_document_access(request_context, attachment_link, config)
 
         doc_record = None
@@ -282,16 +291,43 @@ async def load_document(
         return doc_record
 
 
+async def load_document_task(
+    request_context: RequestContext,
+    task: IndexingTask,
+    index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
+    config: RequestConfig,
+) -> DocumentIndexingResult:
+    try:
+        doc_record = await load_document(
+            request_context, task, index_storage, dial_api_client, config
+        )
+        return DocumentIndexingSuccess(
+            task=task,
+            doc_record=doc_record,
+        )
+    except DocumentProcessingError as e:
+        assert isinstance(e.__cause__, Exception)
+        return DocumentIndexingFailure(
+            task=task,
+            exception=e.__cause__,
+        )
+
+
 async def load_documents(
     request_context: RequestContext,
     tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
+    dial_api_client: DialApiClient,
     config: RequestConfig,
-) -> List[DocumentRecord | BaseException]:
+) -> List[DocumentIndexingResult]:
+    # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
+    # if ignore_document_loading_errors is not set in the config
     return await asyncio.gather(
         *[
-            load_document(request_context, task, index_storage, config)
+            load_document_task(
+                request_context, task, index_storage, dial_api_client, config
+            )
             for task in tasks
         ],
-        return_exceptions=True,
     )

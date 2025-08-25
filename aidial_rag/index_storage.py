@@ -1,4 +1,3 @@
-import hashlib
 import logging
 from abc import ABC, abstractmethod
 from typing import cast
@@ -7,7 +6,6 @@ import aiohttp
 from cachetools import LRUCache
 from pydantic import ByteSize, Field
 
-from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.base_config import BaseConfig
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_record import (
@@ -15,6 +13,7 @@ from aidial_rag.document_record import (
     DocumentRecord,
     IndexSettings,
 )
+from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.indexing_task import IndexingTask
 
 logger = logging.getLogger(__name__)
@@ -43,26 +42,6 @@ DEFAULT_IN_MEMORY_CACHE_CAPACITY = IndexStorageConfig().in_memory_cache_capacity
 
 
 SERIALIZATION_CONFIG = {"protocol": "pickle", "compress": "gzip"}
-
-INDEX_MIME_TYPE = "application/x.aidial-rag-index.v0"
-
-
-# Number of characters in each directory part for index file paths
-# This is treated as a part of an algorithm, not a configuration parameter,
-# because if changed, the old index files will not be found.
-INDEX_PATH_PART_SIZE = 8
-
-
-def link_to_index_url(attachment_link: AttachmentLink, bucket_id: str) -> str:
-    key = hashlib.sha256(attachment_link.dial_link.encode()).hexdigest()
-
-    # split the key into parts to avoid too many files in one directory
-    dir_path = "/".join(
-        key[i : i + INDEX_PATH_PART_SIZE]
-        for i in range(0, len(key), INDEX_PATH_PART_SIZE)
-    )
-
-    return f"files/{bucket_id}/dial-rag-index/{dir_path}/index.bin"
 
 
 class IndexStorageBackend(ABC):
@@ -110,10 +89,10 @@ class CachedStorage(IndexStorageBackend):
     def __init__(
         self,
         storage: IndexStorageBackend,
-        capacity: int = DEFAULT_IN_MEMORY_CACHE_CAPACITY,
+        cache: LRUCacheStorage,
     ):
         self._storage = storage
-        self._cache = LRUCacheStorage(capacity)
+        self._cache = cache
 
     async def load(self, url: str) -> bytes | None:
         data = await self._cache.load(url)
@@ -134,19 +113,16 @@ class IndexStorage:
     def __init__(
         self,
         dial_api_client: DialApiClient,
-        index_storage_config: IndexStorageConfig | None = None,
+        index_storage_config: IndexStorageConfig,
+        cache: LRUCacheStorage,
     ):
-        if index_storage_config is None:
-            index_storage_config = IndexStorageConfig()
         if index_storage_config.use_dial_file_storage:
             self._storage = CachedStorage(
                 DialFileStorage(dial_api_client),
-                index_storage_config.in_memory_cache_capacity,
+                cache,
             )
         else:
-            self._storage = LRUCacheStorage(
-                index_storage_config.in_memory_cache_capacity
-            )
+            self._storage = cache
 
     async def load(
         self,
@@ -187,3 +163,24 @@ class IndexStorage:
             f"Stored document {task.attachment_link} index with url: {task.index_url}"
         )
         return await self._storage.store(task.index_url, doc_record_bytes)
+
+
+class IndexStorageHolder:
+    def __init__(
+        self,
+        index_storage_config: IndexStorageConfig | None = None,
+    ):
+        if index_storage_config is None:
+            index_storage_config = IndexStorageConfig()
+
+        self._cache = LRUCacheStorage(
+            index_storage_config.in_memory_cache_capacity
+        )
+        self.config = index_storage_config
+
+    def get_storage(self, dial_api_client: DialApiClient) -> IndexStorage:
+        return IndexStorage(
+            dial_api_client=dial_api_client,
+            index_storage_config=self.config,
+            cache=self._cache,
+        )

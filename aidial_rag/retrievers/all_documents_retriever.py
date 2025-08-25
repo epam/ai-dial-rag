@@ -19,7 +19,13 @@ class AllDocumentsRetriever(BaseRetriever):
         # So we have to include the size of the metadata in the size estimation
         return (
             len(chunk.text)
-            + len(format_attributes(i, chunk.metadata))
+            + len(
+                format_attributes(
+                    id=i,
+                    page_number=chunk.metadata.get("page_number"),
+                    source_url=chunk.metadata.get("source"),
+                )
+            )
             + AllDocumentsRetriever._CHUNK_PROMPT_OVERHEAD
         )
 

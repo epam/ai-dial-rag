@@ -1,0 +1,147 @@
+{
+  "$defs": {
+    "Chunk": {
+      "description": "Chunk of the document retrieved by the retriever.",
+      "properties": {
+        "attachment_url": {
+          "description": "URL of the attached document, the chunk belongs to. Exactly matches with the `attachment.url` field in the request.",
+          "title": "Attachment Url",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source",
+          "description": "Source this chunk belongs to. The source could be a document or some part of the document, like a page or a section."
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text of the chunk, may be empty, for example, for an image.",
+          "title": "Text"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Page"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Page of the document, the chunk belongs to, if applicable."
+        }
+      },
+      "required": [
+        "attachment_url",
+        "source"
+      ],
+      "title": "Chunk",
+      "type": "object"
+    },
+    "Image": {
+      "description": "Image related to the retrieved chunk.",
+      "properties": {
+        "data": {
+          "description": "Base64 encoded image data in image/png format.",
+          "title": "Data",
+          "type": "string"
+        },
+        "mime_type": {
+          "default": "image/png",
+          "description": "MIME type of the image. Only image/png is supported for now.",
+          "title": "Mime Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "data"
+      ],
+      "title": "Image",
+      "type": "object"
+    },
+    "Page": {
+      "description": "Page of the document.",
+      "properties": {
+        "number": {
+          "description": "Page number in the document, 1-based (i.e. the same as in the page fragment of the URL).",
+          "title": "Number",
+          "type": "integer"
+        },
+        "image_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Index of the image of the document page in the `images` list, 0-based.",
+          "title": "Image Index"
+        }
+      },
+      "required": [
+        "number"
+      ],
+      "title": "Page",
+      "type": "object"
+    },
+    "Source": {
+      "description": "Source of the chunk, intended to show the user where the chunk comes from.\nThe source could be a document or some part of the document, like a page or a section.",
+      "properties": {
+        "url": {
+          "description": "URL for the source. The URL could have a fragment to indicate a specific part of the document, like a page number (for example, #page=3).",
+          "title": "Url",
+          "type": "string"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable name of the source (the same that Dial RAG displays in the stages).",
+          "title": "Display Name"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "description": "Response with the results of the Dial RAG retrieval process.",
+  "properties": {
+    "chunks": {
+      "description": "List of chunks found by retriever in the order of their relevance.",
+      "items": {
+        "$ref": "#/$defs/Chunk"
+      },
+      "title": "Chunks",
+      "type": "array"
+    },
+    "images": {
+      "description": "List of images related to the chunks.",
+      "items": {
+        "$ref": "#/$defs/Image"
+      },
+      "title": "Images",
+      "type": "array"
+    }
+  },
+  "title": "RetrievalResponse",
+  "type": "object"
+}

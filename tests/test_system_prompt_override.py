@@ -69,7 +69,7 @@ async def test_system_prompt_override_by_yaml(attachments):
             == "tests/config/system_template_dog.yaml"
         )
         assert (
-            config_digest.request_config.qa_chain.chat_chain.system_prompt_template_override
+            config_digest.configuration.qa_chain.chat_chain.system_prompt_template_override
             == DOG_PROMPT
         )
         assert config_digest.from_custom_configuration == {}
@@ -114,7 +114,7 @@ async def test_system_prompt_override_by_env(attachments):
             == "tests/config/system_template_dog.yaml"
         )
         assert (
-            config_digest.request_config.qa_chain.chat_chain.system_prompt_template_override
+            config_digest.configuration.qa_chain.chat_chain.system_prompt_template_override
             == DUCK_PROMPT
         )
         assert config_digest.from_custom_configuration == {}
@@ -171,7 +171,7 @@ async def test_system_prompt_override_by_configuration(attachments):
             == "tests/config/system_template_dog.yaml"
         )
         assert (
-            config_digest.request_config.qa_chain.chat_chain.system_prompt_template_override
+            config_digest.configuration.qa_chain.chat_chain.system_prompt_template_override
             == CAT_PROMPT
         )
         assert config_digest.from_custom_configuration == {

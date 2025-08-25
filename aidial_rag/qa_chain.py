@@ -20,7 +20,7 @@ from langchain_core.runnables import Runnable, chain
 from aidial_rag.llm import create_llm
 from aidial_rag.qa_chain_config import ChatChainConfig
 from aidial_rag.request_context import RequestContext
-from aidial_rag.retrieval_api import RetrievalResults
+from aidial_rag.retrieval_api import RetrievalResponse
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +48,18 @@ SINGLE_QUERY_TEMPLATE = HumanMessagePromptTemplate.from_template("{query}")
 
 REF_PATTERN = re.compile(r"<\[(\d+)\]>")
 
-INCLUDED_ATTRIBUTES = ["page_number", "source", "title"]
 
+def format_attributes(
+    id: int,
+    page_number: int | None,
+    source_url: str | None,
+) -> str:
+    attributes = [("id", str(id))]
+    if page_number is not None:
+        attributes.append(("page_number", str(page_number)))
+    if source_url:
+        attributes.append(("source", source_url))
 
-def format_attributes(i, metadata: Dict[str, int | str]) -> str:
-    attributes = [("id", i)] + [
-        (k, metadata[k]) for k in INCLUDED_ATTRIBUTES if k in metadata
-    ]
     return " ".join(f"{k}='{v}'" for k, v in attributes)
 
 
@@ -73,16 +78,20 @@ def image_element(image: str) -> MessageElement:
 
 
 def create_docs_message(
-    retrieval_results: RetrievalResults,
+    retrieval_response: RetrievalResponse,
 ) -> List[MessageElement]:
     docs_message: List[MessageElement] = []
     docs_message.append(text_element("<context>"))
-    for i, chunk in enumerate(retrieval_results.chunks, start=1):
-        attributes = format_attributes(i, chunk.model_dump(exclude_none=True))
+    for i, chunk in enumerate(retrieval_response.chunks, start=1):
+        attributes = format_attributes(
+            id=i,
+            page_number=chunk.page.number if chunk.page else None,
+            source_url=chunk.source.url,
+        )
         docs_message.append(text_element(f"<doc {attributes}>\n{chunk.text}\n"))
 
-        if chunk.page_image_index is not None:
-            image = retrieval_results.images[chunk.page_image_index]
+        if chunk.page is not None and chunk.page.image_index is not None:
+            image = retrieval_response.images[chunk.page.image_index]
             docs_message.append(image_element(image.data))
 
         docs_message.append(text_element("</doc>\n"))
@@ -102,8 +111,8 @@ async def create_chat_prompt(input: Dict[str, Any]) -> List[BaseMessage]:
         config.system_prompt_template_override or DEFAULT_SYSTEM_TEMPLATE
     )
 
-    retrieval_results = input["retrieval_results"]
-    docs_message = create_docs_message(retrieval_results)
+    retrieval_response = input["retrieval_response"]
+    docs_message = create_docs_message(retrieval_response)
 
     template = ChatPromptTemplate.from_messages(
         [
