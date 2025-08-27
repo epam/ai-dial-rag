@@ -3,9 +3,14 @@ from fastapi.testclient import TestClient
 
 from aidial_rag.app import create_app
 from aidial_rag.app_config import AppConfig
+from tests.utils.config_override import (
+    description_index_retries_override,  # noqa: F401
+)
 from tests.utils.e2e_decorator import e2e_test
 
 MIDDLEWARE_HOST = "http://localhost:8081"
+
+pytestmark = pytest.mark.usefixtures("description_index_retries_override")
 
 
 @pytest.mark.asyncio
