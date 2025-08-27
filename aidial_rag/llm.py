@@ -7,7 +7,7 @@ from aidial_rag.dial_config import DialConfig
 
 class LlmConfig(BaseConfig):
     deployment_name: str = Field(
-        default="gpt-4o-2024-05-13",
+        default="gpt-4.1-2025-04-14",
         description=(
             "Used to set the deployment name of the LLM used in the chain. Could be useful "
             "if the model deployments have non-standard names in the Dial Core configuration."

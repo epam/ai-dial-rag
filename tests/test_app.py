@@ -346,7 +346,7 @@ async def test_presentation_odt(attachments):
 @e2e_test(filenames=["alps_wiki.html", "test_image.png"])
 async def test_mix_of_image_and_non_image_formats(attachments):
     json_response = run_simple_test(
-        attachments, "What is the shape of the infographic?", ["pencil"]
+        attachments, "Where is an infographic with a pencil?", ["pencil"]
     )
 
     result_attachments = json_response["choices"][0]["message"][
