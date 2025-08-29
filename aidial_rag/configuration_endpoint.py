@@ -80,13 +80,11 @@ class RequestConfig(BaseConfig):
         default=QAChainConfig(
             chat_chain=ChatChainConfig(
                 llm=LlmConfig(
-                    deployment_name="gpt-4o-2024-05-13",
                     max_prompt_tokens=16000,
                 ),
             ),
             query_chain=QueryChainConfig(
                 llm=LlmConfig(
-                    deployment_name="gpt-4o-2024-05-13",
                     max_prompt_tokens=8000,
                 ),
             ),

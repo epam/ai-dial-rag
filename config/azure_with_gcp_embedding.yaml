@@ -8,9 +8,9 @@ request:
   qa_chain:
     chat_chain:
       llm:
-        deployment_name: gpt-4o-2024-05-13
+        deployment_name: gpt-4.1-2025-04-14
         max_prompt_tokens: 16000
     query_chain:
       llm:
-        deployment_name: gpt-4o-2024-05-13
+        deployment_name: gpt-4.1-2025-04-14
         max_prompt_tokens: 8000
