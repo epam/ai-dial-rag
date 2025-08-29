@@ -27,6 +27,14 @@ class LlmConfig(BaseConfig):
         default=2,
         description="Sets the number of retries to send the request to the LLM.",
     )
+    temperature: float = Field(
+        default=0.0,
+        description=(
+            "Sets the temperature for the LLM, controlling the randomness of the output. "
+            "Higher values (e.g., 1.0) make the output more random, while lower values (e.g., 0.0) "
+            "make it more deterministic."
+        ),
+    )
 
 
 def create_llm(dial_config: DialConfig, llm_config: LlmConfig):
@@ -40,7 +48,7 @@ def create_llm(dial_config: DialConfig, llm_config: LlmConfig):
         model=llm_config.deployment_name,
         api_version="2023-03-15-preview",
         openai_api_type="azure",
-        temperature=0,
+        temperature=llm_config.temperature,
         streaming=True,
         max_retries=llm_config.max_retries,
         extra_body=extra_body,
