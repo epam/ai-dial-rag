@@ -20,7 +20,8 @@
           "default": {
             "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 0,
-            "max_retries": 2
+            "max_retries": 2,
+            "temperature": 0.0
           },
           "description": "Configuration for the LLM used in the chat chain. The model should support vision if `num_page_images_to_use` is greater than 0."
         },
@@ -67,7 +68,8 @@
           "default": {
             "deployment_name": "gpt-4.1-mini-2025-04-14",
             "max_prompt_tokens": 0,
-            "max_retries": 1000000000
+            "max_retries": 1000000000,
+            "temperature": 0.0
           },
           "description": "Configuration for the LLM used in the description index. The model should support vision. The model will be used for every page of the document, so cheap and fast models are preferred."
         },
@@ -148,7 +150,8 @@
             "llm": {
               "deployment_name": "gpt-4.1-mini-2025-04-14",
               "max_prompt_tokens": 0,
-              "max_retries": 1000000000
+              "max_retries": 1000000000,
+              "temperature": 0.0
             },
             "estimated_task_tokens": 4000,
             "time_limit_multiplier": 1.5,
@@ -180,6 +183,12 @@
           "description": "Sets the number of retries to send the request to the LLM.",
           "title": "Max Retries",
           "type": "integer"
+        },
+        "temperature": {
+          "default": 0.0,
+          "description": "Sets the temperature for the LLM, controlling the randomness of the output. Higher values (e.g., 1.0) make the output more random, while lower values (e.g., 0.0) make it more deterministic.",
+          "title": "Temperature",
+          "type": "number"
         }
       },
       "title": "LlmConfig",
@@ -275,7 +284,8 @@
             "llm": {
               "deployment_name": "gpt-4.1-2025-04-14",
               "max_prompt_tokens": 0,
-              "max_retries": 2
+              "max_retries": 2,
+              "temperature": 0.0
             },
             "system_prompt_template_override": null,
             "use_history": true,
@@ -290,7 +300,8 @@
             "llm": {
               "deployment_name": "gpt-4.1-2025-04-14",
               "max_prompt_tokens": 0,
-              "max_retries": 2
+              "max_retries": 2,
+              "temperature": 0.0
             },
             "use_history": true
           },
@@ -308,7 +319,8 @@
           "default": {
             "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 0,
-            "max_retries": 2
+            "max_retries": 2,
+            "temperature": 0.0
           },
           "description": "Configuration for the LLM used in the query chain. The model should support tool calling if `use_history` is enabled."
         },
@@ -383,7 +395,8 @@
           "llm": {
             "deployment_name": "gpt-4.1-mini-2025-04-14",
             "max_prompt_tokens": 0,
-            "max_retries": 1000000000
+            "max_retries": 1000000000,
+            "temperature": 0.0
           },
           "min_time_limit_sec": 300.0,
           "time_limit_multiplier": 1.5
@@ -397,7 +410,8 @@
           "llm": {
             "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 16000,
-            "max_retries": 2
+            "max_retries": 2,
+            "temperature": 0.0
           },
           "num_page_images_to_use": 4,
           "page_image_size": 1536,
@@ -408,7 +422,8 @@
           "llm": {
             "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 8000,
-            "max_retries": 2
+            "max_retries": 2,
+            "temperature": 0.0
           },
           "use_history": true
         }
