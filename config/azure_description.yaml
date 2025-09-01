@@ -3,15 +3,15 @@ request:
     multimodal_index: null
     description_index:
       llm:
-        deployment_name: gpt-4o-mini-2024-07-18
+        deployment_name: gpt-4.1-mini-2025-04-14
         max_prompt_tokens: 0  # No limits since history is not used for description generation
       estimated_task_tokens: 4000
   qa_chain:
     chat_chain:
       llm:
-        deployment_name: gpt-4o-2024-05-13
+        deployment_name: gpt-4.1-2025-04-14
         max_prompt_tokens: 16000
     query_chain:
       llm:
-        deployment_name: gpt-4o-2024-05-13
+        deployment_name: gpt-4.1-2025-04-14
         max_prompt_tokens: 8000
