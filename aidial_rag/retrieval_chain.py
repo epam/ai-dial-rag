@@ -30,6 +30,12 @@ from aidial_rag.retrieval_api import (
 )
 from aidial_rag.retrievers.all_documents_retriever import AllDocumentsRetriever
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
+from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
+    ColpaliRetriever,
+)
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionRetriever,
 )
@@ -194,6 +200,7 @@ def create_retriever(
     dial_config: DialConfig,
     document_records: List[DocumentRecord],
     indexing_config: IndexingConfig,
+    colpali_model_resource: ColpaliModelResource | None,
     make_retrieval_stage: Callable[
         [BaseRetriever, str], BaseRetriever
     ] = _make_retrieval_stage_default,
@@ -236,6 +243,23 @@ def create_retriever(
             retrievers.append(description_retriever)
             weights.append(1.0)
 
+        if ColpaliRetriever.has_index(document_records):
+            assert (
+                indexing_config.colpali_index is not None
+                and colpali_model_resource is not None
+            )
+            colpali_retriever = make_retrieval_stage(
+                ColpaliRetriever.from_doc_records(
+                    colpali_model_resource,
+                    indexing_config.colpali_index,
+                    document_records,
+                    7,
+                ),
+                "Colpali search",
+            )
+            retrievers.append(colpali_retriever)
+            weights.append(1.0)
+
         retriever = make_retrieval_stage(
             EnsembleRetriever(
                 retrievers=retrievers,
@@ -257,6 +281,7 @@ async def create_retrieval_chain(
     indexing_config: IndexingConfig,
     document_records: List[DocumentRecord],
     query_chain: Runnable[Dict[str, Any], str],
+    colpali_model_resource: ColpaliModelResource | None,
     make_retrieval_stage: Callable[
         [BaseRetriever, str], BaseRetriever
     ] = _make_retrieval_stage_default,
@@ -267,6 +292,7 @@ async def create_retrieval_chain(
         dial_config,
         document_records,
         indexing_config,
+        colpali_model_resource,
         make_retrieval_stage,
     )
 

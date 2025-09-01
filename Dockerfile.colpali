@@ -1,0 +1,39 @@
+# Set base image with default value
+ARG BASE_IMAGE_NAME=epam/ai-dial-rag:latest
+
+# Stage 1: Download ColPali model
+FROM ${BASE_IMAGE_NAME} AS colpali_downloader
+
+# Set environment variables for ColPali models
+ENV COLPALI_MODELS_BASE_PATH=/colpali_models
+
+# Set specific model to download with default value
+ARG COLPALI_MODEL_NAME=vidore/colSmol-256M
+ENV COLPALI_MODEL_NAME=${COLPALI_MODEL_NAME}
+
+# Switch to root user for model downloads
+USER root
+
+# Copy necessary files for ColPali model download
+COPY aidial_rag/__init__.py aidial_rag/
+COPY aidial_rag/retrievers/__init__.py aidial_rag/retrievers/
+COPY aidial_rag/retrievers/colpali_retriever/__init__.py aidial_rag/retrievers/colpali_retriever/
+COPY aidial_rag/retrievers/colpali_retriever/colpali_models.py aidial_rag/retrievers/colpali_retriever/
+COPY download_model.py ./
+
+# Download the specified ColPali model
+RUN python download_model.py colpali "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODEL_NAME"
+
+# Stage 2: Final image with downloaded model
+FROM ${BASE_IMAGE_NAME}
+
+# Set environment variables for ColPali models
+ENV COLPALI_MODELS_BASE_PATH=/colpali_models
+
+# Copy the downloaded ColPali model from the downloader stage
+COPY --from=colpali_downloader --chown=appuser "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODELS_BASE_PATH"
+
+# Switch back to appuser
+USER appuser
+
+# The base image already has EXPOSE 5000 and CMD, so we inherit those
