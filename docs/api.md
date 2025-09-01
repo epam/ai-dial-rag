@@ -45,6 +45,13 @@ The index attachment is based on the [DIAL Unified API attachments](https://docs
 The index attachment should use `url` field to point to the index file in the DIAL storage. The `data` field for the embedded file content is not supported.
 The `reference_url` field is used to point to the document the index file is based on, which is useful for the retrieval requests to find the original document. The `reference_url` is required for the index attachments.
 
+### Indexing parameters
+
+There are following parameters could be specified for `custom_fields.configuration.request.` to control the indexing behavior:
+
+- **`force_indexing`** (default: false) - If set to true, DIAL RAG will not check if the index already exists and will re-index the documents regardless.
+
+- **`allow_indexing`** (default: true) - If set to false, DIAL RAG will not run the indexing process. DIAL RAG will only check if the index exists and is compatible with the current version and settings. If the index is missing or incompatible, the indexing process will be skipped and the error will be returned.
 
 ### Indexing Request
 
@@ -229,7 +236,8 @@ Example of the retrieval response JSON for the above request:
             "mime_type": "image/png"
         },
         ...
-    ]
+    ],
+    "indexing_result": {}
 }
 ```
 
@@ -247,6 +255,39 @@ The retrieval response JSON contains two lists:
   - **`data`** - the base64-encoded image data.
   - **`mime_type`** - the MIME type of the image. Only `image/png` is currently supported.
 
+If the retrieval request triggers indexing process, the retrieval response JSON also may contains `indexing_result` to report indexing errors with the same format as for [Indexing Request](#indexing-request). For more details see [Indexing errors](#indexing-errors) section.
+
 Additionally, the response will contain the [Stages](https://docs.dialx.ai/tutorials/developers/chat/chat-objects#stages) with the progress of the indexing (if needed) and retrieval process in the same way as the regular DIAL RAG response. The stages will be dynamically updated if the request is run with the `stream` parameter set to `true`.
 
 You can look into [Retrieval API Example](./retrieval_api_example.ipynb) notebook for an example of how to do the retrieval request using OpenAI Python SDK and how to use the retrieval results in your custom LLM generation.
+
+
+### Indexing errors
+
+The `indexing_result` field of the indexing response or retrieval response will contain the details of any indexing errors that occurred during the request. This field will include the following information:
+
+- `message` - a human-readable error message.
+- `type` - (optional) an error code that can be used to programmatically identify the known error. The `type` field will be missing if the error is not one of the predefined error types.
+
+There are following values for `error.type`:
+- `index_missing` - The specified index file was not found and DIAL RAG is unable to continue the process without the index file.
+- `index_incompatible` - The index is incompatible with the current DIAL RAG version and settings, and DIAL RAG is unable to continue the process without re-indexing the document.
+
+
+Example of an indexing error response:
+```json
+{
+    "indexing_result": {
+        "files/<bucket>/my_document.pdf": {
+            "errors": [
+                {
+                    "message": "Index is incompatible with current version of RAG.",
+                    "type": "index_incompatible",
+                }
+            ]
+        }
+    }
+}
+```
+
+For more details look at the [Indexing response schema](./indexing_response.generated.schema.json) and [Retrieval response schema](./retrieval_response.generated.schema.json).

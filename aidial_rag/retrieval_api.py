@@ -2,6 +2,8 @@ from typing import ClassVar, List
 
 from pydantic import BaseModel, Field
 
+from aidial_rag.indexing_api import DocumentsIndexingResult
+
 
 class Source(BaseModel):
     """Source of the chunk, intended to show the user where the chunk comes from.
@@ -81,4 +83,9 @@ class RetrievalResponse(BaseModel):
     images: List[Image] = Field(
         default_factory=list,
         description="List of images related to the chunks.",
+    )
+
+    indexing_results: DocumentsIndexingResult = Field(
+        default_factory=dict,
+        description="Dictionary mapping document URLs to their indexing results.",
     )

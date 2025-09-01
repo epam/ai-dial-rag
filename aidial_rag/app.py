@@ -40,12 +40,12 @@ from aidial_rag.index_storage import (
     IndexStorageHolder,
 )
 from aidial_rag.indexing_api import (
+    create_documents_indexing_result,
     create_indexing_results_attachments,
 )
 from aidial_rag.indexing_results import (
     DocumentIndexingResult,
     DocumentIndexingSuccess,
-    create_document_loading_exception,
     format_document_loading_errors,
     get_indexing_failures,
 )
@@ -58,6 +58,7 @@ from aidial_rag.repository_digest import (
 )
 from aidial_rag.request_context import RequestContext, create_request_context
 from aidial_rag.resources.cpu_pools import init_cpu_pools
+from aidial_rag.retrieval_api import RetrievalResponse
 from aidial_rag.retrieval_chain import create_retrieval_chain
 from aidial_rag.stages import RetrieverStage
 from aidial_rag.transform_history import transform_history
@@ -131,6 +132,16 @@ def _add_indexing_results(
         choice.add_attachment(attachment)
 
 
+def _add_retrieval_results(
+    choice: Choice, retrieval_response: RetrievalResponse
+) -> None:
+    choice.add_attachment(
+        title="Retrieval response",
+        type=retrieval_response.CONTENT_TYPE,
+        data=retrieval_response.model_dump_json(exclude_none=True),
+    )
+
+
 async def _run_retrieval(
     choice: Choice,
     request_config: RequestConfig,
@@ -150,11 +161,7 @@ async def _run_retrieval(
         "retrieval_response"
     ).ainvoke(chain_input)
 
-    choice.add_attachment(
-        title="Retrieval response",
-        type=retrieval_response.CONTENT_TYPE,
-        data=retrieval_response.model_dump_json(indent=2),
-    )
+    _add_retrieval_results(choice, retrieval_response)
 
 
 async def _run_rag(
@@ -301,7 +308,15 @@ class DialRAGApplication(ChatCompletion):
                 and not request_config.ignore_document_loading_errors
             ):
                 if request_config.request.type != RequestType.RAG:
-                    raise create_document_loading_exception(indexing_failures)
+                    _add_retrieval_results(
+                        choice,
+                        RetrievalResponse(
+                            indexing_results=create_documents_indexing_result(
+                                indexing_results
+                            )
+                        ),
+                    )
+                    return
 
                 choice.append_content(
                     format_document_loading_errors(indexing_failures)

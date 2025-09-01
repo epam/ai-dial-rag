@@ -1,8 +1,10 @@
-from typing import ClassVar, Dict, List
+from typing import ClassVar, Dict, List, TypeAlias
 
+from aidial_sdk import HTTPException
 from aidial_sdk.chat_completion.request import Attachment
 from pydantic import BaseModel, Field
 
+from aidial_rag.error_types import ErrorType
 from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.indexing_results import (
     DocumentIndexingFailure,
@@ -18,6 +20,10 @@ class Error(BaseModel):
     message: str = Field(
         description="Error message describing the issue that occurred during the indexing process."
     )
+    type: ErrorType | None = Field(
+        default=None,
+        description="Type of the error that occurred during the indexing process.",
+    )
 
 
 class DocumentIndexingResultResponse(BaseModel):
@@ -29,12 +35,15 @@ class DocumentIndexingResultResponse(BaseModel):
     )
 
 
+DocumentsIndexingResult: TypeAlias = Dict[str, DocumentIndexingResultResponse]
+
+
 class IndexingResponse(BaseModel):
     CONTENT_TYPE: ClassVar[str] = (
         "application/x.aidial-rag.indexing-response+json"
     )
 
-    indexing_result: Dict[str, DocumentIndexingResultResponse] = Field(
+    indexing_result: DocumentsIndexingResult = Field(
         default_factory=dict,
         description="Dictionary mapping document URLs to their indexing results.",
     )
@@ -51,22 +60,45 @@ def create_index_attachment(
     )
 
 
-def create_indexing_response(
+def _get_error_type(exception: BaseException) -> ErrorType | None:
+    """Extracts known error types from the exception."""
+    if isinstance(exception, HTTPException):
+        try:
+            return ErrorType(exception.type)
+        except ValueError:
+            # Skipping the types that are not declared in ErrorType, because the client
+            # will not be able to use them.
+            # It could be the default "runtime_error", or some type from the model call.
+            return None
+    return None
+
+
+def create_documents_indexing_result(
     indexing_results: List[DocumentIndexingResult],
-) -> IndexingResponse:
-    doc_indexing_results: Dict[str, DocumentIndexingResultResponse] = {}
+) -> DocumentsIndexingResult:
+    doc_indexing_results: DocumentsIndexingResult = {}
     for result in indexing_results:
         if isinstance(result, DocumentIndexingFailure):
             doc_indexing_results[result.task.attachment_link.dial_link] = (
                 DocumentIndexingResultResponse(
                     errors=[
-                        Error(message=get_user_facing_error_message(exception))
+                        Error(
+                            message=get_user_facing_error_message(exception),
+                            type=_get_error_type(exception),
+                        )
                         for exception in result.iter_leaf_exceptions()
                     ]
                 )
             )
+    return doc_indexing_results
 
-    return IndexingResponse(indexing_result=doc_indexing_results)
+
+def create_indexing_response(
+    indexing_results: List[DocumentIndexingResult],
+) -> IndexingResponse:
+    return IndexingResponse(
+        indexing_result=create_documents_indexing_result(indexing_results)
+    )
 
 
 def create_indexing_results_attachments(
@@ -82,7 +114,7 @@ def create_indexing_results_attachments(
         Attachment(
             title="Indexing results",
             type=indexing_response.CONTENT_TYPE,
-            data=indexing_response.model_dump_json(),
+            data=indexing_response.model_dump_json(exclude_none=True),
         )
     )
 
