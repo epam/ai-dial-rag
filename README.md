@@ -170,13 +170,13 @@ Enables MultimodalRetriever which uses multimodal embedding models for pages ima
 
 ##### `DIAL_RAG__REQUEST__INDEXING__DESCRIPTION_INDEX`
 
-*Optional*, default value: `llm=LlmConfig(deployment_name='gpt-4o-mini-2024-07-18', max_prompt_tokens=0, max_retries=1000000000) estimated_task_tokens=4000 time_limit_multiplier=1.5 min_time_limit_sec=300`
+*Optional*, default value: `llm=LlmConfig(deployment_name='gpt-4.1-mini-2025-04-14', max_prompt_tokens=0, max_retries=1000000000) estimated_task_tokens=4000 time_limit_multiplier=1.5 min_time_limit_sec=300`
 
 Enables DescriptionRetriever which uses vision model to generate page images descriptions and perform search on them.
 
 ##### `DIAL_RAG__REQUEST__QA_CHAIN__CHAT_CHAIN__LLM__DEPLOYMENT_NAME`
 
-*Optional*, default value: `gpt-4o-2024-05-13`
+*Optional*, default value: `gpt-4.1-2025-04-14`
 
 Used to set the deployment name of the LLM used in the chain. Could be useful if the model deployments have non-standard names in the Dial Core configuration.
 
@@ -218,7 +218,7 @@ Sets the size of the page images to pass to the model for the answer generation.
 
 ##### `DIAL_RAG__REQUEST__QA_CHAIN__QUERY_CHAIN__LLM__DEPLOYMENT_NAME`
 
-*Optional*, default value: `gpt-4o-2024-05-13`
+*Optional*, default value: `gpt-4.1-2025-04-14`
 
 Used to set the deployment name of the LLM used in the chain. Could be useful if the model deployments have non-standard names in the Dial Core configuration.
 

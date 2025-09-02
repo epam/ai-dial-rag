@@ -18,7 +18,7 @@
         "llm": {
           "$ref": "#/$defs/LlmConfig",
           "default": {
-            "deployment_name": "gpt-4o-2024-05-13",
+            "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 0,
             "max_retries": 2
           },
@@ -65,7 +65,7 @@
         "llm": {
           "$ref": "#/$defs/LlmConfig",
           "default": {
-            "deployment_name": "gpt-4o-mini-2024-07-18",
+            "deployment_name": "gpt-4.1-mini-2025-04-14",
             "max_prompt_tokens": 0,
             "max_retries": 1000000000
           },
@@ -146,7 +146,7 @@
           ],
           "default": {
             "llm": {
-              "deployment_name": "gpt-4o-mini-2024-07-18",
+              "deployment_name": "gpt-4.1-mini-2025-04-14",
               "max_prompt_tokens": 0,
               "max_retries": 1000000000
             },
@@ -164,7 +164,7 @@
       "additionalProperties": false,
       "properties": {
         "deployment_name": {
-          "default": "gpt-4o-2024-05-13",
+          "default": "gpt-4.1-2025-04-14",
           "description": "Used to set the deployment name of the LLM used in the chain. Could be useful if the model deployments have non-standard names in the Dial Core configuration.",
           "title": "Deployment Name",
           "type": "string"
@@ -273,7 +273,7 @@
           "$ref": "#/$defs/ChatChainConfig",
           "default": {
             "llm": {
-              "deployment_name": "gpt-4o-2024-05-13",
+              "deployment_name": "gpt-4.1-2025-04-14",
               "max_prompt_tokens": 0,
               "max_retries": 2
             },
@@ -288,7 +288,7 @@
           "$ref": "#/$defs/QueryChainConfig",
           "default": {
             "llm": {
-              "deployment_name": "gpt-4o-2024-05-13",
+              "deployment_name": "gpt-4.1-2025-04-14",
               "max_prompt_tokens": 0,
               "max_retries": 2
             },
@@ -306,7 +306,7 @@
         "llm": {
           "$ref": "#/$defs/LlmConfig",
           "default": {
-            "deployment_name": "gpt-4o-2024-05-13",
+            "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 0,
             "max_retries": 2
           },
@@ -381,7 +381,7 @@
         "description_index": {
           "estimated_task_tokens": 4000,
           "llm": {
-            "deployment_name": "gpt-4o-mini-2024-07-18",
+            "deployment_name": "gpt-4.1-mini-2025-04-14",
             "max_prompt_tokens": 0,
             "max_retries": 1000000000
           },
@@ -395,7 +395,7 @@
       "default": {
         "chat_chain": {
           "llm": {
-            "deployment_name": "gpt-4o-2024-05-13",
+            "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 16000,
             "max_retries": 2
           },
@@ -406,7 +406,7 @@
         },
         "query_chain": {
           "llm": {
-            "deployment_name": "gpt-4o-2024-05-13",
+            "deployment_name": "gpt-4.1-2025-04-14",
             "max_prompt_tokens": 8000,
             "max_retries": 2
           },
