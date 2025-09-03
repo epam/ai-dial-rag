@@ -107,3 +107,55 @@ async def test_description_retriever_aws(attachments):
 
     json_response = response.json()
     assert "page 13" in json_response["choices"][0]["message"]["content"]
+
+
+@pytest.mark.asyncio
+@e2e_test(filenames=["alps_wiki.pdf"])
+async def test_description_retriever_gpt5(attachments):
+    app = create_app(
+        app_config=AppConfig(
+            dial_url=MIDDLEWARE_HOST,
+            config_path="config/azure_description.yaml",
+        )
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "At what page there is an image of butterfly?",
+                    "custom_content": {"attachments": attachments},
+                }
+            ],
+            "custom_fields": {
+                "configuration": {
+                    "indexing": {
+                        "description_index": {
+                            "llm": {
+                                "deployment_name": "gpt-5-mini-2025-08-07",
+                                "temperature": 1.0,
+                            }
+                        }
+                    },
+                    "qa_chain": {
+                        "chat_chain": {
+                            "llm": {
+                                "deployment_name": "gpt-5-2025-08-07",
+                                "temperature": 1.0,
+                            }
+                        }
+                    },
+                }
+            },
+        },
+        timeout=100.0,
+    )
+    assert response.status_code == 200
+
+    json_response = response.json()
+    assert "Page 13" in json_response["choices"][0]["message"]["content"]

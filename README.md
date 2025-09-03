@@ -170,7 +170,7 @@ Enables MultimodalRetriever which uses multimodal embedding models for pages ima
 
 ##### `DIAL_RAG__REQUEST__INDEXING__DESCRIPTION_INDEX`
 
-*Optional*, default value: `llm=LlmConfig(deployment_name='gpt-4.1-mini-2025-04-14', max_prompt_tokens=0, max_retries=1000000000) estimated_task_tokens=4000 time_limit_multiplier=1.5 min_time_limit_sec=300`
+*Optional*, default value: `llm=LlmConfig(deployment_name='gpt-4.1-mini-2025-04-14', max_prompt_tokens=0, max_retries=1000000000, temperature=0.0) estimated_task_tokens=4000 time_limit_multiplier=1.5 min_time_limit_sec=300`
 
 Enables DescriptionRetriever which uses vision model to generate page images descriptions and perform search on them.
 
@@ -191,6 +191,12 @@ Sets `max_prompt_tokens` for the history truncation for the LLM, if history is u
 *Optional*, default value: `2`
 
 Sets the number of retries to send the request to the LLM.
+
+##### `DIAL_RAG__REQUEST__QA_CHAIN__CHAT_CHAIN__LLM__TEMPERATURE`
+
+*Optional*, default value: `0.0`
+
+Sets the temperature for the LLM, controlling the randomness of the output. Higher values (e.g., 1.0) make the output more random, while lower values (e.g., 0.0) make it more deterministic.
 
 ##### `DIAL_RAG__REQUEST__QA_CHAIN__CHAT_CHAIN__SYSTEM_PROMPT_TEMPLATE_OVERRIDE`
 
@@ -233,6 +239,12 @@ Sets `max_prompt_tokens` for the history truncation for the LLM, if history is u
 *Optional*, default value: `2`
 
 Sets the number of retries to send the request to the LLM.
+
+##### `DIAL_RAG__REQUEST__QA_CHAIN__QUERY_CHAIN__LLM__TEMPERATURE`
+
+*Optional*, default value: `0.0`
+
+Sets the temperature for the LLM, controlling the randomness of the output. Higher values (e.g., 1.0) make the output more random, while lower values (e.g., 0.0) make it more deterministic.
 
 ##### `DIAL_RAG__REQUEST__QA_CHAIN__QUERY_CHAIN__USE_HISTORY`
 
