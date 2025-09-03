@@ -1,11 +1,16 @@
 from enum import StrEnum
-from typing import Any, Dict
+from typing import Any, Dict, Self
 
-from aidial_sdk import HTTPException
 from aidial_sdk.chat_completion import (
     Request,
 )
-from pydantic import BaseModel, Field, ValidationError
+from aidial_sdk.exceptions import HTTPException, InvalidRequestError
+from pydantic import (
+    BaseModel,
+    Field,
+    ValidationError,
+    model_validator,
+)
 
 from aidial_rag.base_config import BaseConfig
 from aidial_rag.document_loaders import HttpClientConfig
@@ -30,7 +35,24 @@ class ApiRequest(BaseModel):
         default=RequestType.RAG,
         description="Type of the request for the Dial RAG service.",
     )
-    # TODO: Add request parameters here
+
+    force_indexing: bool = Field(
+        default=False,
+        description="Force indexing of the documents, even if the index is present and is compatible with the retrieval.",
+    )
+
+    allow_indexing: bool = Field(
+        default=True,
+        description="Enable indexing of the documents if the index is missing or is not compatible with retrieval.",
+    )
+
+    @model_validator(mode="after")
+    def validate_force_indexing(self) -> Self:
+        if not self.allow_indexing and self.force_indexing:
+            raise InvalidRequestError(
+                "Cannot force indexing when indexing is disabled."
+            )
+        return self
 
 
 class RequestConfig(BaseConfig):

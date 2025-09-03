@@ -11,6 +11,10 @@ from tests.utils.config_override import (
     description_index_retries_override,  # noqa: F401
 )
 from tests.utils.e2e_decorator import e2e_test
+from tests.utils.response_helpers import (
+    get_attachments,
+    get_retrieval_response_json,
+)
 
 middleware_host = "http://localhost:8081"
 
@@ -43,6 +47,7 @@ async def test_retrieval_request(attachments):
                 "configuration": {
                     "request": {
                         "type": "retrieval",
+                        "allow_indexing": True,
                     }
                 }
             },
@@ -135,13 +140,68 @@ async def test_retrieval_request_with_unsupported_csv(attachments):
         timeout=60.0,
     )
 
-    # TODO: Add machine-readable per-document errors
-    assert response.status_code == 400
-    json_response = json.loads(response.text)
-    assert json_response["error"]["message"] == (
-        "I'm sorry, but I can't process the documents because of the following errors:\n\n"
-        "|Document|Error|\n"
-        "|---|---|\n"
-        "|test_file.csv|Unable to load document content. Try another document format.|\n\n"
-        "Please try again with different documents."
+    assert response.status_code == 200
+    retrieval_response_attachments = get_attachments(response.json())
+    retrieval_response_json = get_retrieval_response_json(
+        retrieval_response_attachments
     )
+    assert retrieval_response_json["indexing_results"] == {
+        attachments[0]["url"]: {
+            "errors": [
+                {
+                    "message": "Unable to load document content. Try another document format.",
+                }
+            ]
+        }
+    }
+
+
+@pytest.mark.asyncio
+@e2e_test(filenames=["alps_wiki.html"])
+async def test_retrieval_request_with_disabled_indexing(attachments):
+    app = create_app(
+        app_config=AppConfig(
+            dial_url=middleware_host,
+        )
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "What is the highest peak in the Alps?",
+                    "custom_content": {"attachments": attachments},
+                }
+            ],
+            "custom_fields": {
+                "configuration": {
+                    "request": {
+                        "type": "retrieval",
+                        "allow_indexing": False,
+                    }
+                }
+            },
+        },
+        timeout=60.0,
+    )
+
+    assert response.status_code == 200
+    retrieval_response_attachments = get_attachments(response.json())
+    retrieval_response_json = get_retrieval_response_json(
+        retrieval_response_attachments
+    )
+    assert retrieval_response_json["indexing_results"] == {
+        attachments[0]["url"]: {
+            "errors": [
+                {
+                    "message": "Index is missing.",
+                    "type": "index_missing",
+                }
+            ]
+        }
+    }
