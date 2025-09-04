@@ -30,7 +30,6 @@ sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
 tiktoken = "^0.7.0"
 cachetools = "5.3.1"
 unstructured = {version = "0.16.16", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
-libmagic = "1.0"
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 nltk = "^3.9.1"
 humanfriendly = "10.0"
