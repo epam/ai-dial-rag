@@ -51,6 +51,7 @@ langchain-huggingface = "^0.1.2"
 langchain-unstructured = "^0.1.6"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
+pdfplumber = "^0.11.7"
 
 
 [[tool.poetry.source]]
