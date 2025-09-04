@@ -12,6 +12,38 @@ files = [
 ]
 
 [[package]]
+name = "accelerate"
+version = "1.10.1"
+description = "Accelerate"
+optional = false
+python-versions = ">=3.9.0"
+files = [
+    {file = "accelerate-1.10.1-py3-none-any.whl", hash = "sha256:3621cff60b9a27ce798857ece05e2b9f56fcc71631cfb31ccf71f0359c311f11"},
+    {file = "accelerate-1.10.1.tar.gz", hash = "sha256:3dea89e433420e4bfac0369cae7e36dcd6a56adfcfd38cdda145c6225eab5df8"},
+]
+
+[package.dependencies]
+huggingface_hub = ">=0.21.0"
+numpy = ">=1.17,<3.0.0"
+packaging = ">=20.0"
+psutil = "*"
+pyyaml = "*"
+safetensors = ">=0.4.3"
+torch = ">=2.0.0"
+
+[package.extras]
+deepspeed = ["deepspeed"]
+dev = ["bitsandbytes", "black (>=23.1,<24.0)", "datasets", "diffusers", "evaluate", "hf-doc-builder (>=0.3.0)", "parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-order", "pytest-subtests", "pytest-xdist", "rich", "ruff (>=0.11.2,<0.12.0)", "scikit-learn", "scipy", "timm", "torchdata (>=0.8.0)", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
+quality = ["black (>=23.1,<24.0)", "hf-doc-builder (>=0.3.0)", "ruff (>=0.11.2,<0.12.0)"]
+rich = ["rich"]
+sagemaker = ["sagemaker"]
+test-dev = ["bitsandbytes", "datasets", "diffusers", "evaluate", "scikit-learn", "scipy", "timm", "torchdata (>=0.8.0)", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
+test-fp8 = ["torchao"]
+test-prod = ["parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-order", "pytest-subtests", "pytest-xdist"]
+test-trackers = ["comet-ml", "dvclive", "matplotlib", "mlflow", "swanlab", "tensorboard", "trackio", "wandb"]
+testing = ["bitsandbytes", "datasets", "diffusers", "evaluate", "parameterized", "pytest (>=7.2.0,<=8.0.0)", "pytest-order", "pytest-subtests", "pytest-xdist", "scikit-learn", "scipy", "timm", "torchdata (>=0.8.0)", "torchpippy (>=0.2.0)", "tqdm", "transformers"]
+
+[[package]]
 name = "aidial-rag-eval"
 version = "0.2.0"
 description = "Library for RAG evaluation"
@@ -1776,24 +1808,6 @@ files = [
 ]
 
 [[package]]
-name = "iopath"
-version = "0.1.10"
-description = "A library for providing I/O abstraction."
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "iopath-0.1.10.tar.gz", hash = "sha256:3311c16a4d9137223e20f141655759933e1eda24f8bff166af834af3c645ef01"},
-]
-
-[package.dependencies]
-portalocker = "*"
-tqdm = "*"
-typing_extensions = "*"
-
-[package.extras]
-aws = ["boto3"]
-
-[[package]]
 name = "jinja2"
 version = "3.1.6"
 description = "A very fast and expressive template engine."
@@ -2268,36 +2282,6 @@ requests-toolbelt = ">=1.0.0,<2.0.0"
 
 [package.extras]
 langsmith-pyo3 = ["langsmith-pyo3 (>=0.1.0rc2,<0.2.0)"]
-
-[[package]]
-name = "layoutparser"
-version = "0.3.4"
-description = "A unified toolkit for Deep Learning Based Document Image Analysis"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "layoutparser-0.3.4-py3-none-any.whl", hash = "sha256:269aedfab8a0caa50aef8d0fa62740fbee1f2964880daae3a0e6a0415363126a"},
-    {file = "layoutparser-0.3.4.tar.gz", hash = "sha256:0dfb2194c36a5ad1075b8310f3cbc280c00306d1758cef127d20283f7ce085ea"},
-]
-
-[package.dependencies]
-iopath = "*"
-numpy = "*"
-opencv-python = "*"
-pandas = "*"
-pdf2image = "*"
-pdfplumber = "*"
-pillow = "*"
-pyyaml = ">=5.1"
-scipy = "*"
-
-[package.extras]
-effdet = ["effdet", "torch", "torchvision"]
-gcv = ["google-cloud-vision (==1)"]
-layoutmodels = ["effdet", "torch", "torchvision"]
-ocr = ["google-cloud-vision (==1)", "pytesseract"]
-paddledetection = ["paddlepaddle (==2.1.0)"]
-tesseract = ["pytesseract"]
 
 [[package]]
 name = "libmagic"
@@ -2829,17 +2813,6 @@ files = [
 [package.extras]
 fast = ["fastnumbers (>=2.0.0)"]
 icu = ["PyICU (>=1.0.0)"]
-
-[[package]]
-name = "ndjson"
-version = "0.3.1"
-description = "JsonDecoder for ndjson"
-optional = false
-python-versions = "*"
-files = [
-    {file = "ndjson-0.3.1-py2.py3-none-any.whl", hash = "sha256:839c22275e6baa3040077b83c005ac24199b94973309a8a1809be962c753a410"},
-    {file = "ndjson-0.3.1.tar.gz", hash = "sha256:bf9746cb6bb1cb53d172cda7f154c07c786d665ff28341e4e689b796b229e5d6"},
-]
 
 [[package]]
 name = "nest-asyncio"
@@ -4020,22 +3993,6 @@ docs = ["sphinx", "sphinx-argparse"]
 image = ["Pillow"]
 
 [[package]]
-name = "pdfplumber"
-version = "0.11.5"
-description = "Plumb a PDF for detailed information about each char, rectangle, and line."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "pdfplumber-0.11.5-py3-none-any.whl", hash = "sha256:a6e0921a57e0ef7356001a0fd811250b0e37a0b42630a922ee48f55cdd534070"},
-    {file = "pdfplumber-0.11.5.tar.gz", hash = "sha256:dadd81b62a0b23e078cdd89de26e013850d4daf5690fcf46dec396b07e6737d6"},
-]
-
-[package.dependencies]
-"pdfminer.six" = "20231228"
-Pillow = ">=9.1"
-pypdfium2 = ">=4.18.0"
-
-[[package]]
 name = "pi-heif"
 version = "0.21.0"
 description = "Python interface for libheif library"
@@ -4285,25 +4242,6 @@ files = [
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
-
-[[package]]
-name = "portalocker"
-version = "3.1.1"
-description = "Wraps the portalocker recipe for easy usage"
-optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "portalocker-3.1.1-py3-none-any.whl", hash = "sha256:80e984e24de292ff258a5bea0e4f3f778fff84c0ae1275dbaebc4658de4aacb3"},
-    {file = "portalocker-3.1.1.tar.gz", hash = "sha256:ec20f6dda2ad9ce89fa399a5f31f4f1495f515958f0cb7ca6543cef7bb5a749e"},
-]
-
-[package.dependencies]
-pywin32 = {version = ">=226", markers = "platform_system == \"Windows\""}
-
-[package.extras]
-docs = ["sphinx (>=1.7.1)"]
-redis = ["redis"]
-tests = ["pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "pytest-rerunfailures (>=15.0)", "pytest-timeout (>=2.1.0)", "redis", "sphinx (>=6.0.0)", "types-redis"]
 
 [[package]]
 name = "prometheus-client"
@@ -5205,33 +5143,6 @@ python-versions = "*"
 files = [
     {file = "pytz-2024.1-py2.py3-none-any.whl", hash = "sha256:328171f4e3623139da4983451950b28e95ac706e13f3f2630a879749e7a8b319"},
     {file = "pytz-2024.1.tar.gz", hash = "sha256:2a29735ea9c18baf14b448846bde5a48030ed267578472d8955cd0e7443a9812"},
-]
-
-[[package]]
-name = "pywin32"
-version = "308"
-description = "Python for Window Extensions"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pywin32-308-cp310-cp310-win32.whl", hash = "sha256:796ff4426437896550d2981b9c2ac0ffd75238ad9ea2d3bfa67a1abd546d262e"},
-    {file = "pywin32-308-cp310-cp310-win_amd64.whl", hash = "sha256:4fc888c59b3c0bef905ce7eb7e2106a07712015ea1c8234b703a088d46110e8e"},
-    {file = "pywin32-308-cp310-cp310-win_arm64.whl", hash = "sha256:a5ab5381813b40f264fa3495b98af850098f814a25a63589a8e9eb12560f450c"},
-    {file = "pywin32-308-cp311-cp311-win32.whl", hash = "sha256:5d8c8015b24a7d6855b1550d8e660d8daa09983c80e5daf89a273e5c6fb5095a"},
-    {file = "pywin32-308-cp311-cp311-win_amd64.whl", hash = "sha256:575621b90f0dc2695fec346b2d6302faebd4f0f45c05ea29404cefe35d89442b"},
-    {file = "pywin32-308-cp311-cp311-win_arm64.whl", hash = "sha256:100a5442b7332070983c4cd03f2e906a5648a5104b8a7f50175f7906efd16bb6"},
-    {file = "pywin32-308-cp312-cp312-win32.whl", hash = "sha256:587f3e19696f4bf96fde9d8a57cec74a57021ad5f204c9e627e15c33ff568897"},
-    {file = "pywin32-308-cp312-cp312-win_amd64.whl", hash = "sha256:00b3e11ef09ede56c6a43c71f2d31857cf7c54b0ab6e78ac659497abd2834f47"},
-    {file = "pywin32-308-cp312-cp312-win_arm64.whl", hash = "sha256:9b4de86c8d909aed15b7011182c8cab38c8850de36e6afb1f0db22b8959e3091"},
-    {file = "pywin32-308-cp313-cp313-win32.whl", hash = "sha256:1c44539a37a5b7b21d02ab34e6a4d314e0788f1690d65b48e9b0b89f31abbbed"},
-    {file = "pywin32-308-cp313-cp313-win_amd64.whl", hash = "sha256:fd380990e792eaf6827fcb7e187b2b4b1cede0585e3d0c9e84201ec27b9905e4"},
-    {file = "pywin32-308-cp313-cp313-win_arm64.whl", hash = "sha256:ef313c46d4c18dfb82a2431e3051ac8f112ccee1a34f29c263c583c568db63cd"},
-    {file = "pywin32-308-cp37-cp37m-win32.whl", hash = "sha256:1f696ab352a2ddd63bd07430080dd598e6369152ea13a25ebcdd2f503a38f1ff"},
-    {file = "pywin32-308-cp37-cp37m-win_amd64.whl", hash = "sha256:13dcb914ed4347019fbec6697a01a0aec61019c1046c2b905410d197856326a6"},
-    {file = "pywin32-308-cp38-cp38-win32.whl", hash = "sha256:5794e764ebcabf4ff08c555b31bd348c9025929371763b2183172ff4708152f0"},
-    {file = "pywin32-308-cp38-cp38-win_amd64.whl", hash = "sha256:3b92622e29d651c6b783e368ba7d6722b1634b8e70bd376fd7610fe1992e19de"},
-    {file = "pywin32-308-cp39-cp39-win32.whl", hash = "sha256:7873ca4dc60ab3287919881a7d4f88baee4a6e639aa6962de25a98ba6b193341"},
-    {file = "pywin32-308-cp39-cp39-win_amd64.whl", hash = "sha256:71b3322d949b4cc20776436a9c9ba0eeedcbc9c650daa536df63f0ff111bb920"},
 ]
 
 [[package]]
@@ -6602,13 +6513,13 @@ files = [
 
 [[package]]
 name = "unstructured"
-version = "0.16.14"
+version = "0.16.16"
 description = "A library that prepares raw documents for downstream ML tasks."
 optional = false
 python-versions = "<3.13,>=3.9.0"
 files = [
-    {file = "unstructured-0.16.14-py3-none-any.whl", hash = "sha256:7b3c2eb21e65d2f61240de7a5241fd7734d97be2c9cfa5f70934e10470318131"},
-    {file = "unstructured-0.16.14.tar.gz", hash = "sha256:cec819461090226cd478429c1e0fda19a66ba49ab9ade1ea1fd9ec79c279d7ac"},
+    {file = "unstructured-0.16.16-py3-none-any.whl", hash = "sha256:832cacd62a3258b0d6bd0fbedd1233d75f7855ef8cf062b8f02466a0d0396332"},
+    {file = "unstructured-0.16.16.tar.gz", hash = "sha256:0147dc3b53f7f0888ed608c9c454b5fca1a41925a09b7884c121239a60c9d8fa"},
 ]
 
 [package.dependencies]
@@ -6623,7 +6534,6 @@ google-cloud-vision = {version = "*", optional = true, markers = "extra == \"pdf
 html5lib = "*"
 langdetect = "*"
 lxml = "*"
-ndjson = "*"
 networkx = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 nltk = "*"
 numpy = "<2"
@@ -6646,25 +6556,25 @@ requests = "*"
 tqdm = "*"
 typing-extensions = "*"
 unstructured-client = "*"
-unstructured-inference = {version = "0.8.1", optional = true, markers = "extra == \"pdf\""}
+unstructured-inference = {version = ">=0.8.6", optional = true, markers = "extra == \"pdf\""}
 "unstructured.pytesseract" = {version = ">=0.3.12", optional = true, markers = "extra == \"pdf\""}
 wrapt = "*"
 xlrd = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 
 [package.extras]
-all-docs = ["effdet", "google-cloud-vision", "markdown", "networkx", "onnx", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (==0.8.1)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
+all-docs = ["effdet", "google-cloud-vision", "markdown", "networkx", "onnx", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
 csv = ["pandas"]
 doc = ["python-docx (>=1.1.2)"]
 docx = ["python-docx (>=1.1.2)"]
 epub = ["pypandoc"]
 huggingface = ["langdetect", "sacremoses", "sentencepiece", "torch", "transformers"]
-image = ["effdet", "google-cloud-vision", "onnx", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypdf", "unstructured-inference (==0.8.1)", "unstructured.pytesseract (>=0.3.12)"]
-local-inference = ["effdet", "google-cloud-vision", "markdown", "networkx", "onnx", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (==0.8.1)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
+image = ["effdet", "google-cloud-vision", "onnx", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypdf", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)"]
+local-inference = ["effdet", "google-cloud-vision", "markdown", "networkx", "onnx", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
 md = ["markdown"]
 odt = ["pypandoc", "python-docx (>=1.1.2)"]
 org = ["pypandoc"]
 paddleocr = ["paddlepaddle (==3.0.0b1)", "unstructured.paddleocr (==2.8.1.0)"]
-pdf = ["effdet", "google-cloud-vision", "onnx", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypdf", "unstructured-inference (==0.8.1)", "unstructured.pytesseract (>=0.3.12)"]
+pdf = ["effdet", "google-cloud-vision", "onnx", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypdf", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)"]
 ppt = ["python-pptx (>=1.0.1)"]
 pptx = ["python-pptx (>=1.0.1)"]
 rst = ["pypandoc"]
@@ -6697,25 +6607,29 @@ typing-inspection = ">=0.4.0"
 
 [[package]]
 name = "unstructured-inference"
-version = "0.8.1"
+version = "1.0.5"
 description = "A library for performing inference using trained models."
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "unstructured_inference-0.8.1-py3-none-any.whl", hash = "sha256:1f22fd25906ab8ecc7ea69c3aa9dcfb585ae51ba5d5770fc7c151b43851e9f9a"},
-    {file = "unstructured_inference-0.8.1.tar.gz", hash = "sha256:a73ffdc89a6e55315ad9700878a9c18faf845989cf065ca69216e0893051be8d"},
+    {file = "unstructured_inference-1.0.5-py3-none-any.whl", hash = "sha256:ecbe385a6c58ca6b68b5723ed3cb540b70fd6317eecd1d5e6541516edf7071d0"},
+    {file = "unstructured_inference-1.0.5.tar.gz", hash = "sha256:ccd6881b0f03c533418bde6c9bd178a6660da8efbbe8c06a08afda9f25fe732b"},
 ]
 
 [package.dependencies]
+accelerate = "*"
 huggingface-hub = "*"
-layoutparser = "*"
 matplotlib = "*"
-numpy = "<2"
+numpy = "*"
 onnx = "*"
-onnxruntime = ">=1.17.0"
+onnxruntime = ">=1.18.0"
 opencv-python = "!=4.7.0.68"
+pandas = "*"
+pdfminer-six = "*"
+pypdfium2 = "*"
 python-multipart = "*"
 rapidfuzz = "*"
+scipy = "*"
 timm = "*"
 torch = "*"
 transformers = ">=4.25.1"
@@ -7157,4 +7071,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "ff287a8b0392421786ca7b60885cf607f4e9db430c6976f87ad0e0369e4625d0"
+content-hash = "a18951975c32e3812c503321a76e7d452cf8247f11558637a39b5bc89fb1d84f"
