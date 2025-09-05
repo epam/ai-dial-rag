@@ -29,13 +29,12 @@ rank-bm25 = "0.2.2"
 sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
 tiktoken = "^0.7.0"
 cachetools = "5.3.1"
-unstructured = {version = "0.16.14", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
-libmagic = "1.0"
+unstructured = {version = "0.16.16", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 nltk = "^3.9.1"
 humanfriendly = "10.0"
 pyinstrument = "4.6.1"
-more-itertools = "10.1.0"
+more-itertools = "^10.1.0"
 tqdm = "^4.67.1"
 torch = "^2.7.0"
 torchvision = "^0.22.0"
@@ -52,6 +51,7 @@ langchain-huggingface = "^0.1.2"
 langchain-unstructured = "^0.1.6"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
+pdfplumber = "^0.11.7"
 
 
 [[tool.poetry.source]]
@@ -61,11 +61,6 @@ priority = "primary"
 [[tool.poetry.source]]
 name = "pytorch"
 url = "https://download.pytorch.org/whl/cpu"
-priority = "explicit"
-
-[[tool.poetry.source]]
-name = "epm-rtc-python"
-url = "https://nexus.deltixhub.com/repository/epm-rtc-python/simple"
 priority = "explicit"
 
 [tool.poetry.group.test.dependencies]
@@ -84,7 +79,7 @@ nox = "^2024.3.2"
 optional = true
 
 [tool.poetry.group.eval.dependencies]
-aidial-rag-eval = {version = "^0.1.4", source = "epm-rtc-python"}
+aidial-rag-eval = "^0.2.0"
 
 [tool.poetry.group.lint.dependencies]
 pyright = "^1.1.400"
