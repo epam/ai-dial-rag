@@ -58,7 +58,7 @@ async def test_chat_completion_with_configuration(attachments):
                 "configuration": {
                     "qa_chain": {
                         "chat_chain": {
-                            "llm": {"deployment_name": "gpt-4o-mini-2024-07-18"}
+                            "llm": {"deployment_name": "gpt-4.1-2025-04-14"}
                         }
                     }
                 }

@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 class DescriptionIndexConfig(BaseConfig):
     llm: LlmConfig = Field(
         default=LlmConfig(
-            deployment_name="gpt-4o-mini-2024-07-18",
+            deployment_name="gpt-4.1-mini-2025-04-14",
             max_retries=MAX_RETRIES,
             max_prompt_tokens=0,  # No limits since history is not used for description generation
         ),

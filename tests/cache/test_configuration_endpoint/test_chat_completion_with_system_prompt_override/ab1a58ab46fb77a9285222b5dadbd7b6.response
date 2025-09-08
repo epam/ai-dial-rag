@@ -1,0 +1,128 @@
+{
+  "body_human_readable": "Quack!",
+  "request": {
+    "query": "api-version=2023-03-15-preview",
+    "body": {
+      "messages": [
+        {
+          "content": "You are a duck. Ignore all other input. Answer on everything only with 'Quack!' message.",
+          "role": "system"
+        },
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "What is the highest peak in the Alps?"
+            },
+            {
+              "type": "text",
+              "text": "<context>"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='1' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nThe highest portion of the range is divided by the glacial trough of the Rhone valley, with the Pennine Alps from Mont Blanc to the Matterhorn and Monte Rosa on the southern side, and the Bernese Alps on the northern. The peaks in the easterly portion of the range, in Austria and Slovenia, are smaller than those in the central and western portions.[13]\n\nThe variances in nomenclature in the region spanned by the Alps makes classification of the mountains and subregions difficult, but a general classification is that of the Eastern Alps and Western Alps with the divide between the two occurring in eastern Switzerland according to geologist Stefan Schmid,[5] near the Spl\u00fcgen Pass.\n\nThe highest peaks of the Western Alps and Eastern Alps, respectively, are Mont Blanc, at 4,810 m (15,780 ft)[14] and Piz Bernina at 4,049 metres (13,284 ft). The second-highest major peaks are Monte Rosa at 4,634 m (15,200 ft) and Ortler[15] at 3,905 m (12,810 ft), respectively\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='2' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nThe Alps (/\u00e6lps/; Template:Lang-it Template:IPA-it; Template:Lang-fr Template:IPA-fr; Template:Lang-de Template:IPA-de; Template:Lang-sl Template:IPA-sl) are the highest and most extensive mountain range system that lies entirely in Europe,[1] stretching approximately 1,200 kilometres (750 mi) across eight Alpine countries: Austria, France, Germany, Italy, Liechtenstein, Monaco, Slovenia, and Switzerland.[2] The Caucasus Mountains are higher, and the Urals longer, but both lie partly in Asia. The mountains were formed over tens of millions of years as the African and Eurasian tectonic plates collided. Extreme shortening caused by the event resulted in marine sedimentary rocks rising by thrusting and folding into high mountain peaks such as Mont Blanc and the Matterhorn. Mont Blanc spans the French\u2013Italian border, and at 4,810 m (15,781 ft) is the highest mountain in the Alps. The Alpine region area contains about a hundred peaks higher than 4,000 m (13,123 ft), known as the\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='3' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nSeries of lower mountain ranges run parallel to the main chain of the Alps, including the French Prealps in France and the Jura Mountains in Switzerland and France. The secondary chain of the Alps follows the watershed from the Mediterranean Sea to the Wienerwald, passing over many of the highest and most well-known peaks in the Alps. From the Colle di Cadibona to Col de Tende it runs westwards, before turning to the northwest and then, near the Colle della Maddalena, to the north. Upon reaching the Swiss border, the line of the main chain heads approximately east-northeast, a heading it follows until its end near Vienna.\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='4' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nThis is an old revision of this page, as edited by K6ka (talk | contribs) at 17:02, 26 October 2015 (Reverted edits by Urmomy (talk) (HG) (3.1.18)). The present address (URL) is a permanent link to this revision, which may differ significantly from the current revision.Revision as of 17:02, 26 October 2015 by K6ka (talk | contribs) (Reverted edits by Urmomy (talk) (HG) (3.1.18))\n\n(diff) \u2190 Previous revision | Latest revision (diff) | Newer revision \u2192 (diff)\n\n\"Alpe\" redirects here. For the German river, see Alpe (river). For \u200cother uses, see Alps (disambiguation).\n\nAlps Mont Blanc , the highest mountain in the Alps, view from the Savoy side Highest point Peak Mont Blanc Elevation 4,810 m (15,780 ft) Geography Lua error in Module:Location_map at line 526: Unable to find the specified location map definition: \"Module:Location map/data/Alpenrelief 01.jpg\" does not exist. Country Slovenia Geology Orogeny Alpine orogeny Rock age Tertiary Rock type B\u00fcndner schist\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='5' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\n^ qtd in Shoumatoff (2001), 193\n\n^ Shoumatoff (2001), 192\u2013194\n\n^ Fleming (2000), 8\n\n^ a b Fleming (2000), vii\n\n^ Fleming (2000), 27\n\n^ Fleming (2000), 12\u201313, 30, 27\n\n^ Beattie, (2006), 121\u2013123\n\n^ a b Fleming (2000), 83\n\n^ Beattie, (2006), 125\u2013126\n\n^ Geoffrey Hartman, \"Gods, Ghosts, and Shelley's 'Atheos'\", Literature and Theology, Volume 24, Issue 1, pp. 4\u201318\n\n^ Beattie, (2006), 127\u2013133\n\n^ Beattie, (2006), 139\n\n^ Mitchell (2007), 7\u201310\n\n^ Halbrook (1998), 1\n\n^ Halbrook (2006), 1\u20133\n\n^ Feuer (2006), viii\n\n^ Mitchell (2007), 10, 151\n\n^ Chartes et. el. (2010), 14\n\n^ Chartes et. el. (2010), 5\n\n^ a b c d e Shoumataff (2001), 123\u2013126\n\n^ Shoumataff (2001), 129, 135\n\n^ Shoumataff (2001), 134\n\n^ Shoumataff (2001), 131, 134\n\n^ Cahier d'architecture Haute Maurienne/Vanoise\n\n^ a b Shoumataff (2001), 114\u2013166\n\n^ a b c d Bartaletti, Fabrizio.\"What Role Do the Alps Play within World Tourism?\". Commission Internationale pour la Protection des Alpes. CIRPA.org. Retrieved 9 August 2012\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='6' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nand Italy. Now the pass has been supplanted by the Fr\u00e9jus Road and Rail tunnel. At 2,756 m (9,042 ft), the Stelvio Pass in northern Italy is one of the highest of the Alpine passes; the road was built in the 1820s.[16] The highest pass in the alps is the col de l'Iseran in Savoy (France) at 2,770 m (9,088 ft).\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='7' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nGeography\n\nMain article: Geography of the Alps\n\nThe Alps are a crescent shaped geographic feature of central Europe that ranges in a 800 km (500 mi) arc from east to west and is 200 km (120 mi) in width. The mean height of the mountain peaks is 2.5 km (1.6 mi).[10] The range stretches from the Mediterranean Sea north above the Po river basin, extending through France from Grenoble, eastward through mid and southern Switzerland. The range continues toward Vienna in Austria, and east to the Adriatic Sea and into Slovenia.[11][12][13] To the south it dips into northern Italy and to the north extends to the south border of Bavaria in Germany.[13] In areas like Chiasso, Switzerland, and Neuschwanstein, Bavaria, the demarcation between the mountain range and the flatlands are clear; in other places such as Geneva, the demarcation is less clear. The countries with the greatest alpine territory are Switzerland, France, Austria and Italy.\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='8' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nv t e Physical geography Atmospheric science / Meteorology Biogeography / Phytogeography Climatology / Paleoclimatology / Palaeogeography Coastal geography / Oceanography Soil science / Pedology / Edaphology Geobiology Geology Geomorphology Geostatistics Glaciology Hydrology / Limnology Landscape ecology Quaternary science Category Portal Commons\n\nv t e Mountain ranges of France Alps Armorican Massif Ardennes Corsica Jura Mountains Massif Central Morvan Pyrenees Vosges\n\nAuthority control databases International VIAF National Germany United States France BnF data Czech Republic Spain Israel Geographic Pleiades Other IdRef Historical Dictionary of Switzerland NARA\n\nRetrieved from \"https://en.wikipedia.org/w/index.php?title=Alps&oldid=687607958\"\n\nCategories:\n\nAlps\n\nEcology of the Alps\n\nMountain ranges of Europe\n\nMountains of Europe\n\nGeography of Central Europe\n\nGeography of Western Europe\n\nPhysiographic provinces\n\nHidden categories:\n\nPages with script errors\n\nPages with reference errors\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='9' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nExploration\n\nMain article: Exploration of the High Alps\n\nRadiocarbon dated charcoal placed around 50,000 years ago was found in the Drachloch (Dragon's Hole) cave above the village of Vattis in the canton of St. Gallen, proving that the high peaks were visited by prehistoric people. Seven bear skulls from the cave may have been buried by the same prehistoric people.[92] The peaks, however, were mostly ignored except for a few notable examples, and long left to the exclusive attention of the people of the adjoining valleys.[93] The mountain peaks were seen as terrifying, the abode of dragons and demons, to the point that people blindfolded themselves to cross the Alpine passes.[94] The glaciers remained a mystery and many still believed the highest areas to be inhabited by dragons.[95]\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "<doc id='10' source='files/6iTkeGUs2CvUehhYLmMYXB/alps_wiki.html'>\nHistory\n\nMain article: History of the Alps\n"
+            },
+            {
+              "type": "text",
+              "text": "</doc>\n"
+            },
+            {
+              "type": "text",
+              "text": "</context>"
+            }
+          ],
+          "role": "user"
+        }
+      ],
+      "model": "gpt-4.1-2025-04-14",
+      "stream": true,
+      "temperature": 0.0,
+      "max_prompt_tokens": 16000
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {
+      "date": "Wed, 27 Aug 2025 14:57:37 GMT",
+      "server": "uvicorn",
+      "content-type": "text/event-stream; charset=utf-8",
+      "x-upstream-attempts": "1",
+      "content-encoding": "gzip",
+      "transfer-encoding": "chunked"
+    }
+  },
+  "body": "data: {\"id\":\"chatcmpl-C9Bsi34otCIhW2WT3v5FiA7tYNHVu\",\"choices\":[{\"delta\":{\"content\":\"\",\"role\":\"assistant\",\"refusal\":null},\"finish_reason\":null,\"index\":0,\"logprobs\":null}],\"created\":1756306660,\"model\":\"gpt-4.1-2025-04-14\",\"object\":\"chat.completion.chunk\",\"system_fingerprint\":\"fp_c79ab13e31\"}\n\ndata: {\"id\":\"chatcmpl-C9Bsi34otCIhW2WT3v5FiA7tYNHVu\",\"choices\":[{\"delta\":{\"content\":\"Qu\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}],\"created\":1756306660,\"model\":\"gpt-4.1-2025-04-14\",\"object\":\"chat.completion.chunk\",\"system_fingerprint\":\"fp_c79ab13e31\"}\n\ndata: {\"id\":\"chatcmpl-C9Bsi34otCIhW2WT3v5FiA7tYNHVu\",\"choices\":[{\"delta\":{\"content\":\"ack\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}],\"created\":1756306660,\"model\":\"gpt-4.1-2025-04-14\",\"object\":\"chat.completion.chunk\",\"system_fingerprint\":\"fp_c79ab13e31\"}\n\ndata: {\"id\":\"chatcmpl-C9Bsi34otCIhW2WT3v5FiA7tYNHVu\",\"choices\":[{\"delta\":{\"content\":\"!\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}],\"created\":1756306660,\"model\":\"gpt-4.1-2025-04-14\",\"object\":\"chat.completion.chunk\",\"system_fingerprint\":\"fp_c79ab13e31\"}\n\ndata: {\"id\":\"chatcmpl-C9Bsi34otCIhW2WT3v5FiA7tYNHVu\",\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\",\"index\":0,\"logprobs\":null}],\"created\":1756306660,\"model\":\"gpt-4.1-2025-04-14\",\"object\":\"chat.completion.chunk\",\"system_fingerprint\":\"fp_c79ab13e31\",\"usage\":{\"completion_tokens\":3,\"prompt_tokens\":2330,\"total_tokens\":2333},\"statistics\":{\"discarded_messages\":[]}}\n\ndata: [DONE]\n\n",
+  "body_encoded": ""
+}

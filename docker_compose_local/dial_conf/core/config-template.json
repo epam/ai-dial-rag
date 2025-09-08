@@ -108,6 +108,54 @@
         "*/*"
       ]
     },
+    "gpt-4.1-2025-04-14": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4.1-2025-04-14/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4.1-2025-04-14/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4.1",
+      "displayVersion": "2025-04-14",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-5-2025-08-07": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-5-2025-08-07/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-5-2025-08-07/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-5",
+      "displayVersion": "2025-08-07",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-5-chat-2025-08-07": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-5-chat-2025-08-07/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-5-chat-2025-08-07/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-5 chat",
+      "displayVersion": "2025-08-07",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
     "gpt-4o-mini-2024-07-18": {
       "type": "chat",
       "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4o-mini-2024-07-18/chat/completions",
@@ -119,6 +167,70 @@
       ],
       "displayName": "GPT-4o mini",
       "displayVersion": "2024-07-18",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-4.1-mini-2025-04-14": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4.1-mini-2025-04-14/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4.1-mini-2025-04-14/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4.1 mini",
+      "displayVersion": "2025-04-14",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-5-mini-2025-08-07": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-5-mini-2025-08-07/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-5-mini-2025-08-07/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-5 mini",
+      "displayVersion": "2025-08-07",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-4.1-nano-2025-04-14": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-4.1-nano-2025-04-14/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-4.1-nano-2025-04-14/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-4.1 nano",
+      "displayVersion": "2025-04-14",
+      "iconUrl": "gpt4.svg",
+      "inputAttachmentTypes": [
+        "*/*"
+      ]
+    },
+    "gpt-5-nano-2025-08-07": {
+      "type": "chat",
+      "endpoint": "http://adapter-dial:5000/openai/deployments/gpt-5-nano-2025-08-07/chat/completions",
+      "upstreams": [
+        {
+          "endpoint": "${REMOTE_DIAL_URL}/openai/deployments/gpt-5-nano-2025-08-07/chat/completions",
+          "key": "${REMOTE_DIAL_API_KEY}"
+        }
+      ],
+      "displayName": "GPT-5 mini",
+      "displayVersion": "2025-08-07",
       "iconUrl": "gpt4.svg",
       "inputAttachmentTypes": [
         "*/*"
@@ -311,7 +423,14 @@
         "gpt-4o-2024-05-13": {},
         "gpt-4o-2024-08-06": {},
         "gpt-4o-2024-11-20": {},
+        "gpt-4.1-2025-04-14": {},
+        "gpt-5-2025-08-07": {},
+        "gpt-5-chat-2025-08-07": {},
         "gpt-4o-mini-2024-07-18": {},
+        "gpt-4.1-mini-2025-04-14": {},
+        "gpt-5-mini-2025-08-07": {},
+        "gpt-4.1-nano-2025-04-14": {},
+        "gpt-5-nano-2025-08-07": {},
         "gpt-4-32k": {},
         "gpt-4-32k-0613": {},
         "gemini-1.5-pro-001": {},

@@ -57,7 +57,7 @@ def test_config_update():
     config = AppConfig(config_path="config/azure_description.yaml")
     assert (
         config.request.qa_chain.chat_chain.llm.deployment_name
-        == "gpt-4o-2024-05-13"
+        == "gpt-4.1-2025-04-14"
     )
 
     request_updated_config = update_config_field(
