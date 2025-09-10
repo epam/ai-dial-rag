@@ -215,9 +215,7 @@ async def test_colpali_retriever(local_server):
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
     )
-    colpali_index_config = ColpaliIndexConfig(
-        image_size=512,
-    )
+    colpali_index_config = ColpaliIndexConfig(enabled=True)
 
     colpali_model_resource = CachedColpaliModelResource(
         colpali_model_resource_config, colpali_index_config, use_cache=use_cache
@@ -300,9 +298,7 @@ def colpali_model_resource():
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name="vidore/colSmol-256M",
     )
-    colpali_index_config = ColpaliIndexConfig(
-        image_size=512,
-    )
+    colpali_index_config = ColpaliIndexConfig(enabled=True)
 
     model_resource = CachedColpaliModelResource(
         colpali_model_resource_config, colpali_index_config, use_cache=use_cache

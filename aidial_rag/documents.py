@@ -179,7 +179,10 @@ async def load_document_impl(
             )
 
         colpali_index_task = None
-        if index_config.colpali_index is not None:
+        if (
+            index_config.colpali_index is not None
+            and index_config.colpali_index.enabled
+        ):
             colpali_index_task = tg.create_task(
                 ColpaliRetriever.build_index(
                     model_resource=colpali_model_resource,
