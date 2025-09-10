@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, TypeAlias
 
 from docarray import BaseDoc, DocList
 from docarray.typing import ID, NdArray
@@ -7,7 +7,15 @@ from langchain.schema import Document
 
 from aidial_rag.index_record import TextIndexItem
 
-FORMAT_VERSION: int = 12
+# The format version should be incremented on every incompatible change
+# to the DocumentRecord structure or serialization method.
+# Try to keep backward compatibility when possible (e.g. by adding new fields
+# with default values) so that we don't need to re-index all documents on
+# every change.
+# See tests/test_doc_record.py for tests that ensure backward compatibility.
+FORMAT_VERSION: int = 13
+
+SERIALIZATION_CONFIG = {"protocol": "protobuf", "compress": "gzip"}
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +44,10 @@ class ItemEmbeddings(BaseDoc):
     embeddings: NdArray["i", "x"]  # type: ignore # noqa: F821
 
 
-MultiEmbeddings = DocList[ItemEmbeddings]
+MultiEmbeddings: TypeAlias = DocList[ItemEmbeddings]
 
 
+# Note: the default values should be added for new fields to keep backward compatibility
 class DocumentRecord(BaseDoc):
     format_version: int | None
     index_settings: IndexSettings
@@ -46,8 +55,8 @@ class DocumentRecord(BaseDoc):
     chunks: DocList[Chunk]
     text_index: DocList[TextIndexItem] | None
     embeddings_index: MultiEmbeddings | None
-    multimodal_embeddings_index: MultiEmbeddings | None
-    description_embeddings_index: MultiEmbeddings | None
+    multimodal_embeddings_index: MultiEmbeddings | None = None
+    description_embeddings_index: MultiEmbeddings | None = None
     mime_type: str
     document_bytes: bytes  # Could be attached document or converted document
 
