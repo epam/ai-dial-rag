@@ -58,7 +58,7 @@ def main():
         epilog="""
 Examples:
   # Download a specific ColPali model
-  python download_model.py colpali /path/to/colpali_models vidore/colpali-v1.3
+  python download_model.py colpali vidore/colpali-v1.3 /path/to/colpali_models
   
   # Download embeddings model
   python download_model.py embeddings epam/bge-small-en /path/to/embeddings openvino torch
@@ -70,9 +70,9 @@ Examples:
     
     # ColPali models parser
     colpali_parser = subparsers.add_parser('colpali', help='Download a single ColPali model')
-    colpali_parser.add_argument('path', help='Base path to save ColPali model')
     colpali_parser.add_argument('model_name', help='Model name to download')
-    
+    colpali_parser.add_argument('path', help='Base path to save ColPali model')
+
     # Embeddings models parser  
     embeddings_parser = subparsers.add_parser('embeddings', help='Download embeddings model')
     embeddings_parser.add_argument('model_name', help='Hugging Face model name')

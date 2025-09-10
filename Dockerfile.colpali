@@ -22,7 +22,7 @@ COPY aidial_rag/retrievers/colpali_retriever/colpali_models.py aidial_rag/retrie
 COPY download_model.py ./
 
 # Download the specified ColPali model
-RUN python download_model.py colpali "$COLPALI_MODELS_BASE_PATH" "$COLPALI_MODEL_NAME"
+RUN python download_model.py colpali "$COLPALI_MODEL_NAME" "$COLPALI_MODELS_BASE_PATH"
 
 # Stage 2: Final image with downloaded model
 FROM ${BASE_IMAGE_NAME}
