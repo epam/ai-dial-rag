@@ -29,7 +29,6 @@ def download_colpali_model(base_path: str, model_name: str):
     
     # Validate model name
     if model_name not in KNOWN_MODELS:
-        print(f"Error: Model '{model_name}' not found in known models: {list(KNOWN_MODELS.keys())}")
         raise ValueError(f"Model '{model_name}' not found in known models: {list(KNOWN_MODELS.keys())}")
     
     print(f"Downloading ColPali model '{model_name}' to base path: {base_path}")
