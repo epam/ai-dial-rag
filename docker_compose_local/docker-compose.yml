@@ -33,7 +33,7 @@ services:
   core:
     ports:
       - "8080:8080"
-    image: epam/ai-dial-core:0.8.1
+    image: epam/ai-dial-core:0.29.2
     environment:
       - AIDIAL_SETTINGS=/opt/settings/settings.json
       - JAVA_OPTS=-Dgflog.config=/opt/settings/gflog.xml
@@ -54,7 +54,7 @@ services:
 
 
   adapter-dial:
-    image: "epam/ai-dial-adapter-dial:0.1.0"
+    image: "epam/ai-dial-adapter-dial:0.9.0"
     environment:
       DIAL_URL: "http://core:8080"
       LOG_LEVEL: "INFO"

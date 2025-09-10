@@ -9,7 +9,7 @@
     }
   },
   "encryption": {
-    "salt": "salt",
-    "password": "password"
+    "key": "key",
+    "secret": "secret"
   }
 }
