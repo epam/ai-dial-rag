@@ -4,7 +4,6 @@ import os
 import shutil
 from pathlib import Path
 from huggingface_hub import snapshot_download
-import tempfile
 from sentence_transformers import SentenceTransformer
 
 
