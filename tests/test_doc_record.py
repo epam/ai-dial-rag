@@ -79,7 +79,7 @@ async def test_prepare_index(local_server):
 @pytest.mark.parametrize(
     "index_file",
     [
-        "doc_record_0.34.0rc0.bin",
+        "doc_record_0.34.0rc0.bin",  # before modification_metadata
     ],
 )
 @pytest.mark.asyncio
@@ -88,3 +88,8 @@ async def test_load_old_indexes(index_file):
         doc_record = DocumentRecord.from_bytes(f.read(), **SERIALIZATION_CONFIG)
 
     assert isinstance(doc_record, DocumentRecord)
+
+    # Check that new fields have valid default values
+    assert doc_record.modification_metadata is not None
+    assert doc_record.modification_metadata.etag is None
+    assert doc_record.modification_metadata.last_modified is None

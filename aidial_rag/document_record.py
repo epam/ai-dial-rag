@@ -47,6 +47,12 @@ class ItemEmbeddings(BaseDoc):
 MultiEmbeddings: TypeAlias = DocList[ItemEmbeddings]
 
 
+class ModificationMetadata(BaseDoc):
+    id: ID | None = None  # Disable random ID generation for performance reasons
+    last_modified: int | None = None
+    etag: str | None = None
+
+
 # Note: the default values should be added for new fields to keep backward compatibility
 class DocumentRecord(BaseDoc):
     format_version: int | None
@@ -59,6 +65,7 @@ class DocumentRecord(BaseDoc):
     description_embeddings_index: MultiEmbeddings | None = None
     mime_type: str
     document_bytes: bytes  # Could be attached document or converted document
+    modification_metadata: ModificationMetadata = ModificationMetadata()
 
 
 async def build_chunks_list(chunk_docs: List[Document]) -> DocList:
