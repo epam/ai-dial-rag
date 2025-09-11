@@ -22,6 +22,7 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResourceConfig,
 )
+from aidial_rag.retrievers.colpali_retriever.colpali_models import KnownModels
 from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
     ColpaliRetriever,
 )
@@ -81,7 +82,7 @@ def create_colpali_only_config():
         enable_debug_commands=True,
         config_path="config/azure_colsmol256m.yaml",
         colpali_model_resource_config=ColpaliModelResourceConfig(
-            model_name="vidore/colSmol-256M",
+            model_name=KnownModels.COLSMOL_256M,
         ),
     )
 
@@ -97,7 +98,7 @@ def mock_create_retriever(
     use_cache = not os.environ.get("REFRESH", "").lower() == "true"
     # Create model resource config from the index config for backward compatibility
     colpali_model_resource_config = ColpaliModelResourceConfig(
-        model_name="vidore/colSmol-256M",
+        model_name=KnownModels.COLSMOL_256M,
     )
     cached_model_resource = CachedColpaliModelResource(
         colpali_model_resource_config,
@@ -187,9 +188,9 @@ def test_model_name_validation():
 
     # Test valid configuration
     valid_config = ColpaliModelResourceConfig(
-        model_name="vidore/colSmol-256M",
+        model_name=KnownModels.COLSMOL_256M,
     )
-    assert valid_config.model_name == "vidore/colSmol-256M"
+    assert valid_config.model_name == KnownModels.COLSMOL_256M
 
     # Test unknown model name - should raise error
     with pytest.raises(
@@ -213,7 +214,7 @@ async def test_colpali_retriever(local_server):
 
     # Setup ColPali model and index using Azure config
     colpali_model_resource_config = ColpaliModelResourceConfig(
-        model_name="vidore/colSmol-256M",
+        model_name=KnownModels.COLSMOL_256M,
     )
     colpali_index_config = ColpaliIndexConfig(enabled=True)
 
@@ -296,7 +297,7 @@ def colpali_model_resource():
     )
 
     colpali_model_resource_config = ColpaliModelResourceConfig(
-        model_name="vidore/colSmol-256M",
+        model_name=KnownModels.COLSMOL_256M,
     )
     colpali_index_config = ColpaliIndexConfig(enabled=True)
 

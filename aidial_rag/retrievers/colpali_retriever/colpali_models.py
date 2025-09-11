@@ -30,13 +30,20 @@ class ColpaliModelType(StrEnum):
     COLIDEFICS = "ColIdefics"
 
 
+class KnownModels(StrEnum):
+    """Known ColPali model names"""
+    COLSMOL_256M = "vidore/colSmol-256M"
+    COLPALI_V1_3 = "vidore/colpali-v1.3"
+    COLQWEN2_V1_0 = "vidore/colqwen2-v1.0"
+
+
 # Mapping of known model names to their expected model types
 # can be extended with more models if needed
-KNOWN_MODELS = {
+MODEL_NAME_TO_TYPE = {
     # ColIdefics models
-    "vidore/colSmol-256M": ColpaliModelType.COLIDEFICS,
-    "vidore/colpali-v1.3": ColpaliModelType.COLPALI,
-    "vidore/colqwen2-v1.0": ColpaliModelType.COLQWEN,
+    KnownModels.COLSMOL_256M: ColpaliModelType.COLIDEFICS,
+    KnownModels.COLPALI_V1_3: ColpaliModelType.COLPALI,
+    KnownModels.COLQWEN2_V1_0: ColpaliModelType.COLQWEN,
 }
 
 
@@ -45,10 +52,10 @@ def get_model_processor_classes(
 ) -> tuple[Any, Any]:
     """Get model and processor classes for a given model name"""
 
-    if model_name not in KNOWN_MODELS:
+    if model_name not in MODEL_NAME_TO_TYPE:
         raise ValueError(f"Unknown model name: {model_name}")
 
-    model_type = KNOWN_MODELS[model_name]
+    model_type = MODEL_NAME_TO_TYPE[model_name]
 
     match model_type:
         case ColpaliModelType.COLPALI:

@@ -10,7 +10,8 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_models import (
-    KNOWN_MODELS,
+    MODEL_NAME_TO_TYPE,
+    KnownModels,
     load_model_and_processor,
 )
 
@@ -19,16 +20,16 @@ class ColpaliModelResourceConfig(BaseModel):
     model_name: Annotated[
         str,
         Field(
-            default="vidore/colSmol-256M",
-            description="Model name, should be one of KNOWN_MODELS keys",
+            default=KnownModels.COLSMOL_256M,
+            description="Model name, should be one of MODEL_NAME_TO_TYPE keys",
         ),
     ]
 
     def validate_model_name(self):
         """Validate that model name is known"""
-        if self.model_name not in KNOWN_MODELS:
+        if self.model_name not in MODEL_NAME_TO_TYPE:
             raise ValueError(
-                f"Model name '{self.model_name}' is not known. Please use one of the following: {list(KNOWN_MODELS.keys())}"
+                f"Model name '{self.model_name}' is not known. Please use one of the following: {list(MODEL_NAME_TO_TYPE.keys())}"
             )
 
     @model_validator(mode="after")
