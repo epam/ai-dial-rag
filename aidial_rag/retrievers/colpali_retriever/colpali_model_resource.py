@@ -1,5 +1,4 @@
 import asyncio
-import os
 import threading
 from typing import Annotated, DefaultDict, List, Optional, Tuple
 
@@ -12,14 +11,8 @@ from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
 )
 from aidial_rag.retrievers.colpali_retriever.colpali_models import (
     KNOWN_MODELS,
-    get_model_cache_path,
-    get_model_local_path,
-    get_model_processor_classes,
+    load_model_and_processor,
 )
-
-# Path to pre-downloaded ColPali models for normal use in docker
-# if None model will be downloaded from Hugging Face
-COLPALI_MODELS_BASE_PATH = os.environ.get("COLPALI_MODELS_BASE_PATH", None)
 
 
 class ColpaliModelResourceConfig(BaseModel):
@@ -172,60 +165,26 @@ class ColpaliBatchProcessor:
 class ColpaliModelResource:
     def __init__(
         self,
-        config: ColpaliModelResourceConfig | None,
+        model_resource_config: ColpaliModelResourceConfig | None,
         colpali_index_config: ColpaliIndexConfig | None,
     ):
         self.lock = threading.Lock()
         self.model_resource_config: ColpaliModelResourceConfig | None = None
-        self.colpali_index_config: ColpaliIndexConfig | None = None
-        self.index_config: ColpaliIndexConfig | None = None
         self.model = None
         self.device: torch.device | None = None
         self.processor = None
         self.batch_processor: Optional[ColpaliBatchProcessor] = None
         self.query_batch_processor: Optional[ColpaliBatchProcessor] = None
-        if colpali_index_config is not None and config is not None:
-            self.__set_config(config)
 
-    def __set_config(self, config: ColpaliModelResourceConfig):
-        config.validate_model_name()
-
-        with self.lock:
-            if self.model_resource_config == config:
-                return
-            self.model_resource_config = config
-            device = autodetect_device().value
-            self.device = torch.device(device)
-
-            model_class, processor_class = get_model_processor_classes(
-                config.model_name
+        # if both are set then we can load model
+        if (
+            colpali_index_config is not None
+            and model_resource_config is not None
+        ):
+            self.device = torch.device(autodetect_device().value)
+            self.model, self.procesor = load_model_and_processor(
+                model_resource_config.model_name, self.device
             )
-
-            # Check if local model path exists otherwise use Hugging Face
-            model_name = config.model_name
-            cache_path = None
-            print(f"COLPALI_MODELS_BASE_PATH: {COLPALI_MODELS_BASE_PATH}")
-            if COLPALI_MODELS_BASE_PATH:
-                local_model_path = get_model_local_path(
-                    COLPALI_MODELS_BASE_PATH, model_name
-                )
-                if os.path.exists(local_model_path):
-                    model_name = local_model_path
-                    cache_path = get_model_cache_path(local_model_path)
-                    print(f"loading model from local path: {local_model_path}")
-                else:
-                    print("loading model from hugging face")
-            self.model = model_class.from_pretrained(
-                model_name,
-                torch_dtype=torch.float16,
-                device_map=self.device,
-                cache_dir=cache_path if cache_path else None,
-            ).eval()
-            self.processor = processor_class.from_pretrained(model_name)
-
-            assert self.model is not None
-            assert self.processor is not None
-            assert self.device is not None
 
     def get_model_processor_device(self):
         with self.lock:
@@ -253,11 +212,12 @@ class ColpaliModelResource:
             batch_size: Number of items to process in each batch
             batch_wait_time: Time to wait for more items before processing batch
         """
-        if self.batch_processor is None:
-            self.batch_processor = ColpaliBatchProcessor(
-                process_batch_func, pool_func, batch_size, batch_wait_time
-            )
-        return self.batch_processor
+        with self.lock:
+            if self.batch_processor is None:
+                self.batch_processor = ColpaliBatchProcessor(
+                    process_batch_func, pool_func, batch_size, batch_wait_time
+                )
+            return self.batch_processor
 
     def get_query_batch_processor(
         self,
@@ -274,8 +234,9 @@ class ColpaliModelResource:
             batch_size: Number of items to process in each batch
             batch_wait_time: Time to wait for more items before processing batch
         """
-        if self.query_batch_processor is None:
-            self.query_batch_processor = ColpaliBatchProcessor(
-                process_batch_func, pool_func, batch_size, batch_wait_time
-            )
-        return self.query_batch_processor
+        with self.lock:
+            if self.query_batch_processor is None:
+                self.query_batch_processor = ColpaliBatchProcessor(
+                    process_batch_func, pool_func, batch_size, batch_wait_time
+                )
+            return self.query_batch_processor

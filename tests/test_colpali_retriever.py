@@ -304,9 +304,6 @@ def colpali_model_resource():
         colpali_model_resource_config, colpali_index_config, use_cache=use_cache
     )
 
-    # Ensure colpali_index_config is set
-    model_resource.colpali_index_config = colpali_index_config
-
     return model_resource
 
 
