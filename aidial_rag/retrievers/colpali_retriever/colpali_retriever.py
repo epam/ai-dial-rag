@@ -206,18 +206,16 @@ class ColpaliRetriever(BaseRetriever):
 
     async def aembed_queries(self, queries: List[str]) -> List[Tensor]:
         """Async version of embed_queries with batching support."""
-        # Process queries in batches using batched_map_with_progress
+    
         batch_results = await batched_map_with_progress(
             queries,
             lambda batch: run_in_heavy_query_embeddings_pool(self.embed_queries, batch),  # Use CPU pool for heavy tasks
             batch_size=8,  # 8 queries per batch #TODO move to config
             file=None  # No progress bar needed for queries
         )
-        
-        # Flatten the batch results into a single list
-        query_embeddings_list = [result for batch_results in batch_results for result in batch_results]
-        
-        return query_embeddings_list
+        batch_results = list(batch_results)
+        print(batch_results)
+        return batch_results
 
     @staticmethod
     def pad_embeddings(tensor: Tensor, target_shape: Tuple) -> Tensor:

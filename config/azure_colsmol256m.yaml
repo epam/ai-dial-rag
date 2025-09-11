@@ -3,7 +3,7 @@ request:
     description_index: null
     multimodal_index: null
     colpali_index:
-      image_size: 512
+      enabled: true
   qa_chain:
     chat_chain:
       llm:
@@ -15,5 +15,3 @@ request:
         max_prompt_tokens: 8000 
 colpali_model_resource_config:
   model_name: vidore/colSmol-256M
-colpali_index_config:
-  enabled: true
