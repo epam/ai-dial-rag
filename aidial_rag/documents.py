@@ -30,10 +30,16 @@ from aidial_rag.document_record import (
     DocumentRecord,
     IndexSettings,
     build_chunks_list,
+    serialize_document_record,
+)
+from aidial_rag.document_record_migration import (
+    MIN_FORMAT_VERSION,
+    deserialize_and_migrate_document_record,
 )
 from aidial_rag.errors import (
     DocumentProcessingError,
     IndexBaseError,
+    IndexIncompatibleError,
     InvalidDocumentError,
     convert_and_log_exceptions,
 )
@@ -229,6 +235,70 @@ def handle_document_processing_error(
             ) from e
 
 
+async def _load_index_stage(
+    request_context: RequestContext,
+    index_storage: IndexStorage,
+    task: IndexingTask,
+    index_settings: IndexSettings,
+) -> DocumentRecord:
+    with timed_stage(
+        request_context.choice,
+        f"Load indexes for '{task.attachment_link.display_name}'",
+    ) as load_stage:
+        doc_record_bytes = await index_storage.load(task)
+        doc_record = deserialize_and_migrate_document_record(doc_record_bytes)
+
+        if doc_record.index_settings != index_settings:
+            raise IndexIncompatibleError(
+                f"Index settings mismatch: {doc_record.index_settings}"
+            )
+
+        print_chunks_stats(load_stage.content_stream, doc_record.chunks)
+        return doc_record
+
+
+async def _process_document_stage(
+    request_context: RequestContext,
+    config: Configuration,
+    attachment_link: AttachmentLink,
+    index_settings: IndexSettings,
+):
+    with timed_stage(
+        request_context.choice,
+        f"Processing document '{attachment_link.display_name}'",
+    ) as doc_stage:
+        io_stream = doc_stage.content_stream
+        try:
+            doc_record = await load_document_impl(
+                request_context.dial_config,
+                request_context.dial_limited_resources,
+                attachment_link,
+                io_stream,
+                index_settings,
+                config,
+            )
+        except InvalidDocumentError as e:
+            doc_stage.append_content(e.message)
+            raise
+        print_chunks_stats(io_stream, doc_record.chunks)
+
+    return doc_record
+
+
+async def _store_index_stage(
+    request_context: RequestContext,
+    index_storage: IndexStorage,
+    task: IndexingTask,
+    doc_record: DocumentRecord,
+) -> None:
+    with timed_stage(
+        request_context.choice,
+        f"Store indexes for '{task.attachment_link.display_name}'",
+    ):
+        doc_record_bytes = serialize_document_record(doc_record)
+        await index_storage.store(task, doc_record_bytes)
+
+
 async def load_document(
     request_context: RequestContext,
     task: IndexingTask,
@@ -248,20 +318,30 @@ async def load_document(
         validate_indexing_task(task, dial_api_client)
         index_settings = config.indexing.collect_fields_that_rebuild_index()
 
-        choice = request_context.choice
-
         # TODO: Move check_document_access to the DialApiClient
         await check_document_access(request_context, attachment_link, config)
 
         doc_record = None
         if not config.request.force_indexing:
             try:
-                with timed_stage(
-                    choice, f"Load indexes for '{attachment_link.display_name}'"
-                ) as load_stage:
-                    doc_record = await index_storage.load(task, index_settings)
-                    print_chunks_stats(
-                        load_stage.content_stream, doc_record.chunks
+                doc_record = await _load_index_stage(
+                    request_context, index_storage, task, index_settings
+                )
+                if (
+                    doc_record.format_version is None
+                    or doc_record.format_version < MIN_FORMAT_VERSION
+                ):
+                    raise IndexIncompatibleError(
+                        f"Index format version mismatch: {doc_record.format_version}"
+                    )
+
+                if (
+                    doc_record.format_version != FORMAT_VERSION
+                    and config.request.save_index_on_migration
+                ):
+                    doc_record.format_version = FORMAT_VERSION
+                    await _store_index_stage(
+                        request_context, index_storage, task, doc_record
                     )
             except IndexBaseError as e:
                 if not config.request.allow_indexing:
@@ -274,29 +354,12 @@ async def load_document(
                     logger.warning(f"Failed to load index: {e}")
 
         if doc_record is None:
-            with timed_stage(
-                choice, f"Processing document '{attachment_link.display_name}'"
-            ) as doc_stage:
-                io_stream = doc_stage.content_stream
-                try:
-                    doc_record = await load_document_impl(
-                        request_context.dial_config,
-                        request_context.dial_limited_resources,
-                        attachment_link,
-                        io_stream,
-                        index_settings,
-                        config,
-                    )
-                except InvalidDocumentError as e:
-                    doc_stage.append_content(e.message)
-                    raise
-
-                print_chunks_stats(io_stream, doc_record.chunks)
-
-            with timed_stage(
-                choice, f"Store indexes for '{attachment_link.display_name}'"
-            ):
-                await index_storage.store(task, doc_record)
+            doc_record = await _process_document_stage(
+                request_context, config, attachment_link, index_settings
+            )
+            await _store_index_stage(
+                request_context, index_storage, task, doc_record
+            )
 
         return doc_record
 

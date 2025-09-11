@@ -3,8 +3,10 @@ from typing import List, TypeAlias
 
 from docarray import BaseDoc, DocList
 from docarray.typing import ID, NdArray
+from google.protobuf.message import DecodeError
 from langchain.schema import Document
 
+from aidial_rag.errors import IndexIncompatibleError
 from aidial_rag.index_record import TextIndexItem
 
 # The format version should be incremented on every incompatible change
@@ -84,3 +86,20 @@ async def build_chunks_list(chunk_docs: List[Document]) -> DocList:
         chunk.metadata["chunk_id"] = i
 
     return chunks
+
+
+def serialize_document_record(
+    doc_record: DocumentRecord,
+) -> bytes:
+    return DocumentRecord.to_bytes(doc_record, **SERIALIZATION_CONFIG)
+
+
+def deserialize_document_record(
+    data: bytes,
+) -> DocumentRecord:
+    try:
+        return DocumentRecord.from_bytes(data, **SERIALIZATION_CONFIG)
+    except DecodeError as e:
+        raise IndexIncompatibleError(
+            "Failed to deserialize index with protobuf. The index might be in an old format."
+        ) from e
