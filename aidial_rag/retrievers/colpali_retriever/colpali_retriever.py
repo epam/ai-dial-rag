@@ -220,11 +220,7 @@ class ColpaliRetriever(BaseRetriever):
             file=sys.stdout,  # Use stdout for progress bar
         )
 
-        # Flatten the batch results into a single list
-        # batch_results is a list of List[Tensor], we need to flatten it
-        query_embeddings_list = []
-        for batch_result in batch_results:
-            query_embeddings_list.extend(batch_result)
+        query_embeddings_list = list(batch_results)
 
         return query_embeddings_list
 
