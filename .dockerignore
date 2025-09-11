@@ -13,6 +13,7 @@
 !.env.example
 !.github
 !.gitignore
+!.ort.yml
 !.vscode/extensions.json
 !CONTRIBUTING.md
 !Dockerfile
