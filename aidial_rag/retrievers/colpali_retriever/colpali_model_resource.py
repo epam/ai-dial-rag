@@ -13,6 +13,8 @@ from aidial_rag.retrievers.colpali_retriever.colpali_models import (
     load_model_and_processor,
 )
 
+DEFAULT_BATCH_SIZE = 8
+
 
 class ColpaliModelResourceConfig(BaseModel):
     model_name: Annotated[
@@ -20,6 +22,13 @@ class ColpaliModelResourceConfig(BaseModel):
         Field(
             default=KnownModels.COLSMOL_256M,
             description="Model name, should be one of MODEL_NAME_TO_TYPE keys",
+        ),
+    ]
+    batch_size: Annotated[
+        int,
+        Field(
+            default=DEFAULT_BATCH_SIZE,
+            description="Batch size for processing queries and images",
         ),
     ]
 
@@ -71,3 +80,6 @@ class ColpaliModelResource:
                 "ColpaliModelResourceConfig andColpaliIndexConfig are required"
             )
         return self.model, self.processor, self.device
+
+    def get_batch_size(self):
+        return self.model_resource_config.batch_size if self.model_resource_config else DEFAULT_BATCH_SIZE

@@ -213,10 +213,11 @@ class ColpaliRetriever(BaseRetriever):
                 self.embed_queries, batch
             )
 
+        batch_size = self.model_resource.get_batch_size()
         batch_results = await batched_map_with_progress(
             queries,
             process_batch,  # Use CPU pool for heavy tasks
-            batch_size=8,  # 8 queries per batch #TODO move to config
+            batch_size=batch_size,
             file=sys.stdout,  # Use stdout for progress bar
         )
 
@@ -284,13 +285,14 @@ class ColpaliRetriever(BaseRetriever):
         batch = []
         image_embeddings_list = []
 
-        # here cant use batched_map_with_progress because it loads all images into memory and doesnt support async generators
 
+        batch_size = colpali_model_resource.get_batch_size()
+        # here cant use batched_map_with_progress because it loads all images into memory and doesnt support async generators
         with TqdmProgressBar(total=images.total, file=stageio) as pbar:
             async for image in images.agen:
                 batch.append(image)
 
-                if len(batch) >= 8:  # Process batch when it reaches 8 images
+                if len(batch) >= batch_size:  # Process batch when it reaches configured batch size
                     batch_results = await run_in_heavy_indexing_embeddings_pool(
                         ColpaliRetriever._process_images_batch,
                         batch,
