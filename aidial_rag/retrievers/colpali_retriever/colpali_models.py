@@ -56,7 +56,7 @@ def get_model_processor_classes(
     if model_name not in MODEL_NAME_TO_TYPE:
         raise ValueError(f"Unknown model name: {model_name}")
 
-    model_type = MODEL_NAME_TO_TYPE[model_name]
+    model_type = MODEL_NAME_TO_TYPE[KnownModels(model_name)]
 
     match model_type:
         case ColpaliModelType.COLPALI:

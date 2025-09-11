@@ -206,23 +206,26 @@ class ColpaliRetriever(BaseRetriever):
 
     async def aembed_queries(self, queries: List[str]) -> List[Tensor]:
         """Async version of embed_queries with batching support."""
+
         # Process queries in batches using batched_map_with_progress
         async def process_batch(batch: List[str]) -> List[Tensor]:
-            return await run_in_heavy_query_embeddings_pool(self.embed_queries, batch)
-        
+            return await run_in_heavy_query_embeddings_pool(
+                self.embed_queries, batch
+            )
+
         batch_results = await batched_map_with_progress(
             queries,
             process_batch,  # Use CPU pool for heavy tasks
             batch_size=8,  # 8 queries per batch #TODO move to config
             file=sys.stdout,  # Use stdout for progress bar
         )
-        
+
         # Flatten the batch results into a single list
         # batch_results is a list of List[Tensor], we need to flatten it
         query_embeddings_list = []
         for batch_result in batch_results:
             query_embeddings_list.extend(batch_result)
-        
+
         return query_embeddings_list
 
     @staticmethod
@@ -284,6 +287,8 @@ class ColpaliRetriever(BaseRetriever):
         # Process images in batches manually to avoid memory issues
         batch = []
         image_embeddings_list = []
+
+        # here cant use batched_map_with_progress because it loads all images into memory and doesnt support async generators
 
         with TqdmProgressBar(total=images.total, file=stageio) as pbar:
             async for image in images.agen:
