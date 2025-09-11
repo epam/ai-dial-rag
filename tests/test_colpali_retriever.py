@@ -336,7 +336,7 @@ async def test_images(local_server, colpali_model_resource):
     extracted_images = await extract_page_images(
         mime_type,
         buffer,
-        {"scaled_size": colpali_model_resource.colpali_index_config.image_size},
+        {},
         sys.stderr,
     )
 
@@ -368,7 +368,6 @@ async def embed_image_batch(colpali_retriever, image_batch, task_id):
     images_gen = AsyncGeneratorWithTotal(image_generator(), len(image_batch))
     embeddings = await ColpaliRetriever.embed_images(
         colpali_retriever.model_resource,
-        colpali_retriever.model_resource.colpali_index_config,
         images_gen,
         sys.stderr,
     )

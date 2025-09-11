@@ -169,7 +169,7 @@ class ColpaliModelResource:
         colpali_index_config: ColpaliIndexConfig | None,
     ):
         self.lock = threading.Lock()
-        self.model_resource_config: ColpaliModelResourceConfig | None = None
+        self.model_resource_config: ColpaliModelResourceConfig | None = model_resource_config
         self.model = None
         self.device: torch.device | None = None
         self.processor = None
@@ -179,10 +179,11 @@ class ColpaliModelResource:
         # if both are set then we can load model
         if (
             colpali_index_config is not None
+            and colpali_index_config.enabled
             and model_resource_config is not None
         ):
             self.device = torch.device(autodetect_device().value)
-            self.model, self.procesor = load_model_and_processor(
+            self.model, self.processor = load_model_and_processor(
                 model_resource_config.model_name, self.device
             )
 

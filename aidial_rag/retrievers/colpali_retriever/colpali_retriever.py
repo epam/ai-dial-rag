@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import Any, List, Tuple
 
 import numpy as np
+from regex import B
 import torch
 from langchain.schema import BaseRetriever, Document
 from torch import Tensor
@@ -21,6 +22,7 @@ from aidial_rag.resources.cpu_pools import (
     run_in_heavy_query_embeddings_pool,
 )
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
+from aidial_rag.batched import batched_map_with_progress
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
@@ -34,7 +36,6 @@ from aidial_rag.retrievers.page_image_retriever_utils import extract_page_images
 from aidial_rag.utils import timed_block
 
 logger = logging.getLogger(__name__)
-
 
 class DocumentPageEmbedding:
     """Structure to hold document page embedding and chunk IDs."""
@@ -205,23 +206,17 @@ class ColpaliRetriever(BaseRetriever):
 
     async def aembed_queries(self, queries: List[str]) -> List[Tensor]:
         """Async version of embed_queries with batching support."""
-        # Get or create query batch processor with GPU processing method
-        query_batch_processor = self.model_resource.get_query_batch_processor(
-            self.embed_queries, pool_func=run_in_heavy_query_embeddings_pool
+        # Process queries in batches using batched_map_with_progress
+        batch_results = await batched_map_with_progress(
+            queries,
+            lambda batch: run_in_heavy_query_embeddings_pool(self.embed_queries, batch),  # Use CPU pool for heavy tasks
+            batch_size=8,  # 8 queries per batch #TODO move to config
+            file=None  # No progress bar needed for queries
         )
-
-        id = await query_batch_processor.register_processing_id()
-
-        query_embeddings_list = []
-
-        for query in queries:
-            # Add query to batch processor
-            future = await query_batch_processor.add_item(query, id)
-            query_embedding = await future
-            query_embeddings_list.append(query_embedding)
-
-        await query_batch_processor.unregister_processing_id(id)
-
+        
+        # Flatten the batch results into a single list
+        query_embeddings_list = [result for batch_results in batch_results for result in batch_results]
+        
         return query_embeddings_list
 
     @staticmethod
@@ -252,6 +247,7 @@ class ColpaliRetriever(BaseRetriever):
             pil_images.append(pil_image)
         inputs = processor.process_images(pil_images).to(device)
 
+        #TODO move this part and part from queries tonother place
         with torch.no_grad():
             outputs = model(**inputs)
 
@@ -262,7 +258,6 @@ class ColpaliRetriever(BaseRetriever):
     @staticmethod
     async def embed_images(
         colpali_model_resource: ColpaliModelResource,
-        colpali_index_config: ColpaliIndexConfig,
         images: AsyncGeneratorWithTotal,
         stageio,
     ) -> List[Tensor]:
@@ -278,36 +273,33 @@ class ColpaliRetriever(BaseRetriever):
                 "ColpaliModelResource did not return a valid model."
             )
 
-        # Get or create batch processor with processing method
-        batch_processor = colpali_model_resource.get_batch_processor(
-            lambda images: ColpaliRetriever._process_images_batch(
-                images, processor, model, device
-            ),
-            pool_func=run_in_heavy_indexing_embeddings_pool,
-        )
-
-        image_embeddings_list = []
-
         stageio.write("Processing images\n")
 
-        id = await batch_processor.register_processing_id()
-
-        # Collect all futures first
-        futures = []
-        async for image in images.agen:
-            future = await batch_processor.add_item(
-                image, id
-            )  # await to get the Future
-            futures.append(future)
-
-        # Wait for all futures to complete
-        with TqdmProgressBar(total=len(futures), file=stageio) as pbar:
-            for future in futures:
-                image_embedding = await future
-                image_embeddings_list.append(image_embedding)
-                pbar.update()
-
-        await batch_processor.unregister_processing_id(id)
+        # Process images in batches manually to avoid memory issues
+        batch = []
+        image_embeddings_list = []
+        
+        with TqdmProgressBar(total=images.total, file=stageio) as pbar:
+            async for image in images.agen:
+                batch.append(image)
+                
+                if len(batch) >= 8:  # Process batch when it reaches 8 images
+                    batch_results = await run_in_heavy_indexing_embeddings_pool(
+                        ColpaliRetriever._process_images_batch,
+                        batch, processor, model, device
+                    )
+                    image_embeddings_list.extend(batch_results)
+                    pbar.update(len(batch))
+                    batch = []  # Reset batch
+            
+            # Process remaining images in the last batch
+            if batch:
+                batch_results = await run_in_heavy_indexing_embeddings_pool(
+                    ColpaliRetriever._process_images_batch,
+                    batch, processor, model, device
+                )
+                image_embeddings_list.extend(batch_results)
+                pbar.update(len(batch))
 
         # Pad embeddings to same shape
         if image_embeddings_list:
@@ -337,7 +329,7 @@ class ColpaliRetriever(BaseRetriever):
     @staticmethod
     async def build_index(
         model_resource,
-        colpali_index_config: ColpaliIndexConfig,
+        colpali_index_config: ColpaliIndexConfig,#TODO remove this parameter and in other places too
         stageio: SupportsWriteStr,
         mime_type: str,
         original_document: bytes,
@@ -358,7 +350,7 @@ class ColpaliRetriever(BaseRetriever):
                 return None
 
             all_embeddings = await ColpaliRetriever.embed_images(
-                model_resource, colpali_index_config, extracted_images, stageio
+                model_resource, extracted_images, stageio
             )
         return MultiEmbeddings(
             [
