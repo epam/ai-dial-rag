@@ -1,14 +1,14 @@
 import logging
+import sys
 from collections import defaultdict
 from typing import Any, List, Tuple
 
 import numpy as np
-from regex import B
 import torch
 from langchain.schema import BaseRetriever, Document
 from torch import Tensor
 
-from aidial_rag.batched import TqdmProgressBar
+from aidial_rag.batched import TqdmProgressBar, batched_map_with_progress
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.document_record import (
     DocumentRecord,
@@ -22,7 +22,6 @@ from aidial_rag.resources.cpu_pools import (
     run_in_heavy_query_embeddings_pool,
 )
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
-from aidial_rag.batched import batched_map_with_progress
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
     ColpaliIndexConfig,
 )
@@ -36,6 +35,7 @@ from aidial_rag.retrievers.page_image_retriever_utils import extract_page_images
 from aidial_rag.utils import timed_block
 
 logger = logging.getLogger(__name__)
+
 
 class DocumentPageEmbedding:
     """Structure to hold document page embedding and chunk IDs."""
@@ -206,16 +206,24 @@ class ColpaliRetriever(BaseRetriever):
 
     async def aembed_queries(self, queries: List[str]) -> List[Tensor]:
         """Async version of embed_queries with batching support."""
-    
+        # Process queries in batches using batched_map_with_progress
+        async def process_batch(batch: List[str]) -> List[Tensor]:
+            return await run_in_heavy_query_embeddings_pool(self.embed_queries, batch)
+        
         batch_results = await batched_map_with_progress(
             queries,
-            lambda batch: run_in_heavy_query_embeddings_pool(self.embed_queries, batch),  # Use CPU pool for heavy tasks
+            process_batch,  # Use CPU pool for heavy tasks
             batch_size=8,  # 8 queries per batch #TODO move to config
-            file=None  # No progress bar needed for queries
+            file=sys.stdout,  # Use stdout for progress bar
         )
-        batch_results = list(batch_results)
-        print(batch_results)
-        return batch_results
+        
+        # Flatten the batch results into a single list
+        # batch_results is a list of List[Tensor], we need to flatten it
+        query_embeddings_list = []
+        for batch_result in batch_results:
+            query_embeddings_list.extend(batch_result)
+        
+        return query_embeddings_list
 
     @staticmethod
     def pad_embeddings(tensor: Tensor, target_shape: Tuple) -> Tensor:
@@ -245,7 +253,7 @@ class ColpaliRetriever(BaseRetriever):
             pil_images.append(pil_image)
         inputs = processor.process_images(pil_images).to(device)
 
-        #TODO move this part and part from queries tonother place
+        # TODO move this part and part from queries tonother place
         with torch.no_grad():
             outputs = model(**inputs)
 
@@ -276,25 +284,31 @@ class ColpaliRetriever(BaseRetriever):
         # Process images in batches manually to avoid memory issues
         batch = []
         image_embeddings_list = []
-        
+
         with TqdmProgressBar(total=images.total, file=stageio) as pbar:
             async for image in images.agen:
                 batch.append(image)
-                
+
                 if len(batch) >= 8:  # Process batch when it reaches 8 images
                     batch_results = await run_in_heavy_indexing_embeddings_pool(
                         ColpaliRetriever._process_images_batch,
-                        batch, processor, model, device
+                        batch,
+                        processor,
+                        model,
+                        device,
                     )
                     image_embeddings_list.extend(batch_results)
                     pbar.update(len(batch))
                     batch = []  # Reset batch
-            
+
             # Process remaining images in the last batch
             if batch:
                 batch_results = await run_in_heavy_indexing_embeddings_pool(
                     ColpaliRetriever._process_images_batch,
-                    batch, processor, model, device
+                    batch,
+                    processor,
+                    model,
+                    device,
                 )
                 image_embeddings_list.extend(batch_results)
                 pbar.update(len(batch))
@@ -327,7 +341,7 @@ class ColpaliRetriever(BaseRetriever):
     @staticmethod
     async def build_index(
         model_resource,
-        colpali_index_config: ColpaliIndexConfig,#TODO remove this parameter and in other places too
+        colpali_index_config: ColpaliIndexConfig,  # TODO remove this parameter and in other places too
         stageio: SupportsWriteStr,
         mime_type: str,
         original_document: bytes,

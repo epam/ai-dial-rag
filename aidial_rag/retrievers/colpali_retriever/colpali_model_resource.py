@@ -1,6 +1,4 @@
-import asyncio
-import threading
-from typing import Annotated, DefaultDict, List, Optional, Tuple
+from typing import Annotated
 
 import torch
 from pydantic import BaseModel, Field, model_validator
@@ -45,7 +43,9 @@ class ColpaliModelResource:
         model_resource_config: ColpaliModelResourceConfig | None,
         colpali_index_config: ColpaliIndexConfig | None,
     ):
-        self.model_resource_config: ColpaliModelResourceConfig | None = model_resource_config
+        self.model_resource_config: ColpaliModelResourceConfig | None = (
+            model_resource_config
+        )
         self.model = None
         self.device: torch.device | None = None
         self.processor = None
@@ -61,11 +61,13 @@ class ColpaliModelResource:
             )
 
     def get_model_processor_device(self):
-            if (
-                self.model_resource_config is None
-                or self.device is None
-                or self.model is None
-                or self.processor is None
-            ):
-                raise ValueError("ColpaliModelResourceConfig andColpaliIndexConfig are required")
-            return self.model, self.processor, self.device
+        if (
+            self.model_resource_config is None
+            or self.device is None
+            or self.model is None
+            or self.processor is None
+        ):
+            raise ValueError(
+                "ColpaliModelResourceConfig andColpaliIndexConfig are required"
+            )
+        return self.model, self.processor, self.device

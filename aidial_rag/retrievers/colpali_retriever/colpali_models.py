@@ -32,6 +32,7 @@ class ColpaliModelType(StrEnum):
 
 class KnownModels(StrEnum):
     """Known ColPali model names"""
+
     COLSMOL_256M = "vidore/colSmol-256M"
     COLPALI_V1_3 = "vidore/colpali-v1.3"
     COLQWEN2_V1_0 = "vidore/colqwen2-v1.0"
