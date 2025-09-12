@@ -22,6 +22,18 @@
           "description": "Error message describing the issue that occurred during the indexing process.",
           "title": "Message",
           "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type of the error that occurred during the indexing process."
         }
       },
       "required": [
@@ -29,6 +41,15 @@
       ],
       "title": "Error",
       "type": "object"
+    },
+    "ErrorType": {
+      "description": "Machine-readable error types for the indexing and retrieval processes.",
+      "enum": [
+        "index_missing",
+        "index_incompatible"
+      ],
+      "title": "ErrorType",
+      "type": "string"
     }
   },
   "properties": {
