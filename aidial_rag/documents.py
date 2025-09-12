@@ -186,7 +186,6 @@ async def load_document_impl(
             colpali_index_task = tg.create_task(
                 ColpaliRetriever.build_index(
                     model_resource=colpali_model_resource,
-                    colpali_index_config=index_config.colpali_index,
                     stageio=StreamWithPrefix(io_stream, "ColpaliRetriever: "),
                     mime_type=mime_type,
                     original_document=doc_bytes,

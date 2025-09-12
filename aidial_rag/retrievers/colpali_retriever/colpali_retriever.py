@@ -305,7 +305,6 @@ class ColpaliRetriever(BaseRetriever):
     @staticmethod
     async def build_index(
         model_resource,
-        colpali_index_config: ColpaliIndexConfig,  # TODO remove this parameter and in other places too
         stageio: SupportsWriteStr,
         mime_type: str,
         original_document: bytes,

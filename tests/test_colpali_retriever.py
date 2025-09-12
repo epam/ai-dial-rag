@@ -230,7 +230,6 @@ async def test_colpali_retriever(local_server):
     # Build index
     colpali_index = await ColpaliRetriever.build_index(
         colpali_model_resource,
-        colpali_index_config,
         sys.stderr,
         mime_type,
         buffer,
