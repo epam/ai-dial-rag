@@ -5,7 +5,7 @@ from aidial_sdk.chat_completion import Choice, Stage
 from pydantic import SecretStr
 
 from aidial_rag.attachment_link import AttachmentLink
-from aidial_rag.configuration_endpoint import RequestConfig
+from aidial_rag.configuration_endpoint import Configuration
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_record import DocumentRecord
@@ -18,7 +18,7 @@ from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from tests.utils.user_limits_mock import user_limits_mock
 
-request_config = RequestConfig(
+configuration = Configuration(
     indexing=IndexingConfig(multimodal_index=None, description_index=None),
 )
 
@@ -126,12 +126,12 @@ async def test_load_document_success(
         indexing_task,
         index_storage,
         dial_api_client,
-        config=request_config,
+        config=configuration,
     )
     assert isinstance(doc_record, DocumentRecord)
     assert doc_record.document_bytes == b"This is a test byte array."
 
-    index_settings = request_config.indexing.collect_fields_that_rebuild_index()
+    index_settings = configuration.indexing.collect_fields_that_rebuild_index()
 
     # Read stored value
     doc = await index_storage.load(indexing_task, index_settings)
@@ -174,6 +174,6 @@ async def test_load_document_invalid_document(
             ),
             index_storage,
             dial_api_client,
-            config=request_config,
+            config=configuration,
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)

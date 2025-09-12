@@ -4,10 +4,11 @@ from contextlib import contextmanager
 from email.policy import EmailPolicy
 from typing import Iterable, List
 
+from aidial_sdk.exceptions import InvalidRequestError
 from docarray import DocList
 
 from aidial_rag.attachment_link import AttachmentLink
-from aidial_rag.configuration_endpoint import RequestConfig
+from aidial_rag.configuration_endpoint import Configuration, RequestConfig
 from aidial_rag.content_stream import (
     LoggerStream,
     MarkdownStream,
@@ -32,6 +33,7 @@ from aidial_rag.document_record import (
 )
 from aidial_rag.errors import (
     DocumentProcessingError,
+    IndexBaseError,
     InvalidDocumentError,
     convert_and_log_exceptions,
 )
@@ -57,10 +59,6 @@ from aidial_rag.retrievers.semantic_retriever import SemanticRetriever
 from aidial_rag.utils import format_size, timed_stage
 
 logger = logging.getLogger(__name__)
-
-
-class FailStageException(Exception):
-    pass
 
 
 async def check_document_access(
@@ -236,8 +234,13 @@ async def load_document(
     task: IndexingTask,
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
-    config: RequestConfig,
+    config: Configuration,
 ) -> DocumentRecord:
+    if config.request.force_indexing and not config.request.allow_indexing:
+        raise InvalidRequestError(
+            "Cannot force indexing when indexing is disabled."
+        )
+
     attachment_link = task.attachment_link
     with handle_document_processing_error(
         attachment_link, config.log_document_links
@@ -251,17 +254,24 @@ async def load_document(
         await check_document_access(request_context, attachment_link, config)
 
         doc_record = None
-        # aidial-sdk does not allow to do stage.close(Status.FAILED) inside with-statement
-        try:
-            with timed_stage(
-                choice, f"Load indexes for '{attachment_link.display_name}'"
-            ) as load_stage:
-                doc_record = await index_storage.load(task, index_settings)
-                if doc_record is None:
-                    raise FailStageException()
-                print_chunks_stats(load_stage.content_stream, doc_record.chunks)
-        except FailStageException:
-            pass
+        if not config.request.force_indexing:
+            try:
+                with timed_stage(
+                    choice, f"Load indexes for '{attachment_link.display_name}'"
+                ) as load_stage:
+                    doc_record = await index_storage.load(task, index_settings)
+                    print_chunks_stats(
+                        load_stage.content_stream, doc_record.chunks
+                    )
+            except IndexBaseError as e:
+                if not config.request.allow_indexing:
+                    raise e
+                if config.log_document_links:
+                    logger.warning(
+                        f"Failed to load index for {attachment_link}: {e}"
+                    )
+                else:
+                    logger.warning(f"Failed to load index: {e}")
 
         if doc_record is None:
             with timed_stage(
@@ -296,7 +306,7 @@ async def load_document_task(
     task: IndexingTask,
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
-    config: RequestConfig,
+    config: Configuration,
 ) -> DocumentIndexingResult:
     try:
         doc_record = await load_document(
@@ -319,7 +329,7 @@ async def load_documents(
     tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
-    config: RequestConfig,
+    config: Configuration,
 ) -> List[DocumentIndexingResult]:
     # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
     # if ignore_document_loading_errors is not set in the config

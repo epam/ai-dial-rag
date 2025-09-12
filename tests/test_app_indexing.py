@@ -347,3 +347,116 @@ async def test_invalid_custom_index_path(attachments):
             }
         },
     }
+
+
+@pytest.mark.asyncio
+@e2e_test(filenames=["alps_wiki.html"])
+async def test_indexing_request_with_force_indexing(attachments):
+    app = create_app(
+        app_config=AppConfig(
+            dial_url=middleware_host,
+        )
+    )
+    client = TestClient(app)
+
+    indexing_response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "messages": [
+                {
+                    "role": "user",
+                    "custom_content": {"attachments": attachments},
+                }
+            ],
+            "custom_fields": {
+                "configuration": {
+                    "request": {
+                        "type": "indexing",
+                    }
+                }
+            },
+        },
+        timeout=60.0,
+    )
+
+    assert indexing_response.status_code == 200
+    indexing_json = indexing_response.json()
+    indexing_stage_names = get_stage_names(indexing_json)
+    assert sorted(indexing_stage_names) == [
+        "Access document 'alps_wiki.html'",
+        "Load indexes for 'alps_wiki.html'",
+        "Processing document 'alps_wiki.html'",
+        "Store indexes for 'alps_wiki.html'",
+    ]
+
+    # Second indexing request with no force_indexing
+    indexing_response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "messages": [
+                {
+                    "role": "user",
+                    "custom_content": {"attachments": attachments},
+                }
+            ],
+            "custom_fields": {
+                "configuration": {
+                    "request": {
+                        "type": "indexing",
+                    }
+                }
+            },
+        },
+        timeout=60.0,
+    )
+
+    assert indexing_response.status_code == 200
+    indexing_json = indexing_response.json()
+
+    # No Processing document or Store indexes stages in retrieval request
+    # because the documents were already indexed in the previous request.
+    indexing_stage_names = get_stage_names(indexing_json)
+    assert sorted(indexing_stage_names) == [
+        "Access document 'alps_wiki.html'",
+        "Load indexes for 'alps_wiki.html'",
+    ]
+
+    # Third indexing request with force_indexing
+    indexing_response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "messages": [
+                {
+                    "role": "user",
+                    "custom_content": {"attachments": attachments},
+                }
+            ],
+            "custom_fields": {
+                "configuration": {
+                    "request": {
+                        "type": "indexing",
+                        "force_indexing": True,
+                    }
+                }
+            },
+        },
+        timeout=60.0,
+    )
+
+    assert indexing_response.status_code == 200
+    indexing_json = indexing_response.json()
+
+    # With force_indexing set to True the Load indexes is skipped
+    # and Processing and Store indexes stages are executed
+    indexing_stage_names = get_stage_names(indexing_json)
+    assert sorted(indexing_stage_names) == [
+        "Access document 'alps_wiki.html'",
+        "Processing document 'alps_wiki.html'",
+        "Store indexes for 'alps_wiki.html'",
+    ]
