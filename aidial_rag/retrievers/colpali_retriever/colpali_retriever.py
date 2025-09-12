@@ -1,7 +1,7 @@
 import logging
 import sys
 from collections import defaultdict
-from typing import Any, List, Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -57,9 +57,6 @@ class DocumentPageEmbedding:
 
 class ColpaliRetriever(BaseRetriever):
     document_embeddings: List[DocumentPageEmbedding]
-    model: Any
-    processor: Any
-    device: torch.device
     k: int
     model_resource: ColpaliModelResource
 
@@ -76,7 +73,7 @@ class ColpaliRetriever(BaseRetriever):
             doc_idx_page_idx = doc_embedding.doc_idx_page_idx
             image_embedding = torch.from_numpy(doc_embedding.embedding).half()
             score = (
-                self.processor.score_multi_vector(
+                self.model_resource.calculate_scores(
                     query_embeddings, [image_embedding]
                 )
                 .squeeze()
@@ -152,9 +149,6 @@ class ColpaliRetriever(BaseRetriever):
         document_records: List[DocumentRecord],
         k: int = 1,
     ) -> "ColpaliRetriever":
-        model, processor, device = (
-            colpali_model_resouce.get_model_processor_device()
-        )
         if document_records is None:
             document_records = []
 
@@ -185,24 +179,13 @@ class ColpaliRetriever(BaseRetriever):
 
         return cls(
             document_embeddings=document_embeddings,
-            model=model,
-            processor=processor,
-            device=device,
             k=k,
             model_resource=colpali_model_resouce,
         )
 
     def embed_queries(self, queries: List[str]) -> List[Tensor]:
         """Embed queries using the ColPali model."""
-
-        # Process queries with ColPali
-        inputs = self.processor.process_queries(queries).to(self.device)
-
-        with torch.no_grad():
-            embeddings = self.model(**inputs)
-
-        # Split batch tensor into individual tensors and move to CPU
-        return [tensor.cpu().unsqueeze(0) for tensor in embeddings]
+        return self.model_resource.calculate_queries_embeddings(queries)
 
     async def aembed_queries(self, queries: List[str]) -> List[Tensor]:
         """Async version of embed_queries with batching support."""
@@ -241,25 +224,18 @@ class ColpaliRetriever(BaseRetriever):
 
     @staticmethod
     def _process_images_batch(
-        images_batch: List[str], processor, model, device
+        images_batch: List[str], model_resource: ColpaliModelResource
     ) -> List[torch.Tensor]:
         """Process a batch of images using the ColPali model on GPU."""
         # Convert base64 images to PIL images
 
-        # process images with processor
+        # process images
         pil_images = []
         for image in images_batch:
             pil_image = pil_image_from_base64(image)
             pil_images.append(pil_image)
-        inputs = processor.process_images(pil_images).to(device)
 
-        # TODO move this part and part from queries tonother place
-        with torch.no_grad():
-            outputs = model(**inputs)
-
-        # Split batch tensor into individual tensors and move to CPU
-        result = [tensor.cpu().unsqueeze(0) for tensor in outputs]
-        return result
+        return model_resource.calculate_images_embeddings(pil_images)
 
     @staticmethod
     async def embed_images(
@@ -267,24 +243,11 @@ class ColpaliRetriever(BaseRetriever):
         images: AsyncGeneratorWithTotal,
         stageio,
     ) -> List[Tensor]:
-        model, processor, device = (
-            colpali_model_resource.get_model_processor_device()
-        )
-        if device is None:
-            raise RuntimeError(
-                "ColpaliModelResource did not return a valid device."
-            )
-        if model is None:
-            raise RuntimeError(
-                "ColpaliModelResource did not return a valid model."
-            )
-
         stageio.write("Processing images\n")
 
         # Process images in batches manually to avoid memory issues
         batch = []
         image_embeddings_list = []
-
 
         batch_size = colpali_model_resource.get_batch_size()
         # here cant use batched_map_with_progress because it loads all images into memory and doesnt support async generators
@@ -292,13 +255,13 @@ class ColpaliRetriever(BaseRetriever):
             async for image in images.agen:
                 batch.append(image)
 
-                if len(batch) >= batch_size:  # Process batch when it reaches configured batch size
+                if (
+                    len(batch) >= batch_size
+                ):  # Process batch when it reaches configured batch size
                     batch_results = await run_in_heavy_indexing_embeddings_pool(
                         ColpaliRetriever._process_images_batch,
                         batch,
-                        processor,
-                        model,
-                        device,
+                        colpali_model_resource,
                     )
                     image_embeddings_list.extend(batch_results)
                     pbar.update(len(batch))
@@ -309,9 +272,7 @@ class ColpaliRetriever(BaseRetriever):
                 batch_results = await run_in_heavy_indexing_embeddings_pool(
                     ColpaliRetriever._process_images_batch,
                     batch,
-                    processor,
-                    model,
-                    device,
+                    colpali_model_resource,
                 )
                 image_embeddings_list.extend(batch_results)
                 pbar.update(len(batch))

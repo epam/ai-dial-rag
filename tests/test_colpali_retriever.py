@@ -83,6 +83,7 @@ def create_colpali_only_config():
         config_path="config/azure_colsmol256m.yaml",
         colpali_model_resource_config=ColpaliModelResourceConfig(
             model_name=KnownModels.COLSMOL_256M,
+            batch_size=8,
         ),
     )
 
@@ -99,6 +100,7 @@ def mock_create_retriever(
     # Create model resource config from the index config for backward compatibility
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name=KnownModels.COLSMOL_256M,
+        batch_size=8,
     )
     cached_model_resource = CachedColpaliModelResource(
         colpali_model_resource_config,
@@ -189,6 +191,7 @@ def test_model_name_validation():
     # Test valid configuration
     valid_config = ColpaliModelResourceConfig(
         model_name=KnownModels.COLSMOL_256M,
+        batch_size=8,
     )
     assert valid_config.model_name == KnownModels.COLSMOL_256M
 
@@ -198,6 +201,7 @@ def test_model_name_validation():
     ):
         ColpaliModelResourceConfig(
             model_name="unknown/model",
+            batch_size=8,
         )
 
 
@@ -215,6 +219,7 @@ async def test_colpali_retriever(local_server):
     # Setup ColPali model and index using Azure config
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name=KnownModels.COLSMOL_256M,
+        batch_size=8,
     )
     colpali_index_config = ColpaliIndexConfig(enabled=True)
 
@@ -298,6 +303,7 @@ def colpali_model_resource():
 
     colpali_model_resource_config = ColpaliModelResourceConfig(
         model_name=KnownModels.COLSMOL_256M,
+        batch_size=8,
     )
     colpali_index_config = ColpaliIndexConfig(enabled=True)
 
@@ -311,17 +317,11 @@ def colpali_model_resource():
 @pytest.fixture
 def colpali_retriever(local_server, colpali_model_resource):
     """Fixture providing ColPali retriever without embeddings"""
-    model, processor, device = (
-        colpali_model_resource.get_model_processor_device()
-    )
 
     retriever = ColpaliRetriever(
         document_embeddings=[],
-        model=model,
-        processor=processor,
-        device=device,
-        k=7,
         model_resource=colpali_model_resource,
+        k=7,
     )
 
     return retriever

@@ -1,7 +1,8 @@
-from typing import Annotated
+from typing import Annotated, Any, List
 
 import torch
 from pydantic import BaseModel, Field, model_validator
+from torch import Tensor
 
 from aidial_rag.embeddings.detect_device import autodetect_device
 from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
@@ -69,7 +70,7 @@ class ColpaliModelResource:
                 model_resource_config.model_name, self.device
             )
 
-    def get_model_processor_device(self):
+    def _check_model_processor_device_is_set(self):
         if (
             self.model_resource_config is None
             or self.device is None
@@ -79,7 +80,50 @@ class ColpaliModelResource:
             raise ValueError(
                 "ColpaliModelResourceConfig andColpaliIndexConfig are required"
             )
-        return self.model, self.processor, self.device
+
+    def _run_model(self, inputs: Any) -> List[Tensor]:
+        """Method to run the model with inputs."""
+        if self.model is None or self.processor is None or self.device is None:
+            raise ValueError(
+                "ColPali model, processor, or device is not initialized."
+            )
+
+        with torch.no_grad():
+            embeddings = self.model(**inputs)
+
+        # Split batch tensor into individual tensors and move to CPU
+        return [tensor.cpu().unsqueeze(0) for tensor in embeddings]
+
+    def calculate_queries_embeddings(self, queries: List[str]) -> List[Tensor]:
+        """Embed queries using the ColPali model."""
+        self._check_model_processor_device_is_set()
+        assert self.processor is not None
+        # Process queries with ColPali
+        inputs = self.processor.process_queries(queries).to(self.device)
+
+        return self._run_model(inputs)
+
+    def calculate_images_embeddings(self, images: List[str]) -> List[Tensor]:
+        """Embed images using the ColPali model."""
+        self._check_model_processor_device_is_set()
+        assert self.processor is not None
+        # Process images with ColPali
+        inputs = self.processor.process_images(images).to(self.device)
+        return self._run_model(inputs)
+
+    def calculate_scores(
+        self, query_embeddings: Tensor, image_embeddings: List[Tensor]
+    ) -> Tensor:
+        """Calculate scores between query and image embeddings."""
+        self._check_model_processor_device_is_set()
+        assert self.processor is not None
+        return self.processor.score_multi_vector(
+            query_embeddings, image_embeddings
+        )
 
     def get_batch_size(self):
-        return self.model_resource_config.batch_size if self.model_resource_config else DEFAULT_BATCH_SIZE
+        return (
+            self.model_resource_config.batch_size
+            if self.model_resource_config
+            else DEFAULT_BATCH_SIZE
+        )

@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch import Tensor
@@ -164,6 +164,12 @@ class CachedColpaliModelResource(ColpaliModelResource):
             self._get_cache_key() if colpali_model_resource_config else ""
         )
 
+        self.cached_model = CachedModel(
+            cache_key=self.cache_key,
+            cache_dir=self.cache_dir,
+            use_cache=True,
+        )
+
     def _get_cache_key(self) -> str:
         """Generate cache key for model configuration."""
         if self.model_resource_config is None:
@@ -171,30 +177,18 @@ class CachedColpaliModelResource(ColpaliModelResource):
         content = f"{self.model_resource_config.model_name}"
         return get_cache_key(content)
 
-    def get_model_processor_device(self) -> tuple[Any, Any, torch.device]:
-        """Get model, processor, and device with caching support."""
+    def _run_model(self, inputs: Any) -> List[Tensor]:
+        """Override _run_model to add caching support."""
         if self.model_resource_config is None:
             raise ValueError("ColpaliModelResourceConfig is required")
 
         if self.use_cache:
-            # Replay mode
-            model = CachedModel(
-                cache_key=self.cache_key,
-                cache_dir=self.cache_dir,
-                use_cache=True,
-            )
-            # Use the real processor directly
-            _, real_processor, _ = super().get_model_processor_device()
-            processor = real_processor
-            device = torch.device("cpu")
-        else:
-            # Recording mode
-            real_model, real_processor, device = (
-                super().get_model_processor_device()
-            )
-            model = CachedModel(
-                real_model, self.cache_key, self.cache_dir, use_cache=False
-            )
-            processor = real_processor
+            # Move inputs to CPU for cached model
+            inputs = {
+                k: v.to(torch.device("cpu")) if hasattr(v, "to") else v
+                for k, v in inputs.items()
+            }
 
-        return model, processor, device
+        batch_result = self.cached_model(**inputs)
+        # Split batch tensor into individual tensors like the base class
+        return [tensor.cpu().unsqueeze(0) for tensor in batch_result]
