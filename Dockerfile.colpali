@@ -15,10 +15,6 @@ ENV COLPALI_MODEL_NAME=${COLPALI_MODEL_NAME}
 USER root
 
 # Copy necessary files for ColPali model download
-COPY aidial_rag/__init__.py aidial_rag/
-COPY aidial_rag/retrievers/__init__.py aidial_rag/retrievers/
-COPY aidial_rag/retrievers/colpali_retriever/__init__.py aidial_rag/retrievers/colpali_retriever/
-COPY aidial_rag/retrievers/colpali_retriever/colpali_models.py aidial_rag/retrievers/colpali_retriever/
 COPY download_model.py ./
 
 # Download the specified ColPali model
