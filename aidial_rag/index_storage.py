@@ -10,6 +10,7 @@ from aidial_rag.base_config import BaseConfig
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_record import (
     FORMAT_VERSION,
+    SERIALIZATION_CONFIG,
     DocumentRecord,
     IndexSettings,
 )
@@ -40,9 +41,6 @@ class IndexStorageConfig(BaseConfig):
 
 
 DEFAULT_IN_MEMORY_CACHE_CAPACITY = IndexStorageConfig().in_memory_cache_capacity
-
-
-SERIALIZATION_CONFIG = {"protocol": "pickle", "compress": "gzip"}
 
 
 class IndexStorageBackend(ABC):
