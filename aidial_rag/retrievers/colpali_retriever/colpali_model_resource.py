@@ -48,6 +48,8 @@ class ColpaliModelResourceConfig(BaseModel):
 
 
 class ColpaliModelResource:
+    """ColPali model resource, that stores model and processor"""
+
     def __init__(
         self,
         model_resource_config: ColpaliModelResourceConfig | None,

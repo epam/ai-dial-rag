@@ -16,7 +16,7 @@ from tests.utils.llm_cache import get_cache_key
 
 
 class CachedModel:
-    """Combined recording/replay model based on hash of input"""
+    """Cached model, that can save and return embeddings based on hash of input"""
 
     def __init__(
         self,
@@ -120,7 +120,6 @@ class CachedModel:
                 raise RuntimeError("Real model is required for recording mode")
             output = self.real_model(**kwargs)  # Process whole batch
 
-            # Split batch result and input, then cache individual mappings
             batch_size = output.shape[0]
             for i in range(batch_size):
                 # Split input into individual item
@@ -147,7 +146,7 @@ class CachedModel:
 
 
 class CachedColpaliModelResource(ColpaliModelResource):
-    """Simplified cached version of ColpaliModelResource."""
+    """Cached version of ColpaliModelResource."""
 
     def __init__(
         self,

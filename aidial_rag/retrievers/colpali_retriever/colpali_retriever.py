@@ -56,6 +56,8 @@ class DocumentPageEmbedding:
 
 
 class ColpaliRetriever(BaseRetriever):
+    """ColPali retriever, calculates embeddings for documents and queries and scores documents against the query"""
+
     document_embeddings: List[DocumentPageEmbedding]
     k: int
     model_resource: ColpaliModelResource
@@ -132,12 +134,14 @@ class ColpaliRetriever(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *args, **kwargs
     ) -> List[Document]:
+        """Get relevant top k documents for a given query"""
         doc_scores = self._score_documents(query)
         return self._collect_top_k_chunks(doc_scores)
 
     async def _aget_relevant_documents(
         self, query: str, *args, **kwargs
     ) -> List[Document]:
+        """Async version of _get_relevant_documents"""
         doc_scores = await self._ascore_documents(query)
         return self._collect_top_k_chunks(doc_scores)
 
@@ -149,6 +153,7 @@ class ColpaliRetriever(BaseRetriever):
         document_records: List[DocumentRecord],
         k: int = 1,
     ) -> "ColpaliRetriever":
+        """Create ColPali retriever from document records"""
         if document_records is None:
             document_records = []
 
@@ -210,6 +215,7 @@ class ColpaliRetriever(BaseRetriever):
 
     @staticmethod
     def pad_embeddings(tensor: Tensor, target_shape: Tuple) -> Tensor:
+        """Pad embeddings to the target shape"""
         padding_dims = [
             (0, target_shape[2] - tensor.shape[2]),
             (0, target_shape[1] - tensor.shape[1]),
@@ -309,6 +315,7 @@ class ColpaliRetriever(BaseRetriever):
         mime_type: str,
         original_document: bytes,
     ) -> MultiEmbeddings | None:
+        """Build ColPali indexes from a given document"""
         async with timed_block("Building ColPali indexes", stageio):
             logger.debug("Building Colpali indexes.")
 

@@ -51,7 +51,7 @@ MODEL_NAME_TO_TYPE = {
 def get_model_processor_classes(
     model_name: str,
 ) -> tuple[Any, Any]:
-    """Get model and processor classes for a given model name"""
+    """Get model and processor classes by a given model name"""
 
     if model_name not in MODEL_NAME_TO_TYPE:
         raise ValueError(f"Unknown model name: {model_name}")
