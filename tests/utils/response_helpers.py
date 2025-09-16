@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.indexing_api import IndexingResponse
+from aidial_rag.retrieval_api import RetrievalResponse
 
 
 def get_stage_names(response_json: Dict[str, Any]) -> List[str]:
@@ -43,3 +44,14 @@ def get_indexing_result_json(attachments):
 
     indexing_result_json = json.loads(indexing_result_attachment["data"])
     return indexing_result_json
+
+
+def get_retrieval_response_json(attachments):
+    retrieval_response_attachment = next(
+        attachment
+        for attachment in attachments
+        if attachment["type"] == RetrievalResponse.CONTENT_TYPE
+    )
+
+    retrieval_response_json = json.loads(retrieval_response_attachment["data"])
+    return retrieval_response_json

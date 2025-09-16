@@ -45,6 +45,57 @@
       "title": "Chunk",
       "type": "object"
     },
+    "DocumentIndexingResultResponse": {
+      "description": "Result of the indexing process for a single document.",
+      "properties": {
+        "errors": {
+          "description": "List of errors that occurred during the indexing process, if any.",
+          "items": {
+            "$ref": "#/$defs/Error"
+          },
+          "title": "Errors",
+          "type": "array"
+        }
+      },
+      "title": "DocumentIndexingResultResponse",
+      "type": "object"
+    },
+    "Error": {
+      "description": "Error that occurred during the indexing process.",
+      "properties": {
+        "message": {
+          "description": "Error message describing the issue that occurred during the indexing process.",
+          "title": "Message",
+          "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type of the error that occurred during the indexing process."
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "title": "Error",
+      "type": "object"
+    },
+    "ErrorType": {
+      "description": "Machine-readable error types for the indexing and retrieval processes.",
+      "enum": [
+        "index_missing",
+        "index_incompatible"
+      ],
+      "title": "ErrorType",
+      "type": "string"
+    },
     "Image": {
       "description": "Image related to the retrieved chunk.",
       "properties": {
@@ -140,6 +191,14 @@
       },
       "title": "Images",
       "type": "array"
+    },
+    "indexing_results": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DocumentIndexingResultResponse"
+      },
+      "description": "Dictionary mapping document URLs to their indexing results.",
+      "title": "Indexing Results",
+      "type": "object"
     }
   },
   "title": "RetrievalResponse",

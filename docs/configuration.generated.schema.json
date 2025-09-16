@@ -7,6 +7,18 @@
           "$ref": "#/$defs/RequestType",
           "default": "rag",
           "description": "Type of the request for the Dial RAG service."
+        },
+        "force_indexing": {
+          "default": false,
+          "description": "Force indexing of the documents, even if the index is present and is compatible with the retrieval.",
+          "title": "Force Indexing",
+          "type": "boolean"
+        },
+        "allow_indexing": {
+          "default": true,
+          "description": "Enable indexing of the documents if the index is missing or is not compatible with retrieval.",
+          "title": "Allow Indexing",
+          "type": "boolean"
         }
       },
       "title": "ApiRequest",
@@ -432,7 +444,9 @@
     "request": {
       "$ref": "#/$defs/ApiRequest",
       "default": {
-        "type": "rag"
+        "type": "rag",
+        "force_indexing": false,
+        "allow_indexing": true
       },
       "description": "Configuration for the Dial RAG API request."
     }

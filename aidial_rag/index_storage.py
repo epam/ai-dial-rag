@@ -10,9 +10,11 @@ from aidial_rag.base_config import BaseConfig
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_record import (
     FORMAT_VERSION,
+    SERIALIZATION_CONFIG,
     DocumentRecord,
     IndexSettings,
 )
+from aidial_rag.errors import IndexIncompatibleError, IndexMissingError
 from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.indexing_task import IndexingTask
 
@@ -39,9 +41,6 @@ class IndexStorageConfig(BaseConfig):
 
 
 DEFAULT_IN_MEMORY_CACHE_CAPACITY = IndexStorageConfig().in_memory_cache_capacity
-
-
-SERIALIZATION_CONFIG = {"protocol": "pickle", "compress": "gzip"}
 
 
 class IndexStorageBackend(ABC):
@@ -128,30 +127,25 @@ class IndexStorage:
         self,
         task: IndexingTask,
         index_settings: IndexSettings,
-    ) -> DocumentRecord | None:
+    ) -> DocumentRecord:
         doc_record_bytes = await self._storage.load(task.index_url)
         if doc_record_bytes is None:
-            return None
+            raise IndexMissingError()
         try:
             doc_record = DocumentRecord.from_bytes(
                 doc_record_bytes, **SERIALIZATION_CONFIG
             )
             if doc_record.format_version != FORMAT_VERSION:
-                logger.warning(
-                    f"Index format version mismatch for {task.attachment_link}: {doc_record.format_version}"
+                raise IndexIncompatibleError(
+                    f"Index format version mismatch: {doc_record.format_version}"
                 )
-                return None
             if doc_record.index_settings != index_settings:
-                logger.warning(
-                    f"Index settings mismatch for {task.attachment_link}: {doc_record.index_settings}"
+                raise IndexIncompatibleError(
+                    f"Index settings mismatch: {doc_record.index_settings}"
                 )
-                return None
             return doc_record
         except Exception as e:
-            logger.warning(
-                f"Failed to deserialize index for {task.attachment_link}: {e}"
-            )
-            return None
+            raise IndexIncompatibleError("Failed to deserialize index") from e
 
     async def store(
         self,

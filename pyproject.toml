@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aidial-rag"
-version = "0.33.0rc"
+version = "0.34.0rc"
 description = "The Dial RAG answers user questions using information from the documents provided by user."
 authors = ["EPAM RAIL <SpecialEPM-DIALDevTeam@epam.com>"]
 homepage = "https://epam-rail.com"
@@ -20,7 +20,7 @@ uvicorn = "0.22.0"
 openai = "^1.42.0"
 docarray = "0.39.1"
 langchain = "^0.3.21"
-langchain-community = "^0.3.20"
+langchain-community = "^0.3.29"
 langchain-openai = "^0.3.11"
 aidial-sdk = {extras = ["telemetry"], version = "^0.21.0"}
 pypdf = "^5.3.0"
@@ -29,13 +29,12 @@ rank-bm25 = "0.2.2"
 sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
 tiktoken = "^0.7.0"
 cachetools = "5.3.1"
-unstructured = {version = "0.16.14", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
-libmagic = "1.0"
+unstructured = {version = "0.16.16", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 nltk = "^3.9.1"
 humanfriendly = "10.0"
 pyinstrument = "4.6.1"
-more-itertools = "10.5.0"
+more-itertools = "^10.1.0"
 tqdm = "^4.67.1"
 torch = "^2.7.0"
 torchvision = "^0.22.0"
@@ -52,8 +51,8 @@ langchain-huggingface = "^0.1.2"
 langchain-unstructured = "^0.1.6"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
+pdfplumber = "^0.11.7"
 colpali-engine = "^0.3.12"
-"pdfminer.six" = "20231228"
 
 
 [[tool.poetry.source]]
@@ -64,7 +63,6 @@ priority = "primary"
 name = "pytorch"
 url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
-
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.2.0"

@@ -4,6 +4,8 @@ from contextlib import contextmanager
 import openai
 from aidial_sdk import HTTPException
 
+from aidial_rag.error_types import ErrorType
+
 
 class InvalidDocumentError(HTTPException):
     def __init__(self, message: str):
@@ -15,6 +17,24 @@ class InvalidAttachmentError(HTTPException):
     # but not for the document itself. Do not provide a content_message because it is not a user error.
     def __init__(self, message: str):
         super().__init__(message, status_code=400)
+
+
+class IndexBaseError(HTTPException):
+    def __init__(self, message: str, type: ErrorType):
+        super().__init__(message, status_code=400, type=type)
+
+
+class IndexMissingError(IndexBaseError):
+    def __init__(self):
+        super().__init__("Index is missing.", type=ErrorType.INDEX_MISSING)
+
+
+class IndexIncompatibleError(IndexBaseError):
+    def __init__(
+        self,
+        message: str = "Index is incompatible with current version of RAG.",
+    ):
+        super().__init__(message, type=ErrorType.INDEX_INCOMPATIBLE)
 
 
 class AuthenticationError(HTTPException):
