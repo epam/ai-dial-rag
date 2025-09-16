@@ -181,8 +181,8 @@ async def test_load_document_invalid_document(
             index_storage,
             dial_api_client,
             config=configuration,
-                colpali_model_resource=ColpaliModelResource(
-                    None, configuration.indexing.colpali_index
-                ),
+            colpali_model_resource=ColpaliModelResource(
+                None, configuration.indexing.colpali_index
+            ),
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)
