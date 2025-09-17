@@ -48,7 +48,7 @@ class ApiRequest(BaseModel):
 
     save_index_on_migration: bool = Field(
         default=True,
-        description="Allows to save the migrated index back to the storage if the index was migrated to the current format on load.",
+        description="Allows to save the migrated index back to the storage if the index was migrated from an older index format to the latest one on load.",
     )
 
     @model_validator(mode="after")

@@ -30,9 +30,10 @@ def local_server():
 @pytest.mark.parametrize(
     "index_file",
     [
-        "doc_record_0.22.0.bin",  # format 11
-        "doc_record_0.33.0.bin",  # format 12
-        "doc_record_0.34.0rc0.bin",  # before modification_metadata
+        "doc_record_0.22.0_format11.bin",
+        "doc_record_0.33.0_format12.bin",
+        "doc_record_0.34.0rc_format13_without_modification_metadata.bin",
+        "doc_record_0.34.0rc_format13_with_modification_metadata.bin",
     ],
 )
 @pytest.mark.asyncio

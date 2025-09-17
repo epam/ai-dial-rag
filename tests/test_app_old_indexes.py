@@ -82,16 +82,23 @@ async def do_request_with_old_index(attachments, index_file):
 @pytest.mark.asyncio
 @e2e_test(filenames=["alps_wiki.pdf"])
 async def test_old_index_format_11(attachments):
-    await do_request_with_old_index(attachments, "doc_record_0.22.0.bin")
+    await do_request_with_old_index(
+        attachments, "doc_record_0.22.0_format11.bin"
+    )
 
 
 @pytest.mark.asyncio
 @e2e_test(filenames=["alps_wiki.pdf"])
 async def test_old_index_format_12(attachments):
-    await do_request_with_old_index(attachments, "doc_record_0.33.0.bin")
+    await do_request_with_old_index(
+        attachments, "doc_record_0.33.0_format12.bin"
+    )
 
 
 @pytest.mark.asyncio
 @e2e_test(filenames=["alps_wiki.pdf"])
 async def test_old_index_format_13_before_modification_metadata(attachments):
-    await do_request_with_old_index(attachments, "doc_record_0.34.0rc0.bin")
+    await do_request_with_old_index(
+        attachments,
+        "doc_record_0.34.0rc_format13_without_modification_metadata.bin",
+    )

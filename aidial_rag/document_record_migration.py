@@ -136,21 +136,17 @@ class Format11:
         # Get default value for all the fields that not supported in old format
         index_settings = IndexingConfig().collect_fields_that_rebuild_index()
 
-        def _delete_key(d: dict, key: str):
-            if key in d:
-                del d[key]
-
         if old_settings.multimodal_index is not None:
             index_settings.indexes["multimodal_index"] = {
                 "embeddings_model": old_settings.multimodal_index.embeddings_model
             }
         else:
-            _delete_key(index_settings.indexes, "multimodal_index")
+            index_settings.indexes.pop("multimodal_index", None)
 
         if old_settings.use_description_index:
             index_settings.indexes["description_index"] = {}
         else:
-            _delete_key(index_settings.indexes, "description_index")
+            index_settings.indexes.pop("description_index", None)
 
         return IndexSettings(indexes=index_settings.indexes)
 

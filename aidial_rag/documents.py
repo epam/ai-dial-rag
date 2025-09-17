@@ -332,7 +332,7 @@ async def load_document(
                     or doc_record.format_version < MIN_FORMAT_VERSION
                 ):
                     raise IndexIncompatibleError(
-                        f"Index format version mismatch: {doc_record.format_version}"
+                        f"Index format version is not supported: {doc_record.format_version}"
                     )
 
                 if (
