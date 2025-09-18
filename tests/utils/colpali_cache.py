@@ -1,3 +1,4 @@
+import os
 import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -152,7 +153,7 @@ class CachedColpaliModelResource(ColpaliModelResource):
         self,
         colpali_model_resource_config: Optional[ColpaliModelResourceConfig],
         colpali_index_config: Optional[ColpaliIndexConfig],
-        use_cache: bool = True,
+        use_cache: bool = not os.environ.get("REFRESH", "").lower() == "true",
         cache_dir: str = "tests/cache/test_colpali_retriever",
     ):
         super().__init__(colpali_model_resource_config, colpali_index_config)

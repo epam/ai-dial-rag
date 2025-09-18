@@ -1,5 +1,4 @@
 import asyncio
-import os
 import sys
 from unittest.mock import patch
 
@@ -95,22 +94,11 @@ def mock_create_retriever(
     colpali_model_resource,
     make_retrieval_stage=_make_retrieval_stage_default,
 ):
-    """Mock create_retriever to return only ColPali retriever with cached model."""
-    use_cache = not os.environ.get("REFRESH", "").lower() == "true"
-    # Create model resource config from the index config for backward compatibility
-    colpali_model_resource_config = ColpaliModelResourceConfig(
-        model_name=KnownModels.COLSMOL_256M,
-        batch_size=8,
-    )
-    cached_model_resource = CachedColpaliModelResource(
-        colpali_model_resource_config,
-        indexing_config.colpali_index,
-        use_cache=use_cache,
-    )
+    """Mock create_retriever to return only ColPali retriever with cached model otherwise will be used AllDocumentsRetriever if documents is small or also will be used semantic retriever otherwise."""
 
     colpali_retriever = make_retrieval_stage(
         ColpaliRetriever.from_doc_records(
-            cached_model_resource,
+            colpali_model_resource,
             indexing_config.colpali_index,
             document_records,
             7,
@@ -120,36 +108,19 @@ def mock_create_retriever(
     return colpali_retriever
 
 
-def create_cached_app_config():
-    """Create app configuration that uses cached ColPali model resource."""
-    from aidial_rag.app import DialRAGApplication
-
-    class CachedDialRAGApplication(DialRAGApplication):
-        def __init__(self, app_config):
-            super().__init__(app_config)
-            # Replace the real model resource with cached one
-            use_cache = not os.environ.get("REFRESH", "").lower() == "true"
-            self.colpali_model_resource = CachedColpaliModelResource(
-                app_config.colpali_model_resource_config,
-                app_config.request.indexing.colpali_index,
-                use_cache=use_cache,
-            )
-
-    return CachedDialRAGApplication
-
-
 def run_e2e_test(attachments, question, expected_text):
     """Run end-to-end test using the app's chat completion endpoint."""
     from fastapi.testclient import TestClient
 
     from aidial_rag.app import create_app
 
-    # Create app with cached model resource
+    # Create app config with Colpali only
     app_config = create_colpali_only_config()
-    cached_app_class = create_cached_app_config()
 
-    # Patch the app creation to use cached model resource
-    with patch("aidial_rag.app.DialRAGApplication", new=cached_app_class):
+    # Patch the ColpaliModelResource to use cached model resource
+    with patch(
+        "aidial_rag.app.ColpaliModelResource", CachedColpaliModelResource
+    ):
         app = create_app(app_config)
         client = TestClient(app)
 
@@ -209,9 +180,8 @@ def test_model_name_validation():
 async def test_colpali_retriever(local_server):
     """
     Unit test for ColPali retriever that checks if retrieved page number is correct.
+    if REFRESH environment variable is true then will be used real model otherwise will be used cached model.
     """
-    use_cache = not os.environ.get("REFRESH", "").lower() == "true"
-
     # Load and process document
     text_chunks, buffer, mime_type = await load_document("alps_wiki.pdf")
     chunks_list = await build_chunks_list(text_chunks)
@@ -224,7 +194,7 @@ async def test_colpali_retriever(local_server):
     colpali_index_config = ColpaliIndexConfig(enabled=True)
 
     colpali_model_resource = CachedColpaliModelResource(
-        colpali_model_resource_config, colpali_index_config, use_cache=use_cache
+        colpali_model_resource_config, colpali_index_config
     )
 
     # Build index

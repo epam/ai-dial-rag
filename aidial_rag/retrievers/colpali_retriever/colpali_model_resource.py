@@ -1,6 +1,7 @@
 from typing import Annotated, Any, List
 
 import torch
+from PIL import Image as pil_image
 from pydantic import BaseModel, Field, model_validator
 from torch import Tensor
 
@@ -13,7 +14,6 @@ from aidial_rag.retrievers.colpali_retriever.colpali_models import (
     KnownModels,
     load_model_and_processor,
 )
-from PIL import Image as pil_image
 
 DEFAULT_BATCH_SIZE = 8
 
@@ -106,7 +106,9 @@ class ColpaliModelResource:
 
         return self._run_model(inputs)
 
-    def calculate_images_embeddings(self, images: List[pil_image.Image]) -> List[Tensor]:
+    def calculate_images_embeddings(
+        self, images: List[pil_image.Image]
+    ) -> List[Tensor]:
         """Embed images using the ColPali model."""
         self._check_model_processor_device_is_set()
         assert self.processor is not None
