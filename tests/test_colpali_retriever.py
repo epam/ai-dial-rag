@@ -41,6 +41,9 @@ DATA_DIR = "tests/data"
 PORT = 5010
 MIDDLEWARE_HOST = "http://localhost:8081"
 
+# using one cache directory for most of tests to resuse cache since input is the same
+COLPALI_CACHE_EMBEDDINGS_DIR = "tests/cache/test_colpali_retriever"
+
 
 @pytest.fixture
 def local_server():
@@ -117,9 +120,11 @@ def run_e2e_test(attachments, question, expected_text):
     # Create app config with Colpali only
     app_config = create_colpali_only_config()
 
-    # Patch the ColpaliModelResource to use cached model resource
+    # Patch the ColpaliModelResource to use cached model resource and specific cache directory
     with patch(
-        "aidial_rag.app.ColpaliModelResource", CachedColpaliModelResource
+        "aidial_rag.app.ColpaliModelResource", new=lambda *a, **kw: CachedColpaliModelResource(
+        *a, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR, **kw
+    ),
     ):
         app = create_app(app_config)
         client = TestClient(app)
@@ -194,7 +199,7 @@ async def test_colpali_retriever(local_server):
     colpali_index_config = ColpaliIndexConfig(enabled=True)
 
     colpali_model_resource = CachedColpaliModelResource(
-        colpali_model_resource_config, colpali_index_config
+        colpali_model_resource_config, colpali_index_config, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR
     )
 
     # Build index
@@ -277,7 +282,7 @@ def colpali_model_resource():
     colpali_index_config = ColpaliIndexConfig(enabled=True)
 
     model_resource = CachedColpaliModelResource(
-        colpali_model_resource_config, colpali_index_config, use_cache=use_cache
+        colpali_model_resource_config, colpali_index_config, use_cache=use_cache, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR
     )
 
     return model_resource
