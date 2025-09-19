@@ -16,9 +16,6 @@ from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.indexing_task import IndexingTask, link_to_index_url
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
-from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
-    ColpaliModelResource,
-)
 from tests.utils.user_limits_mock import user_limits_mock
 
 configuration = Configuration(
@@ -130,9 +127,7 @@ async def test_load_document_success(
         index_storage,
         dial_api_client,
         config=configuration,
-        colpali_model_resource=ColpaliModelResource(
-            None, configuration.indexing.colpali_index
-        ),
+        colpali_model_resource=None,
     )
     assert isinstance(doc_record, DocumentRecord)
     assert doc_record.document_bytes == b"This is a test byte array."
@@ -181,8 +176,6 @@ async def test_load_document_invalid_document(
             index_storage,
             dial_api_client,
             config=configuration,
-            colpali_model_resource=ColpaliModelResource(
-                None, configuration.indexing.colpali_index
-            ),
+            colpali_model_resource=None,
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)

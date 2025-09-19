@@ -206,9 +206,10 @@ class DialRAGApplication(ChatCompletion):
 
     def __init__(self, app_config: AppConfig):
         self.app_config = app_config
-        self.colpali_model_resource = ColpaliModelResource(
-            app_config.colpali_model_resource_config,
-            app_config.request.indexing.colpali_index,
+        self.colpali_model_resource = (
+            None
+            if app_config.colpali_model_resource_config is None
+            else ColpaliModelResource(app_config.colpali_model_resource_config)
         )
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)

@@ -6,9 +6,6 @@ from typing import Any, Dict, List, Optional
 import torch
 from torch import Tensor
 
-from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
-    ColpaliIndexConfig,
-)
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
     ColpaliModelResourceConfig,
@@ -151,12 +148,11 @@ class CachedColpaliModelResource(ColpaliModelResource):
 
     def __init__(
         self,
-        colpali_model_resource_config: Optional[ColpaliModelResourceConfig],
-        colpali_index_config: Optional[ColpaliIndexConfig],
+        colpali_model_resource_config: ColpaliModelResourceConfig,
         use_cache: bool = not os.environ.get("REFRESH", "").lower() == "true",
         cache_dir: str = "tests/cache/test_colpali_retriever",
     ):
-        super().__init__(colpali_model_resource_config, colpali_index_config)
+        super().__init__(colpali_model_resource_config)
         self.use_cache = use_cache
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)

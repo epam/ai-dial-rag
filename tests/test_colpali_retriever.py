@@ -15,9 +15,6 @@ from aidial_rag.document_record import (
 from aidial_rag.documents import parse_content_type
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
 from aidial_rag.retrieval_chain import _make_retrieval_stage_default
-from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
-    ColpaliIndexConfig,
-)
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResourceConfig,
 )
@@ -102,7 +99,6 @@ def mock_create_retriever(
     colpali_retriever = make_retrieval_stage(
         ColpaliRetriever.from_doc_records(
             colpali_model_resource,
-            indexing_config.colpali_index,
             document_records,
             7,
         ),
@@ -122,9 +118,10 @@ def run_e2e_test(attachments, question, expected_text):
 
     # Patch the ColpaliModelResource to use cached model resource and specific cache directory
     with patch(
-        "aidial_rag.app.ColpaliModelResource", new=lambda *a, **kw: CachedColpaliModelResource(
-        *a, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR, **kw
-    ),
+        "aidial_rag.app.ColpaliModelResource",
+        new=lambda *a, **kw: CachedColpaliModelResource(
+            *a, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR, **kw
+        ),
     ):
         app = create_app(app_config)
         client = TestClient(app)
@@ -196,10 +193,8 @@ async def test_colpali_retriever(local_server):
         model_name=KnownModels.COLSMOL_256M,
         batch_size=8,
     )
-    colpali_index_config = ColpaliIndexConfig(enabled=True)
-
     colpali_model_resource = CachedColpaliModelResource(
-        colpali_model_resource_config, colpali_index_config, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR
+        colpali_model_resource_config, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR
     )
 
     # Build index
@@ -227,7 +222,7 @@ async def test_colpali_retriever(local_server):
 
     # Create retriever and test
     retriever = ColpaliRetriever.from_doc_records(
-        colpali_model_resource, colpali_index_config, doc_records, k=7
+        colpali_model_resource, doc_records, k=7
     )
 
     # Test retrieval
@@ -279,10 +274,11 @@ def colpali_model_resource():
         model_name=KnownModels.COLSMOL_256M,
         batch_size=8,
     )
-    colpali_index_config = ColpaliIndexConfig(enabled=True)
 
     model_resource = CachedColpaliModelResource(
-        colpali_model_resource_config, colpali_index_config, use_cache=use_cache, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR
+        colpali_model_resource_config,
+        use_cache=use_cache,
+        cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR,
     )
 
     return model_resource

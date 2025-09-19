@@ -2,7 +2,7 @@ import asyncio
 import logging
 from contextlib import contextmanager
 from email.policy import EmailPolicy
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from aidial_sdk.exceptions import InvalidRequestError
 from docarray import DocList
@@ -112,7 +112,7 @@ async def load_document_impl(
     stage_stream: SupportsWriteStr,
     index_settings: IndexSettings,
     config: RequestConfig,
-    colpali_model_resource: ColpaliModelResource,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> DocumentRecord:
     logger_stream = LoggerStream()
     if config.log_document_links:
@@ -180,6 +180,7 @@ async def load_document_impl(
         if (
             index_config.colpali_index is not None
             and index_config.colpali_index.enabled
+            and colpali_model_resource is not None
         ):
             colpali_index_task = tg.create_task(
                 ColpaliRetriever.build_index(
@@ -260,7 +261,7 @@ async def load_document(
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
     config: Configuration,
-    colpali_model_resource: ColpaliModelResource,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> DocumentRecord:
     if config.request.force_indexing and not config.request.allow_indexing:
         raise InvalidRequestError(
@@ -334,7 +335,7 @@ async def load_document_task(
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
     config: Configuration,
-    colpali_model_resource: ColpaliModelResource,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> DocumentIndexingResult:
     try:
         doc_record = await load_document(
@@ -363,7 +364,7 @@ async def load_documents(
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
     config: Configuration,
-    colpali_model_resource: ColpaliModelResource,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> List[DocumentIndexingResult]:
     # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
     # if ignore_document_loading_errors is not set in the config

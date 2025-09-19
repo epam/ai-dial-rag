@@ -22,9 +22,6 @@ from aidial_rag.resources.cpu_pools import (
     run_in_heavy_query_embeddings_pool,
 )
 from aidial_rag.resources.dial_limited_resources import AsyncGeneratorWithTotal
-from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
-    ColpaliIndexConfig,
-)
 from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
     ColpaliModelResource,
 )
@@ -149,7 +146,6 @@ class ColpaliRetriever(BaseRetriever):
     def from_doc_records(
         cls,
         colpali_model_resouce: ColpaliModelResource,
-        colpali_index_config: ColpaliIndexConfig,
         document_records: List[DocumentRecord],
         k: int = 1,
     ) -> "ColpaliRetriever":

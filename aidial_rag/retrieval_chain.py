@@ -251,7 +251,6 @@ def create_retriever(
             colpali_retriever = make_retrieval_stage(
                 ColpaliRetriever.from_doc_records(
                     colpali_model_resource,
-                    indexing_config.colpali_index,
                     document_records,
                     7,
                 ),

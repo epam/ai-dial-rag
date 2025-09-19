@@ -6,9 +6,6 @@ from pydantic import BaseModel, Field, model_validator
 from torch import Tensor
 
 from aidial_rag.embeddings.detect_device import autodetect_device
-from aidial_rag.retrievers.colpali_retriever.colpali_index_config import (
-    ColpaliIndexConfig,
-)
 from aidial_rag.retrievers.colpali_retriever.colpali_models import (
     MODEL_NAME_TO_TYPE,
     KnownModels,
@@ -51,38 +48,15 @@ class ColpaliModelResourceConfig(BaseModel):
 class ColpaliModelResource:
     """ColPali model resource, that stores model and processor"""
 
-    def __init__(
-        self,
-        model_resource_config: ColpaliModelResourceConfig | None,
-        colpali_index_config: ColpaliIndexConfig | None,
-    ):
-        self.model_resource_config: ColpaliModelResourceConfig | None = (
+    def __init__(self, model_resource_config: ColpaliModelResourceConfig):
+        self.model_resource_config: ColpaliModelResourceConfig = (
             model_resource_config
         )
-        self.model = None
-        self.device: torch.device | None = None
-        self.processor = None
-        # if both are set then we can load model
-        if (
-            colpali_index_config is not None
-            and colpali_index_config.enabled
-            and model_resource_config is not None
-        ):
-            self.device = torch.device(autodetect_device().value)
-            self.model, self.processor = load_model_and_processor(
-                model_resource_config.model_name, self.device
-            )
 
-    def _check_model_processor_device_is_set(self):
-        if (
-            self.model_resource_config is None
-            or self.device is None
-            or self.model is None
-            or self.processor is None
-        ):
-            raise ValueError(
-                "ColpaliModelResourceConfig andColpaliIndexConfig are required"
-            )
+        self.device = torch.device(autodetect_device().value)
+        self.model, self.processor = load_model_and_processor(
+            model_resource_config.model_name, self.device
+        )
 
     def _run_model(self, inputs: Any) -> List[Tensor]:
         """Method to run the model with inputs."""
@@ -99,7 +73,6 @@ class ColpaliModelResource:
 
     def calculate_queries_embeddings(self, queries: List[str]) -> List[Tensor]:
         """Embed queries using the ColPali model."""
-        self._check_model_processor_device_is_set()
         assert self.processor is not None
         # Process queries with ColPali
         inputs = self.processor.process_queries(queries).to(self.device)
@@ -110,8 +83,6 @@ class ColpaliModelResource:
         self, images: List[pil_image.Image]
     ) -> List[Tensor]:
         """Embed images using the ColPali model."""
-        self._check_model_processor_device_is_set()
-        assert self.processor is not None
         # Process images with ColPali
         inputs = self.processor.process_images(images).to(self.device)
         return self._run_model(inputs)
@@ -120,8 +91,6 @@ class ColpaliModelResource:
         self, query_embeddings: Tensor, image_embeddings: List[Tensor]
     ) -> Tensor:
         """Calculate scores between query and image embeddings."""
-        self._check_model_processor_device_is_set()
-        assert self.processor is not None
         return self.processor.score_multi_vector(
             query_embeddings, image_embeddings
         )
