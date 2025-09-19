@@ -39,7 +39,9 @@ PORT = 5010
 MIDDLEWARE_HOST = "http://localhost:8081"
 
 # using one cache directory for most of tests to resuse cache since input is the same
-COLPALI_CACHE_EMBEDDINGS_DIR = "tests/cache/test_colpali_retriever"
+COLPALI_CACHE_EMBEDDINGS_DIR = (
+    "tests/cache/test_colpali_retriever/alps_wiki_embeddings"
+)
 
 
 @pytest.fixture
