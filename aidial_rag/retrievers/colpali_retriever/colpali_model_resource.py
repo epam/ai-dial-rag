@@ -1,4 +1,4 @@
-from typing import Annotated, Any, List
+from typing import Annotated, Any, List, Optional
 
 import torch
 from PIL import Image as pil_image
@@ -21,6 +21,13 @@ class ColpaliModelResourceConfig(BaseModel):
         Field(
             default=KnownModels.COLSMOL_256M,
             description="Model name, should be one of MODEL_NAME_TO_TYPE keys",
+        ),
+    ]
+    model_path: Annotated[
+        Optional[str],
+        Field(
+            default=None,
+            description="Path to pre-downloaded ColPali models, if None then model will be downloaded from Hugging Face",
         ),
     ]
     batch_size: Annotated[
@@ -55,7 +62,9 @@ class ColpaliModelResource:
 
         self.device = torch.device(autodetect_device().value)
         self.model, self.processor = load_model_and_processor(
-            model_resource_config.model_name, self.device
+            model_resource_config.model_name,
+            model_resource_config.model_path,
+            self.device,
         )
 
     def _run_model(self, inputs: Any) -> List[Tensor]:

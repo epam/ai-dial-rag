@@ -44,6 +44,14 @@ COLPALI_CACHE_EMBEDDINGS_DIR = (
 )
 
 
+def colapli_model_config():
+    return ColpaliModelResourceConfig(
+        model_name=KnownModels.COLSMOL_256M,
+        model_path=None,
+        batch_size=8,
+    )
+
+
 @pytest.fixture
 def local_server():
     """Start local HTTP server for serving test documents."""
@@ -74,18 +82,12 @@ async def load_document(name, port=PORT):
 def create_colpali_only_config():
     """Create app configuration that uses Azure ColPali config."""
     from aidial_rag.app_config import AppConfig
-    from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
-        ColpaliModelResourceConfig,
-    )
 
     return AppConfig(
         dial_url=MIDDLEWARE_HOST,
         enable_debug_commands=True,
         config_path="config/azure_colsmol256m.yaml",
-        colpali_model_resource_config=ColpaliModelResourceConfig(
-            model_name=KnownModels.COLSMOL_256M,
-            batch_size=8,
-        ),
+        colpali_model_resource_config=colapli_model_config(),
     )
 
 
@@ -164,10 +166,7 @@ def test_model_name_validation():
     """Test that model name validation works correctly."""
 
     # Test valid configuration
-    valid_config = ColpaliModelResourceConfig(
-        model_name=KnownModels.COLSMOL_256M,
-        batch_size=8,
-    )
+    valid_config = colapli_model_config()
     assert valid_config.model_name == KnownModels.COLSMOL_256M
 
     # Test unknown model name - should raise error
@@ -176,6 +175,7 @@ def test_model_name_validation():
     ):
         ColpaliModelResourceConfig(
             model_name="unknown/model",
+            model_path=None,
             batch_size=8,
         )
 
@@ -191,10 +191,7 @@ async def test_colpali_retriever(local_server):
     chunks_list = await build_chunks_list(text_chunks)
 
     # Setup ColPali model and index using Azure config
-    colpali_model_resource_config = ColpaliModelResourceConfig(
-        model_name=KnownModels.COLSMOL_256M,
-        batch_size=8,
-    )
+    colpali_model_resource_config = colapli_model_config()
     colpali_model_resource = CachedColpaliModelResource(
         colpali_model_resource_config, cache_dir=COLPALI_CACHE_EMBEDDINGS_DIR
     )
@@ -272,10 +269,7 @@ def colpali_model_resource():
         True  # To update the cache  test_colpali_retriever with REFRESH=true
     )
 
-    colpali_model_resource_config = ColpaliModelResourceConfig(
-        model_name=KnownModels.COLSMOL_256M,
-        batch_size=8,
-    )
+    colpali_model_resource_config = colapli_model_config()
 
     model_resource = CachedColpaliModelResource(
         colpali_model_resource_config,

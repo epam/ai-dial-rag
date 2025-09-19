@@ -1,6 +1,27 @@
 import sys
 import argparse
+import yaml
+from pathlib import Path
 from huggingface_hub import snapshot_download
+
+
+def download_colpali_model_from_config(config_path: str):
+    """Download a ColPali model using configuration from a YAML file"""
+    # Load the config file
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # Extract model information from config
+    model_resource_config = config.get('colpali_model_resource_config', {})
+    model_name = model_resource_config.get('model_name')
+    base_path = model_resource_config.get('models_folder_path')
+    
+    if not model_name:
+        raise ValueError("model_name not found in colpali_model_resource_config")
+    if not base_path:
+        raise ValueError("models_folder_path not found in colpali_model_resource_config")
+    
+    return download_colpali_model(base_path, model_name)
 
 
 def download_colpali_model(base_path: str, model_name: str):
@@ -40,16 +61,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    # Download a specific ColPali model
-    python download_colpali_models.py vidore/colpali-v1.3 /path/to/colpali_models
+    # Download using config file
+    python download_colpali_models.py config/azure_colsmol256m.yaml
         """
     )
     
-    parser.add_argument('model_name', help='ColPali model name to download')
-    parser.add_argument('path', help='Base path to save ColPali model')
+    parser.add_argument('config', help='Path to YAML config file')
     
     args = parser.parse_args()
-    download_colpali_model(args.path, args.model_name)
+    download_colpali_model_from_config(args.config)
 
 
 if __name__ == "__main__":

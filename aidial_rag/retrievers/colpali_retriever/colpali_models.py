@@ -4,10 +4,9 @@ This module contains the model mappings and utilities that can be imported
 without requiring the full aidial_rag package.
 """
 
-import os
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from colpali_engine.models import (
@@ -18,10 +17,6 @@ from colpali_engine.models import (
     ColQwen2,
     ColQwen2Processor,
 )
-
-# Path to pre-downloaded ColPali models for normal use in docker
-# if None model will be downloaded from Hugging Face
-COLPALI_MODELS_BASE_PATH = os.environ.get("COLPALI_MODELS_BASE_PATH", None)
 
 
 class ColpaliModelType(StrEnum):
@@ -80,18 +75,16 @@ def get_model_cache_path(model_path: Path) -> Path:
 
 
 def load_model_and_processor(
-    model_name: str, device: torch.device
+    model_name: str, model_path: Optional[str], device: torch.device
 ) -> tuple[Any, Any]:
     """Load model and processor for a given model name"""
     model_class, processor_class = get_model_processor_classes(model_name)
 
     cache_path = None
-    print(f"COLPALI_MODELS_BASE_PATH: {COLPALI_MODELS_BASE_PATH}")
-    # if COLPALI_MODELS_BASE_PATH is set, load model from local path
-    if COLPALI_MODELS_BASE_PATH:
-        local_model_path = get_model_local_path(
-            COLPALI_MODELS_BASE_PATH, model_name
-        )
+    print(f"model_path: {model_path}")
+    # if model_path is set, load model from local path
+    if model_path:
+        local_model_path = get_model_local_path(model_path, model_name)
         if local_model_path.exists():
             model_name = str(local_model_path)
             cache_path = get_model_cache_path(local_model_path)
@@ -107,7 +100,7 @@ def load_model_and_processor(
         cache_dir=cache_path
         if cache_path
         else None,  # cache containt base models weights
-        local_files_only=COLPALI_MODELS_BASE_PATH
+        local_files_only=model_path
         is not None,  # if set use only local files from folder
     ).eval()
     processor = processor_class.from_pretrained(model_name)
