@@ -26,9 +26,10 @@ def download_colpali_model(base_path: str, model_name: str):
     snapshot_download(repo_id=model_name, local_dir=model_path, local_dir_use_symlinks=False, force_download=True)
     
     # download base model into cache directory
-    model_class.from_pretrained(model_name,local_files_only=False,
+    model_class.from_pretrained(model_name,
+        local_files_only=False,
         force_download=True,
-        cache_dir=cache_path 
+        cache_dir=cache_path
     )
 
     print(f"Successfully downloaded {model_name}")
