@@ -187,4 +187,4 @@ class CachedColpaliModelResource(ColpaliModelResource):
 
         batch_result = self.cached_model(**inputs)
         # Split batch tensor into individual tensors like the base class
-        return [tensor.cpu().unsqueeze(0) for tensor in batch_result]
+        return [tensor.cpu().squeeze(0) for tensor in batch_result]

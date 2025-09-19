@@ -73,7 +73,7 @@ class ColpaliRetriever(BaseRetriever):
             image_embedding = torch.from_numpy(doc_embedding.embedding).half()
             score = (
                 self.model_resource.calculate_scores(
-                    query_embeddings, [image_embedding]
+                    [query_embeddings], [image_embedding]
                 )
                 .squeeze()
                 .item()
@@ -210,21 +210,6 @@ class ColpaliRetriever(BaseRetriever):
         return query_embeddings_list
 
     @staticmethod
-    def pad_embeddings(tensor: Tensor, target_shape: Tuple) -> Tensor:
-        """Pad embeddings to the target shape"""
-        padding_dims = [
-            (0, target_shape[2] - tensor.shape[2]),
-            (0, target_shape[1] - tensor.shape[1]),
-            (0, 0),
-        ]
-        padding_dims_flat = [
-            item for sublist in padding_dims[::-1] for item in sublist
-        ]
-        return torch.nn.functional.pad(
-            tensor, pad=padding_dims_flat, mode="constant", value=0
-        )
-
-    @staticmethod
     def _process_images_batch(
         images_batch: List[str], model_resource: ColpaliModelResource
     ) -> List[torch.Tensor]:
@@ -279,24 +264,7 @@ class ColpaliRetriever(BaseRetriever):
                 image_embeddings_list.extend(batch_results)
                 pbar.update(len(batch))
 
-        # Pad embeddings to same shape
-        if image_embeddings_list:
-            max_shape = (
-                max(embed.shape[0] for embed in image_embeddings_list),
-                max(embed.shape[1] for embed in image_embeddings_list),
-                max(embed.shape[2] for embed in image_embeddings_list),
-            )
-
-            padded_embeddings = [
-                torch.squeeze(
-                    ColpaliRetriever.pad_embeddings(embed, max_shape), 0
-                )
-                for embed in image_embeddings_list
-            ]
-        else:
-            padded_embeddings = []
-
-        return padded_embeddings
+        return image_embeddings_list
 
     @staticmethod
     def has_index(document_records: List[DocumentRecord]) -> bool:

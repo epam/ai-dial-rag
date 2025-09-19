@@ -78,7 +78,7 @@ class ColpaliModelResource:
             embeddings = self.model(**inputs)
 
         # Split batch tensor into individual tensors and move to CPU
-        return [tensor.cpu().unsqueeze(0) for tensor in embeddings]
+        return [tensor.cpu().squeeze(0) for tensor in embeddings]
 
     def calculate_queries_embeddings(self, queries: List[str]) -> List[Tensor]:
         """Embed queries using the ColPali model."""
@@ -97,7 +97,7 @@ class ColpaliModelResource:
         return self._run_model(inputs)
 
     def calculate_scores(
-        self, query_embeddings: Tensor, image_embeddings: List[Tensor]
+        self, query_embeddings: List[Tensor], image_embeddings: List[Tensor]
     ) -> Tensor:
         """Calculate scores between query and image embeddings."""
         return self.processor.score_multi_vector(
