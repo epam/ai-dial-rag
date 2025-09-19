@@ -18,7 +18,7 @@ USER root
 COPY download_model.py ./
 
 # Download the specified ColPali model
-RUN python download_model.py colpali "$COLPALI_MODEL_NAME" "$COLPALI_MODELS_BASE_PATH"
+RUN python download_colpali_models.py "$COLPALI_MODEL_NAME" "$COLPALI_MODELS_BASE_PATH"
 
 # Stage 2: Final image with downloaded model
 FROM ${BASE_IMAGE_NAME}
