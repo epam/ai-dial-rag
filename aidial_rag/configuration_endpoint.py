@@ -46,6 +46,11 @@ class ApiRequest(BaseModel):
         description="Enable indexing of the documents if the index is missing or is not compatible with retrieval.",
     )
 
+    save_index_on_migration: bool = Field(
+        default=True,
+        description="Allows to save the migrated index back to the storage if the index was migrated from an older index format to the latest one on load.",
+    )
+
     @model_validator(mode="after")
     def validate_force_indexing(self) -> Self:
         if not self.allow_indexing and self.force_indexing:
