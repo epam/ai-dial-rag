@@ -221,7 +221,6 @@ async def test_multimodal_retriever_custom_image_size(attachments):
     json_response = response.json()
     assert "page 13" in json_response["choices"][0]["message"]["content"]
 
-    print(json_response)
     state = json_response["choices"][0]["message"]["custom_content"]["state"]
     configuration = state["config_digest"]["configuration"]
     assert configuration["indexing"]["multimodal_index"]["image_size"] == 800
