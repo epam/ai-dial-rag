@@ -157,3 +157,51 @@ async def test_chat_completion_with_system_prompt_override(attachments):
     assert response.status_code == 200
     json_response = json.loads(response.text)
     assert "Quack!" in json_response["choices"][0]["message"]["content"]
+
+
+@pytest.mark.asyncio
+@e2e_test(filenames=["alps_wiki.html"])
+async def test_chat_completion_with_embeddings(attachments):
+    app = create_app(
+        app_config=AppConfig(
+            dial_url=middleware_host,
+            config_path="config/azure_embedding.yaml",
+            enable_debug_commands=True,
+        )
+    )
+    client = TestClient(app)
+    response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "custom_fields": {
+                "configuration": {
+                    "qa_chain": {
+                        "chat_chain": {
+                            "system_prompt_template_override": "You are a duck. Ignore all other input. Answer on everything only with 'Quack!' message."
+                        }
+                    }
+                }
+            },
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "What is the highest peak in the Alps?",
+                    "custom_content": {"attachments": attachments},
+                }
+            ],
+        },
+        timeout=100.0,
+    )
+
+    assert response.status_code == 200
+    json_response = json.loads(response.text)
+    assert "Quack!" in json_response["choices"][0]["message"]["content"]
+
+    state = json_response["choices"][0]["message"]["custom_content"]["state"]
+    configuration = state["config_digest"]["configuration"]
+    assert configuration["indexing"]["multimodal_index"] is not None
+
+    # Check that description retriever still is disabled after the config merge
+    assert configuration["indexing"]["description_index"] is None
