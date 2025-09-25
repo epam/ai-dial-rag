@@ -47,7 +47,6 @@ COLPALI_CACHE_EMBEDDINGS_DIR = (
 def colapli_model_config():
     return ColpaliModelResourceConfig(
         model_name=KnownModels.COLSMOL_256M,
-        model_path=None,
         batch_size=8,
     )
 
@@ -175,7 +174,6 @@ def test_model_name_validation():
     ):
         ColpaliModelResourceConfig(
             model_name="unknown/model",
-            model_path=None,
             batch_size=8,
         )
 

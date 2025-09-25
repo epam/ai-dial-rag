@@ -6,7 +6,7 @@ without requiring the full aidial_rag package.
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from colpali_engine.models import (
@@ -75,33 +75,15 @@ def get_model_cache_path(model_path: Path) -> Path:
 
 
 def load_model_and_processor(
-    model_name: str, model_path: Optional[str], device: torch.device
+    model_name: str, device: torch.device
 ) -> tuple[Any, Any]:
-    """Load model and processor for a given model name"""
+    """Loads model and processor for a given model name"""
     model_class, processor_class = get_model_processor_classes(model_name)
 
-    cache_path = None
-    print(f"model_path: {model_path}")
-    # if model_path is set, load model from local path
-    if model_path:
-        local_model_path = get_model_local_path(model_path, model_name)
-        if local_model_path.exists():
-            model_name = str(local_model_path)
-            cache_path = get_model_cache_path(local_model_path)
-            print(f"loading model from local path: {local_model_path}")
-        else:
-            raise ValueError(
-                f"Model {model_name} not found in local path {local_model_path}"
-            )
     model = model_class.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
         device_map=device,
-        cache_dir=cache_path
-        if cache_path
-        else None,  # cache containt base models weights
-        local_files_only=model_path
-        is not None,  # if set use only local files from folder
     ).eval()
     processor = processor_class.from_pretrained(model_name)
 
