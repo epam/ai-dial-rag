@@ -8,13 +8,7 @@ from pydantic import ByteSize, Field
 
 from aidial_rag.base_config import BaseConfig
 from aidial_rag.dial_api_client import DialApiClient
-from aidial_rag.document_record import (
-    FORMAT_VERSION,
-    SERIALIZATION_CONFIG,
-    DocumentRecord,
-    IndexSettings,
-)
-from aidial_rag.errors import IndexIncompatibleError, IndexMissingError
+from aidial_rag.errors import IndexMissingError
 from aidial_rag.index_mime_type import INDEX_MIME_TYPE
 from aidial_rag.indexing_task import IndexingTask
 
@@ -126,33 +120,17 @@ class IndexStorage:
     async def load(
         self,
         task: IndexingTask,
-        index_settings: IndexSettings,
-    ) -> DocumentRecord:
+    ) -> bytes:
         doc_record_bytes = await self._storage.load(task.index_url)
         if doc_record_bytes is None:
             raise IndexMissingError()
-        try:
-            doc_record = DocumentRecord.from_bytes(
-                doc_record_bytes, **SERIALIZATION_CONFIG
-            )
-            if doc_record.format_version != FORMAT_VERSION:
-                raise IndexIncompatibleError(
-                    f"Index format version mismatch: {doc_record.format_version}"
-                )
-            if doc_record.index_settings != index_settings:
-                raise IndexIncompatibleError(
-                    f"Index settings mismatch: {doc_record.index_settings}"
-                )
-            return doc_record
-        except Exception as e:
-            raise IndexIncompatibleError("Failed to deserialize index") from e
+        return doc_record_bytes
 
     async def store(
         self,
         task: IndexingTask,
-        doc_record: DocumentRecord,
+        doc_record_bytes: bytes,
     ) -> dict:
-        doc_record_bytes = doc_record.to_bytes(**SERIALIZATION_CONFIG)
         logger.debug(
             f"Stored document {task.attachment_link} index with url: {task.index_url}"
         )

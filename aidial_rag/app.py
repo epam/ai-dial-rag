@@ -235,7 +235,7 @@ class DialRAGApplication(ChatCompletion):
     ) -> ConfigDigest:
         configuration = merge_config(
             Configuration(),
-            self.app_config.request.model_dump(exclude_none=True),
+            self.app_config.request.model_dump(exclude_unset=True),
         )
 
         custom_configuration_dict = get_configuration(request)

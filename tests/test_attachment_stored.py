@@ -9,6 +9,9 @@ from aidial_rag.configuration_endpoint import Configuration
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_record import DocumentRecord
+from aidial_rag.document_record_migration import (
+    deserialize_and_migrate_document_record,
+)
 from aidial_rag.documents import load_document
 from aidial_rag.errors import DocumentProcessingError, InvalidDocumentError
 from aidial_rag.index_storage import IndexStorageHolder
@@ -132,10 +135,10 @@ async def test_load_document_success(
     assert isinstance(doc_record, DocumentRecord)
     assert doc_record.document_bytes == b"This is a test byte array."
 
-    index_settings = configuration.indexing.collect_fields_that_rebuild_index()
-
     # Read stored value
-    doc = await index_storage.load(indexing_task, index_settings)
+    doc_record_bytes = await index_storage.load(indexing_task)
+    doc = deserialize_and_migrate_document_record(doc_record_bytes)
+
     assert isinstance(doc, DocumentRecord)
     assert doc.document_bytes == b"This is a test byte array."
     assert len(doc.chunks) == 1
