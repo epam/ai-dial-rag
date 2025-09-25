@@ -4,6 +4,7 @@ from aidial_rag.retrievers.colpali_retriever.colpali_models import (
     load_model_and_processor
 )
 
+import torch
 
 def download_colpali_model_from_config(config_path: str):
     """Download a ColPali model using configuration from a YAML file"""
@@ -17,8 +18,10 @@ def download_colpali_model_from_config(config_path: str):
 
     if not model_name:
         raise ValueError("model_name not found in colpali_model_resource_config")
+
+    device = torch.device("cpu")
     # after loading model it will cache it and next calls will use cached model
-    load_model_and_processor(model_name)
+    load_model_and_processor(model_name, device)
     print(f"Successfully downloaded {model_name}")
 
 def main():

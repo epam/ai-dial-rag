@@ -3,11 +3,11 @@
 # Set base image with default value
 ARG BASE_IMAGE_NAME=epam/ai-dial-rag:latest
 
-# Set config file with default value
-ARG CONFIG_FILE=config/azure_colsmol256m.yaml
-
 # Stage 1: Download ColPali model
 FROM ${BASE_IMAGE_NAME} AS colpali_downloader
+
+# Set config file with default value
+ARG CONFIG_FILE=config/azure_colsmol256m.yaml
 
 # Set HF_HOME environment variable to save model into local cache folder
 ENV HF_HOME=./hf_home_cache
@@ -28,11 +28,11 @@ FROM ${BASE_IMAGE_NAME}
 # Set HF_HOME environment variable for the running app
 ENV HF_HOME=./hf_home_cache
 
-# Copy the downloaded ColPali model from the downloader stage
-COPY --from=colpali_downloader --chown=appuser /colpali_models /colpali_models
-
 # Copy the HF cache folder from the downloader stage
 COPY --from=colpali_downloader --chown=appuser ./hf_home_cache ./hf_home_cache
+
+# Set HF_HUB_OFFLINE environment variable to make loading model from local cache folder
+ENV HF_HUB_OFFLINE=1
 
 # Switch back to appuser
 USER appuser
