@@ -23,6 +23,7 @@
 !SECURITY.md
 !collect_repository_digest.py
 !download_model.py
+!download_colpali_models.py
 !noxfile.py
 !poetry.lock
 !poetry.toml

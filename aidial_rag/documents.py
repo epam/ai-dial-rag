@@ -2,7 +2,7 @@ import asyncio
 import logging
 from contextlib import contextmanager
 from email.policy import EmailPolicy
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from aidial_sdk.exceptions import InvalidRequestError
 from docarray import DocList
@@ -55,6 +55,12 @@ from aidial_rag.print_stats import print_chunks_stats
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
+from aidial_rag.retrievers.colpali_retriever.colpali_retriever import (
+    ColpaliRetriever,
+)
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionRetriever,
 )
@@ -112,6 +118,7 @@ async def load_document_impl(
     stage_stream: SupportsWriteStr,
     index_settings: IndexSettings,
     config: RequestConfig,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> DocumentRecord:
     logger_stream = LoggerStream()
     if config.log_document_links:
@@ -175,6 +182,21 @@ async def load_document_impl(
                 )
             )
 
+        colpali_index_task = None
+        if (
+            index_config.colpali_index is not None
+            and index_config.colpali_index.enabled
+            and colpali_model_resource is not None
+        ):
+            colpali_index_task = tg.create_task(
+                ColpaliRetriever.build_index(
+                    model_resource=colpali_model_resource,
+                    stageio=StreamWithPrefix(io_stream, "ColpaliRetriever: "),
+                    mime_type=mime_type,
+                    original_document=doc_bytes,
+                )
+            )
+
         # TODO: try to move is_image check to the parse_document since another loader is not exposed here from the document_loaders.py
         if is_image(content_type):
             chunks_list = [get_default_image_chunk(attachment_link)]
@@ -207,6 +229,9 @@ async def load_document_impl(
     description_indexes = (
         description_index_task.result() if description_index_task else None
     )
+    colpali_indexes = (
+        colpali_index_task.result() if colpali_index_task else None
+    )
 
     return DocumentRecord(
         format_version=FORMAT_VERSION,
@@ -216,6 +241,7 @@ async def load_document_impl(
         embeddings_index=embeddings_index_task.result(),
         multimodal_embeddings_index=multimodal_index,
         description_embeddings_index=description_indexes,
+        colpali_embeddings_index=colpali_indexes,
         document_bytes=doc_bytes,
         mime_type=mime_type,
     )
@@ -262,6 +288,7 @@ async def _process_document_stage(
     config: Configuration,
     attachment_link: AttachmentLink,
     index_settings: IndexSettings,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ):
     with timed_stage(
         request_context.choice,
@@ -276,6 +303,7 @@ async def _process_document_stage(
                 io_stream,
                 index_settings,
                 config,
+                colpali_model_resource,
             )
         except InvalidDocumentError as e:
             doc_stage.append_content(e.message)
@@ -305,6 +333,7 @@ async def load_document(
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
     config: Configuration,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> DocumentRecord:
     if config.request.force_indexing and not config.request.allow_indexing:
         raise InvalidRequestError(
@@ -355,7 +384,11 @@ async def load_document(
 
         if doc_record is None:
             doc_record = await _process_document_stage(
-                request_context, config, attachment_link, index_settings
+                request_context,
+                config,
+                attachment_link,
+                index_settings,
+                colpali_model_resource,
             )
             await _store_index_stage(
                 request_context, index_storage, task, doc_record
@@ -370,10 +403,16 @@ async def load_document_task(
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
     config: Configuration,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> DocumentIndexingResult:
     try:
         doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            config,
+            colpali_model_resource,
         )
         return DocumentIndexingSuccess(
             task=task,
@@ -393,13 +432,19 @@ async def load_documents(
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
     config: Configuration,
+    colpali_model_resource: Optional[ColpaliModelResource],
 ) -> List[DocumentIndexingResult]:
     # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
     # if ignore_document_loading_errors is not set in the config
     return await asyncio.gather(
         *[
             load_document_task(
-                request_context, task, index_storage, dial_api_client, config
+                request_context,
+                task,
+                index_storage,
+                dial_api_client,
+                config,
+                colpali_model_resource,
             )
             for task in tasks
         ],

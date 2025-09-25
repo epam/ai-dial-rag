@@ -69,6 +69,7 @@ def prepare_retriever(
     retriever = create_retriever(
         dial_config=DialConfig(dial_url="-", api_key=SecretStr("-")),
         document_records=doc_records,
+        colpali_model_resource=None,
         indexing_config=indexing_config,
     )
 

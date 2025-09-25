@@ -60,6 +60,9 @@ from aidial_rag.request_context import RequestContext, create_request_context
 from aidial_rag.resources.cpu_pools import init_cpu_pools
 from aidial_rag.retrieval_api import RetrievalResponse
 from aidial_rag.retrieval_chain import create_retrieval_chain
+from aidial_rag.retrievers.colpali_retriever.colpali_model_resource import (
+    ColpaliModelResource,
+)
 from aidial_rag.stages import RetrieverStage
 from aidial_rag.transform_history import transform_history
 from aidial_rag.utils import profiler_if_enabled, timed_stage
@@ -203,6 +206,11 @@ class DialRAGApplication(ChatCompletion):
 
     def __init__(self, app_config: AppConfig):
         self.app_config = app_config
+        self.colpali_model_resource = (
+            None
+            if app_config.colpali_model_resource_config is None
+            else ColpaliModelResource(app_config.colpali_model_resource_config)
+        )
         self.enable_debug_commands = app_config.enable_debug_commands
         self.repository_digest = read_repository_digest(REPOSITORY_DIGEST_PATH)
         logger.info(
@@ -297,6 +305,7 @@ class DialRAGApplication(ChatCompletion):
                 index_storage,
                 dial_api_client,
                 config=request_config,
+                colpali_model_resource=self.colpali_model_resource,
             )
 
             if request_config.request.type == RequestType.INDEXING:
@@ -358,6 +367,7 @@ class DialRAGApplication(ChatCompletion):
                     indexing_config=request_config.indexing,
                     document_records=document_records,
                     query_chain=query_chain,
+                    colpali_model_resource=self.colpali_model_resource,
                     make_retrieval_stage=_make_retrieval_stage,
                 )
 

@@ -1,0 +1,40 @@
+
+
+# Set base image with default value
+ARG BASE_IMAGE_NAME=epam/ai-dial-rag:latest
+
+# Stage 1: Download ColPali model
+FROM ${BASE_IMAGE_NAME} AS colpali_downloader
+
+# Set config file with default value
+ARG CONFIG_FILE=config/azure_colsmol256m.yaml
+
+# Set HF_HOME environment variable to save model into local cache folder
+ENV HF_HOME=./hf_home_cache
+
+# Switch to root user for model downloads
+USER root
+
+# Copy necessary files for ColPali model download
+COPY download_colpali_models.py ./
+COPY ${CONFIG_FILE} ./config.yaml
+
+# Download the specified ColPali model using provided config
+RUN python download_colpali_models.py config.yaml
+
+# Stage 2: Final image with downloaded model
+FROM ${BASE_IMAGE_NAME}
+
+# Set HF_HOME environment variable for the running app
+ENV HF_HOME=./hf_home_cache
+
+# Copy the HF cache folder from the downloader stage
+COPY --from=colpali_downloader --chown=appuser ./hf_home_cache ./hf_home_cache
+
+# Set HF_HUB_OFFLINE environment variable to make loading model from local cache folder
+ENV HF_HUB_OFFLINE=1
+
+# Switch back to appuser
+USER appuser
+
+# The base image already has EXPOSE 5000 and CMD, so we inherit those

@@ -65,6 +65,7 @@ class DocumentRecord(BaseDoc):
     embeddings_index: MultiEmbeddings | None
     multimodal_embeddings_index: MultiEmbeddings | None = None
     description_embeddings_index: MultiEmbeddings | None = None
+    colpali_embeddings_index: MultiEmbeddings | None = None
     mime_type: str
     document_bytes: bytes  # Could be attached document or converted document
     modification_metadata: ModificationMetadata = ModificationMetadata()
