@@ -304,13 +304,19 @@ async def _store_index_stage(
         await index_storage.store(task, doc_record_bytes)
 
 
-def was_document_modified(
-    modification_metadata: ModificationMetadata, metadata: FileMetadata
-) -> bool:
-    return (
+def _check_if_document_was_modified(
+    config: Configuration,
+    modification_metadata: ModificationMetadata,
+    metadata: FileMetadata,
+):
+    if config.request.ignore_file_modification:
+        return
+
+    if (
         modification_metadata.etag != metadata.etag
         or modification_metadata.last_modified != metadata.last_modified
-    )
+    ):
+        raise IndexIncompatibleError("Document was modified")
 
 
 async def load_document(
@@ -352,10 +358,7 @@ async def load_document(
                         f"Index format version is not supported: {doc_record.format_version}"
                     )
 
-                if was_document_modified(
-                    doc_record.modification_metadata, metadata
-                ):
-                    raise IndexIncompatibleError("Document was modified")
+                _check_if_document_was_modified(config, doc_record.modification_metadata, metadata)
 
                 if (
                     doc_record.format_version != FORMAT_VERSION

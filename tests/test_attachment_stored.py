@@ -83,8 +83,8 @@ class MockStage(Stage):
 @patch(
     "aidial_rag.document_loaders.download_attachment", new_callable=AsyncMock
 )
-async def test_attachment_test(mock_fetch, request_context, attachment_link):
-    mock_fetch.return_value = (
+async def test_attachment_test(mock_download_attachment, request_context, attachment_link):
+    mock_download_attachment.return_value = (
         FileMetadata(mime_type="application/pdf"),
         b"This is a test byte array.",
     )
@@ -106,7 +106,7 @@ async def test_attachment_test(mock_fetch, request_context, attachment_link):
 @patch("aidial_sdk.chat_completion.Choice.create_stage")
 async def test_load_document_success(
     mock_create_stage,
-    mock_fetch,
+    mock_download_attachment,
     mock_load_document_metadata,
     request_context,
     dial_api_client,
@@ -114,7 +114,7 @@ async def test_load_document_success(
     attachment_link,
 ):
     mock_load_document_metadata.return_value = None
-    mock_fetch.return_value = (
+    mock_download_attachment.return_value = (
         FileMetadata(mime_type="text/plain"),
         b"This is a test byte array.",
     )
@@ -156,7 +156,7 @@ async def test_load_document_success(
 @patch("aidial_sdk.chat_completion.Choice.create_stage")
 async def test_load_document_invalid_document(
     mock_create_stage,
-    mock_fetch,
+    mock_download_attachment,
     mock_load_document_metadata,
     request_context,
     dial_api_client,
@@ -164,7 +164,7 @@ async def test_load_document_invalid_document(
     attachment_link,
 ):
     mock_load_document_metadata.return_value = None
-    mock_fetch.return_value = None, None
+    mock_download_attachment.return_value = None, None
 
     mock_create_stage.side_effect = lambda name=None: MockStage(
         MagicMock(), 0, 0, name

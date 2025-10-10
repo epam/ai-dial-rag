@@ -21,17 +21,7 @@ class FileMetadata(BaseModel):
 class DialFileMetadata(BaseModel):
     """Dial file metadata response: https://dialx.ai/dial_api#tag/Files/operation/getFileMetadata"""
 
-    # Dial API declares all fields as optional
-    name: str | None = None
-    author: str | None = None
-    parent_path: str | None = Field(alias="parentPath", default=None)
-    bucket: str | None = None
-    url: str | None = None
-    node_type: str | None = Field(alias="nodeType", default=None)
-    resource_type: str | None = Field(alias="resourceType", default=None)
     etag: str | None = None
-    created_at: int | None = Field(alias="createdAt", default=None)
-    updated_at: int | None = Field(alias="updatedAt", default=None)
     content_length: int | None = Field(alias="contentLength", default=None)
     content_type: str | None = Field(alias="contentType", default=None)
 
@@ -58,7 +48,7 @@ def _convert_file_metadata(
     )
 
 
-async def load_dial_document_metadata(
+async def _load_dial_document_metadata(
     request_context: RequestContext,
     attachment_link: AttachmentLink,
     config: HttpClientConfig,
@@ -112,7 +102,7 @@ def create_file_metadata_from_headers(
     )
 
 
-async def load_external_document_metadata(
+async def _load_external_document_metadata(
     attachment_link: AttachmentLink,
     config: HttpClientConfig,
 ) -> FileMetadata:
@@ -135,8 +125,8 @@ async def load_document_metadata(
     config: HttpClientConfig,
 ) -> FileMetadata:
     if attachment_link.is_dial_document:
-        return await load_dial_document_metadata(
+        return await _load_dial_document_metadata(
             request_context, attachment_link, config
         )
     else:
-        return await load_external_document_metadata(attachment_link, config)
+        return await _load_external_document_metadata(attachment_link, config)

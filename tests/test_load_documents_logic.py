@@ -391,21 +391,16 @@ async def test_dial_file_ignore_file_modification(
     with patch(
         "aidial_rag.documents.load_document_impl"
     ) as load_document_impl_mock:
-        # The file could be modified again after the metadata request
-        load_document_impl_mock.return_value = _make_doc_record(
-            config, ModificationMetadata(etag='"ghi789"')
-        )
-
         result_doc_record = await load_document(
             request_context, task, index_storage, dial_api_client, config
         )
 
         index_storage.load.assert_called_once()
-        load_document_impl_mock.assert_called_once()
+        load_document_impl_mock.assert_not_called()
 
     assert result_doc_record is not None
-    # The etag should be from the actual file load, not from the metadata request
-    assert result_doc_record.modification_metadata.etag == '"ghi789"'
+    # Old index is used, even if the file was modified
+    assert result_doc_record.modification_metadata.etag == '"abc123"'
     assert result_doc_record.modification_metadata.last_modified is None
 
 
