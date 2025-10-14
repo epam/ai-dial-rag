@@ -53,6 +53,10 @@ There are following parameters could be specified for `custom_fields.configurati
 
 - **`allow_indexing`** (default: true) - If set to false, DIAL RAG will not run the indexing process. DIAL RAG will only check if the index exists and is compatible with the current version and settings. If the index is missing or incompatible, the indexing process will be skipped and the error will be returned.
 
+- **`save_index_on_migration`** (default: true) - If set to false, DIAL RAG will not save the migrated index back to the storage. By default, when DIAL RAG detects the older version of the index, it will try to migrate it to the new version and save it back to the storage. This parameter allows to disable this behavior, which could be useful if the client manages the index files itself.
+
+- **`ignore_file_modification`** (default: false) - If set to true, DIAL RAG will ignore any file modification check (by ETag or Last-Modified) and will trust that the index is up-to-date. This could be useful if the client manages the index files itself and needs to move or copy the document files after the indexing. The file move or copy operation may change ETag or Last-Modified metadata, which will cause DIAL RAG to think that the document was modified and will trigger re-indexing. If this parameter is set to true, DIAL RAG will skip the modification check and will trust that the index is up-to-date.
+
 ### Indexing Request
 
 The indexing request is a `/chat/completion` request with `custom_fields.configuration.request.type` field to `indexing` in the request body.

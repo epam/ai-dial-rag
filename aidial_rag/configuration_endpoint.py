@@ -54,7 +54,7 @@ class ApiRequest(BaseModel):
     ignore_file_modification: bool = Field(
         default=False,
         description="Ignore file modification check when loading the index. "
-        "Useful if the file was moved or copied in the Dial, since if changes the etag.",
+        "Useful if the file was moved or copied in the Dial, since it changes the etag.",
     )
 
     @model_validator(mode="after")
