@@ -4,7 +4,6 @@ import pytest
 
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.document_loaders import load_attachment, parse_document
-from aidial_rag.documents import parse_content_type
 from tests.utils.local_http_server import start_local_server
 
 DATA_DIR = "tests/data"
@@ -20,10 +19,8 @@ async def load_document(name):
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
-    )
-    mime_type, _ = parse_content_type(content_type)
+    file_metadata, buffer = await load_attachment(attachment_link, {})
+    mime_type = file_metadata.mime_type
     chunks = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )

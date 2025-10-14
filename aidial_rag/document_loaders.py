@@ -19,13 +19,17 @@ from unstructured_pytesseract.pytesseract import TesseractNotFoundError
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.base_config import BaseConfig, IndexRebuildTrigger
 from aidial_rag.content_stream import SupportsWriteStr
+from aidial_rag.document_loaders_config import HttpClientConfig
+from aidial_rag.document_metadata import (
+    FileMetadata,
+    create_file_metadata_from_headers,
+)
 from aidial_rag.errors import InvalidDocumentError
 from aidial_rag.image_processor.extract_pages import (
     are_image_pages_supported,
     extract_number_of_pages,
 )
 from aidial_rag.print_stats import print_documents_stats
-from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.utils import format_size, get_bytes_length, timed_block
 
@@ -40,24 +44,6 @@ _unstructured_client_stub = UnstructuredClient(
     api_key_auth="-",
     server_url="-",
 )
-
-
-class HttpClientConfig(BaseConfig):
-    timeout_seconds: int = Field(
-        default=30,
-        description="Timeout for the whole request. Includes connection establishment, sending the request, and receiving the response.",
-    )
-    connect_timeout_seconds: int = Field(
-        default=30,
-        description="Timeout for establishing a connection to the server.",
-    )
-
-    def get_client_timeout(self) -> aiohttp.ClientTimeout:
-        return aiohttp.ClientTimeout(
-            total=self.timeout_seconds,
-            connect=self.connect_timeout_seconds,
-            sock_connect=self.connect_timeout_seconds,
-        )
 
 
 class ParserConfig(BaseConfig):
@@ -85,18 +71,21 @@ class ParserConfig(BaseConfig):
 
 
 async def download_attachment(
-    url, headers, download_config: HttpClientConfig
-) -> tuple[str, bytes]:
+    url: str,
+    headers: dict[str, str],
+    download_config: HttpClientConfig,
+) -> tuple[FileMetadata, bytes]:
     async with aiohttp.ClientSession() as session:
         async with session.get(
             url, headers=headers, timeout=download_config.get_client_timeout()
         ) as response:
             response.raise_for_status()
-            content_type = response.headers.get("Content-Type", "")
 
-            content = await response.read()  # Await the coroutine
+            file_metadata = create_file_metadata_from_headers(response.headers)
+
+            content = await response.read()
             logging.debug(f"Downloaded {url}: {len(content)} bytes")
-            return content_type, content
+            return file_metadata, content
 
 
 def add_source_metadata(
@@ -120,42 +109,22 @@ def add_pdf_source_metadata(
     return pages
 
 
-async def load_dial_document_metadata(
-    request_context: RequestContext,
-    attachment_link: AttachmentLink,
-    config: HttpClientConfig,
-) -> dict:
-    if not attachment_link.is_dial_document:
-        raise ValueError("Not a Dial document")
-
-    metadata_url = attachment_link.dial_metadata_url
-    assert metadata_url is not None
-
-    headers = request_context.get_file_access_headers(metadata_url)
-    async with aiohttp.ClientSession(
-        timeout=config.get_client_timeout()
-    ) as session:
-        async with session.get(metadata_url, headers=headers) as response:
-            if not response.ok:
-                error_message = f"{response.status} {response.reason}"
-                raise InvalidDocumentError(error_message)
-            return await response.json()
-
-
 async def load_attachment(
     attachment_link: AttachmentLink,
     headers: dict,
     download_config: HttpClientConfig | None = None,
-) -> tuple[str, str, bytes]:
+) -> tuple[FileMetadata, bytes]:
     if download_config is None:
         download_config = HttpClientConfig()
     absolute_url = attachment_link.absolute_url
     file_name = attachment_link.display_name
-    content_type, attachment_bytes = await download_attachment(
-        absolute_url, headers, download_config
+    file_metadata, attachment_bytes = await download_attachment(
+        absolute_url,
+        headers,
+        download_config,
     )
     if attachment_bytes:
-        return file_name, content_type, attachment_bytes
+        return file_metadata, attachment_bytes
     raise InvalidDocumentError(
         f"Attachment {file_name}, can't be read properly"
     )

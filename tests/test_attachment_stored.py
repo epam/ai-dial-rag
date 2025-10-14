@@ -8,6 +8,7 @@ from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.configuration_endpoint import Configuration
 from aidial_rag.dial_api_client import DialApiClient
 from aidial_rag.document_loaders import load_attachment
+from aidial_rag.document_metadata import FileMetadata
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.document_record_migration import (
     deserialize_and_migrate_document_record,
@@ -82,37 +83,43 @@ class MockStage(Stage):
 @patch(
     "aidial_rag.document_loaders.download_attachment", new_callable=AsyncMock
 )
-async def test_attachment_test(mock_fetch, request_context, attachment_link):
-    mock_fetch.return_value = "application/pdf", b"This is a test byte array."
+async def test_attachment_test(
+    mock_download_attachment, request_context, attachment_link
+):
+    mock_download_attachment.return_value = (
+        FileMetadata(mime_type="application/pdf"),
+        b"This is a test byte array.",
+    )
     absolute_url = attachment_link.absolute_url
     headers = request_context.get_file_access_headers(absolute_url)
 
-    filename, _content_type, bytes_value = await load_attachment(
-        attachment_link, headers
-    )
+    file_metadata, bytes_value = await load_attachment(attachment_link, headers)
 
-    assert filename == "folder 1/file-example_PDF 500_kB.pdf"
+    assert file_metadata.mime_type == "application/pdf"
     assert len(bytes_value) == 26  # Assuming you expect the length to be 50
     assert bytes_value == b"This is a test byte array."
 
 
 @pytest.mark.asyncio
-@patch("aidial_rag.documents.check_document_access", new_callable=AsyncMock)
+@patch("aidial_rag.documents.load_document_metadata", new_callable=AsyncMock)
 @patch(
     "aidial_rag.document_loaders.download_attachment", new_callable=AsyncMock
 )
 @patch("aidial_sdk.chat_completion.Choice.create_stage")
 async def test_load_document_success(
     mock_create_stage,
-    mock_fetch,
-    mock_check_document_access,
+    mock_download_attachment,
+    mock_load_document_metadata,
     request_context,
     dial_api_client,
     index_storage,
     attachment_link,
 ):
-    mock_check_document_access.return_value = None
-    mock_fetch.return_value = "text/plain", b"This is a test byte array."
+    mock_load_document_metadata.return_value = None
+    mock_download_attachment.return_value = (
+        FileMetadata(mime_type="text/plain"),
+        b"This is a test byte array.",
+    )
 
     mock_create_stage.side_effect = lambda name=None: MockStage(
         MagicMock(), 0, 0, name
@@ -144,22 +151,22 @@ async def test_load_document_success(
 
 
 @pytest.mark.asyncio
-@patch("aidial_rag.documents.check_document_access", new_callable=AsyncMock)
+@patch("aidial_rag.documents.load_document_metadata", new_callable=AsyncMock)
 @patch(
     "aidial_rag.document_loaders.download_attachment", new_callable=AsyncMock
 )
 @patch("aidial_sdk.chat_completion.Choice.create_stage")
 async def test_load_document_invalid_document(
     mock_create_stage,
-    mock_fetch,
-    mock_check_document_access,
+    mock_download_attachment,
+    mock_load_document_metadata,
     request_context,
     dial_api_client,
     index_storage,
     attachment_link,
 ):
-    mock_check_document_access.return_value = None
-    mock_fetch.return_value = None, None
+    mock_load_document_metadata.return_value = None
+    mock_download_attachment.return_value = None, None
 
     mock_create_stage.side_effect = lambda name=None: MockStage(
         MagicMock(), 0, 0, name

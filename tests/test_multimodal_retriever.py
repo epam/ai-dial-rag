@@ -18,7 +18,6 @@ from aidial_rag.document_record import (
     DocumentRecord,
     build_chunks_list,
 )
-from aidial_rag.documents import parse_content_type
 from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.multimodal_retriever import (
@@ -46,10 +45,8 @@ async def load_document(name):
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
-    )
-    mime_type, _ = parse_content_type(content_type)
+    file_metadata, buffer = await load_attachment(attachment_link, {})
+    mime_type = file_metadata.mime_type
     document = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )
@@ -99,10 +96,8 @@ async def run_test_retrievers(
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
-    )
-    mime_type, _ = parse_content_type(content_type)
+    file_metadata, buffer = await load_attachment(attachment_link, {})
+    mime_type = file_metadata.mime_type
     text_chunks = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )

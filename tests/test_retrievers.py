@@ -12,7 +12,6 @@ from aidial_rag.document_record import (
     IndexSettings,
     build_chunks_list,
 )
-from aidial_rag.documents import parse_content_type
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
 from aidial_rag.retrievers.semantic_retriever import SemanticRetriever
 from aidial_rag.retrievers_postprocess import get_text_chunks
@@ -52,10 +51,8 @@ async def test_retrievers(local_server):
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
-    )
-    mime_type, _ = parse_content_type(content_type)
+    file_metadata, buffer = await load_attachment(attachment_link, {})
+    mime_type = file_metadata.mime_type
     text_chunks = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )
@@ -115,10 +112,8 @@ async def test_pdf_with_no_text(local_server):
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
-    )
-    mime_type, _ = parse_content_type(content_type)
+    file_metadata, buffer = await load_attachment(attachment_link, {})
+    mime_type = file_metadata.mime_type
     text_chunks = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )

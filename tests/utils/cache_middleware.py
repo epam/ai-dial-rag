@@ -114,11 +114,13 @@ class CacheMiddlewareApp(FastAPI):
 
             metadata = {
                 "name": file_name,
-                "parentPath": None,
+                "parentPath": "/",
                 "bucket": bucket,
-                "url": f"/{path}",
+                "url": f"files/{path}",
                 "nodeType": "ITEM",
                 "resourceType": "FILE",
+                "createdAt": 1758045215,
+                "updatedAt": 1758045215,
                 "contentLength": content_length,
                 "contentType": content_type,
             }

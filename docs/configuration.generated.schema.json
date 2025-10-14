@@ -19,6 +19,18 @@
           "description": "Enable indexing of the documents if the index is missing or is not compatible with retrieval.",
           "title": "Allow Indexing",
           "type": "boolean"
+        },
+        "save_index_on_migration": {
+          "default": true,
+          "description": "Allows to save the migrated index back to the storage if the index was migrated from an older index format to the latest one on load.",
+          "title": "Save Index On Migration",
+          "type": "boolean"
+        },
+        "ignore_file_modification": {
+          "default": false,
+          "description": "Ignore file modification check when loading the index. Useful if the file was moved or copied in the Dial, since it changes the etag.",
+          "title": "Ignore File Modification",
+          "type": "boolean"
         }
       },
       "title": "ApiRequest",
@@ -446,7 +458,9 @@
       "default": {
         "type": "rag",
         "force_indexing": false,
-        "allow_indexing": true
+        "allow_indexing": true,
+        "save_index_on_migration": true,
+        "ignore_file_modification": false
       },
       "description": "Configuration for the Dial RAG API request."
     }
