@@ -358,7 +358,9 @@ async def load_document(
                         f"Index format version is not supported: {doc_record.format_version}"
                     )
 
-                _check_if_document_was_modified(config, doc_record.modification_metadata, metadata)
+                _check_if_document_was_modified(
+                    config, doc_record.modification_metadata, metadata
+                )
 
                 if (
                     doc_record.format_version != FORMAT_VERSION

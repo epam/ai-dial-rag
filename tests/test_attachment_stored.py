@@ -83,7 +83,9 @@ class MockStage(Stage):
 @patch(
     "aidial_rag.document_loaders.download_attachment", new_callable=AsyncMock
 )
-async def test_attachment_test(mock_download_attachment, request_context, attachment_link):
+async def test_attachment_test(
+    mock_download_attachment, request_context, attachment_link
+):
     mock_download_attachment.return_value = (
         FileMetadata(mime_type="application/pdf"),
         b"This is a test byte array.",
