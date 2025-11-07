@@ -275,11 +275,11 @@ Dial RAG supports following debug commands if the option `ENABLE_DEBUG_COMMANDS`
 
 ## Developer environment
 
-This project uses [Python==3.11](https://www.python.org/downloads/) and [Poetry>=1.8.5](https://python-poetry.org/) as a dependency manager.
+This project uses [Python==3.11](https://www.python.org/downloads/) and [Poetry>=2.2.1](https://python-poetry.org/) as a dependency manager.
 
 Check out Poetry's [documentation on how to install it](https://python-poetry.org/docs/#installation) on your system before proceeding.
 
-If you have [Poetry>=1.8.5](https://python-poetry.org/) and python 3.11 installed in the system, to install requirements you can run:
+If you have [Poetry>=2.2.1](https://python-poetry.org/) and python 3.11 installed in the system, to install requirements you can run:
 
 ```sh
 poetry install
@@ -292,15 +292,15 @@ Alternatively, if you have [uv](https://docs.astral.sh/uv/) installed, you can u
 
 ```sh
 uv venv "$VIRTUAL_ENV" --python 3.11
-uvx poetry@1.8.5 install
+uvx poetry@2.2.1 install
 ```
 
 This will install all requirements for running the package, linting, formatting and tests, the same as `poetry install` command above.
 
-If you want to use poetry from the uv with make commands, you can set the `POETRY=uvx poetry@1.8.5` environment variable:
+If you want to use poetry from the uv with make commands, you can set the `POETRY=uvx poetry@2.2.1` environment variable:
 
 ```sh
-POETRY="uvx poetry@1.8.5" make install
+POETRY="uvx poetry@2.2.1" make install
 ```
 
 
