@@ -41,7 +41,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 # Install pip requirements
 COPY pyproject.toml poetry.lock ./
 
-ENV POETRY=poetry@1.8.5
+ENV POETRY=poetry@2.2.1
 # uvx installs poetry in separate venv, not spoiling the app venv
 RUN uvx "$POETRY" install --no-interaction --no-ansi --no-cache --only main --no-root --no-directory
 
