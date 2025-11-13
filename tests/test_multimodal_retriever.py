@@ -3,9 +3,12 @@ import sys
 from operator import itemgetter
 
 import pytest
+from fastapi.testclient import TestClient
 from langchain.schema.runnable import RunnablePassthrough
 from pydantic import SecretStr
 
+from aidial_rag.app import create_app
+from aidial_rag.app_config import AppConfig
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.dial_user_limits import get_user_limits_for_model
@@ -15,7 +18,6 @@ from aidial_rag.document_record import (
     DocumentRecord,
     build_chunks_list,
 )
-from aidial_rag.documents import parse_content_type
 from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
 from aidial_rag.retrievers.multimodal_retriever import (
@@ -24,7 +26,11 @@ from aidial_rag.retrievers.multimodal_retriever import (
     MultimodalRetriever,
 )
 from aidial_rag.retrievers_postprocess import get_text_chunks
+from tests.utils.e2e_decorator import e2e_test
 from tests.utils.local_http_server import start_local_server
+
+MIDDLEWARE_HOST = "http://localhost:8081"
+
 
 DATA_DIR = "tests/data"
 PORT = 5008
@@ -39,10 +45,8 @@ async def load_document(name):
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
-    )
-    mime_type, _ = parse_content_type(content_type)
+    file_metadata, buffer = await load_attachment(attachment_link, {})
+    mime_type = file_metadata.mime_type
     document = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )
@@ -92,10 +96,8 @@ async def run_test_retrievers(
         display_name=name,
     )
 
-    _file_name, content_type, buffer = await load_attachment(
-        attachment_link, {}
-    )
-    mime_type, _ = parse_content_type(content_type)
+    file_metadata, buffer = await load_attachment(attachment_link, {})
+    mime_type = file_metadata.mime_type
     text_chunks = await parse_document(
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )
@@ -172,3 +174,51 @@ async def test_azure_vision_embeddings(local_server):
             metric=Metric.COSINE_SIM,
         ),
     )
+
+
+@pytest.mark.asyncio
+@e2e_test(filenames=["alps_wiki.pdf"])
+async def test_multimodal_retriever_custom_image_size(attachments):
+    app = create_app(
+        app_config=AppConfig(
+            dial_url=MIDDLEWARE_HOST,
+            config_path="config/azure_embedding.yaml",
+        )
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/openai/deployments/dial-rag/chat/completions",
+        headers={"Api-Key": "api-key"},
+        json={
+            "model": "dial-rag",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "At what page there is an image of butterfly?",
+                    "custom_content": {"attachments": attachments},
+                }
+            ],
+            "custom_fields": {
+                "configuration": {
+                    "indexing": {
+                        "multimodal_index": {
+                            "image_size": 800,
+                        }
+                    },
+                }
+            },
+        },
+        timeout=100.0,
+    )
+    assert response.status_code == 200
+
+    json_response = response.json()
+    assert "page 13" in json_response["choices"][0]["message"]["content"]
+
+    state = json_response["choices"][0]["message"]["custom_content"]["state"]
+    configuration = state["config_digest"]["configuration"]
+    assert configuration["indexing"]["multimodal_index"]["image_size"] == 800
+
+    # Check that description retriever still is disabled after config merge
+    assert configuration["indexing"]["description_index"] is None

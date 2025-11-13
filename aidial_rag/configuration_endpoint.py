@@ -13,7 +13,7 @@ from pydantic import (
 )
 
 from aidial_rag.base_config import BaseConfig
-from aidial_rag.document_loaders import HttpClientConfig
+from aidial_rag.document_loaders_config import HttpClientConfig
 from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.llm import LlmConfig
 from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
@@ -44,6 +44,17 @@ class ApiRequest(BaseModel):
     allow_indexing: bool = Field(
         default=True,
         description="Enable indexing of the documents if the index is missing or is not compatible with retrieval.",
+    )
+
+    save_index_on_migration: bool = Field(
+        default=True,
+        description="Allows to save the migrated index back to the storage if the index was migrated from an older index format to the latest one on load.",
+    )
+
+    ignore_file_modification: bool = Field(
+        default=False,
+        description="Ignore file modification check when loading the index. "
+        "Useful if the file was moved or copied in the Dial, since it changes the etag.",
     )
 
     @model_validator(mode="after")
