@@ -80,18 +80,6 @@ Enables support of debug commands in the messages. Should be `false` for prod en
 
 Process pool for document parsing, image extraction and similar CPU-bound tasks. Is set to `max(1, CPU_COUNT - 2)` to leave some CPU cores for other tasks.
 
-##### `DIAL_RAG__CPU_POOLS__INDEXING_EMBEDDINGS_POOL`
-
-*Optional*, default value: `1`
-
-Embedding process itself uses multiple cores. Should be `1`, unless you have a lot of cores and can explicitly see the underutilisation (i.e. you only have a very small documents in the requests).
-
-##### `DIAL_RAG__CPU_POOLS__QUERY_EMBEDDINGS_POOL`
-
-*Optional*, default value: `1`
-
-Embedding process for the query. Should be `1`, unless you have a lot of cores.
-
 ##### `USE_DIAL_FILE_STORAGE`
 
 *Optional*, default value: `False`
