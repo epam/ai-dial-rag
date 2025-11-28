@@ -13,10 +13,7 @@ from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from aidial_rag.batched import batched_map_with_progress
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.embeddings.detect_device import DeviceType, detect_device
-from aidial_rag.resources.cpu_pools import (
-    run_in_indexing_embeddings_pool,
-    run_in_query_embeddings_pool,
-)
+from aidial_rag.resources.cpu_pools import run_in_embeddings_pool
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +74,7 @@ class AsyncEmbeddings(Embeddings):
         raise NotImplementedError()
 
     async def aembed_documents(self, texts: List[str]) -> List[List[float]]:
-        return await run_in_indexing_embeddings_pool(
+        return await run_in_embeddings_pool(
             bge_embedding_impl().embed_documents, texts
         )
 
@@ -91,7 +88,7 @@ class AsyncEmbeddings(Embeddings):
         ]
 
     async def aembed_query(self, text: str) -> List[float]:
-        return await run_in_query_embeddings_pool(
+        return await run_in_embeddings_pool(
             bge_embedding_impl().embed_query, text
         )
 
