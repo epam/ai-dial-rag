@@ -1,6 +1,7 @@
 import base64
 import json
 
+from aidial_sdk.utils.merge_chunks import merge_chat_completion_chunks
 from httpx import Response
 
 
@@ -116,8 +117,7 @@ class CacheResponse:
         if self.body.startswith("data:"):
             chunks = self.body.strip().splitlines()
 
-            content_list = []
-
+            chunk_jsons = []
             for chunk in chunks:
                 if chunk.startswith("data: "):
                     # Extract the JSON part after "data: "
@@ -125,26 +125,10 @@ class CacheResponse:
                     try:
                         # Parse the JSON
                         parsed_json = json.loads(json_part)
-                        # Access the content in choice->delta->content
-                        content = (
-                            parsed_json.get("choices", [{}])[0]
-                            .get("delta", {})
-                            .get("content", "")
-                        )
-                        if content:
-                            cc = content.replace("\\n", "\n")
-                            content_list.append(cc)  # Append non-empty content
+                        chunk_jsons.append(parsed_json)
                     except json.JSONDecodeError:
                         continue  # Ignore any malformed JSON
 
-            # Join all collected content into a single string and return it
-            json_body = "".join(content_list)
-
-            # There could be some extra new lines at the beginning or end
-            json_body = json_body.strip()
-
-            if json_body.startswith("```json") and json_body.endswith("```"):
-                json_object = json.loads(json_body[7:-3])
-                return json_object
-            return json_body
+            merged_body = merge_chat_completion_chunks(*chunk_jsons)
+            return merged_body
         return ""
