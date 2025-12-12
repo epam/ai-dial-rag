@@ -35,6 +35,9 @@ from aidial_rag.configuration_endpoint import (
 from aidial_rag.dial_api_client import create_dial_api_client
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.documents import load_documents
+from aidial_rag.embeddings.local_embeddings import (
+    create_local_bge_embeddings_model,
+)
 from aidial_rag.index_record import ChunkMetadata, RetrievalType
 from aidial_rag.index_storage import (
     IndexStorageHolder,
@@ -220,6 +223,7 @@ class DialRAGApplication(ChatCompletion):
         self.index_storage_holder = IndexStorageHolder(
             self.app_config.index_storage
         )
+        self.text_embeddings = create_local_bge_embeddings_model()
         super().__init__()
 
     def _merge_config_sources(
@@ -296,6 +300,7 @@ class DialRAGApplication(ChatCompletion):
                 indexing_tasks,
                 index_storage,
                 dial_api_client,
+                self.text_embeddings,
                 config=request_config,
             )
 
@@ -358,6 +363,7 @@ class DialRAGApplication(ChatCompletion):
                     indexing_config=request_config.indexing,
                     document_records=document_records,
                     query_chain=query_chain,
+                    text_embeddings=self.text_embeddings,
                     make_retrieval_stage=_make_retrieval_stage,
                 )
 

@@ -39,6 +39,7 @@ from aidial_rag.document_record_migration import (
     MIN_FORMAT_VERSION,
     deserialize_and_migrate_document_record,
 )
+from aidial_rag.embeddings.embeddings import EmbeddingsModel
 from aidial_rag.errors import (
     DocumentProcessingError,
     IndexBaseError,
@@ -109,6 +110,7 @@ async def load_document_impl(
     attachment_link: AttachmentLink,
     stage_stream: SupportsWriteStr,
     index_settings: IndexSettings,
+    text_embeddings: EmbeddingsModel,
     config: RequestConfig,
 ) -> DocumentRecord:
     logger_stream = LoggerStream()
@@ -169,6 +171,7 @@ async def load_document_impl(
                 DescriptionRetriever.build_index(
                     dial_config,
                     dial_limited_resources,
+                    text_embeddings,
                     index_config.description_index,
                     doc_bytes,
                     mime_type,
@@ -198,7 +201,9 @@ async def load_document_impl(
 
         embeddings_index_task = tg.create_task(
             SemanticRetriever.build_index(
-                chunks_list, StreamWithPrefix(io_stream, "SemanticRetriever: ")
+                chunks_list,
+                text_embeddings,
+                StreamWithPrefix(io_stream, "SemanticRetriever: "),
             )
         )
 
@@ -267,6 +272,7 @@ async def _process_document_stage(
     config: Configuration,
     attachment_link: AttachmentLink,
     index_settings: IndexSettings,
+    text_embeddings: EmbeddingsModel,
 ):
     with timed_stage(
         request_context.choice,
@@ -280,6 +286,7 @@ async def _process_document_stage(
                 attachment_link,
                 io_stream,
                 index_settings,
+                text_embeddings,
                 config,
             )
         except InvalidDocumentError as e:
@@ -324,6 +331,7 @@ async def load_document(
     task: IndexingTask,
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
+    text_embeddings: EmbeddingsModel,
     config: Configuration,
 ) -> DocumentRecord:
     if config.request.force_indexing and not config.request.allow_indexing:
@@ -387,6 +395,7 @@ async def load_document(
                 config,
                 attachment_link,
                 index_settings,
+                text_embeddings,
             )
             await _store_index_stage(
                 request_context, index_storage, task, doc_record
@@ -400,6 +409,7 @@ async def load_document_task(
     task: IndexingTask,
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
+    text_embeddings: EmbeddingsModel,
     config: Configuration,
 ) -> DocumentIndexingResult:
     try:
@@ -408,6 +418,7 @@ async def load_document_task(
             task,
             index_storage,
             dial_api_client,
+            text_embeddings,
             config,
         )
         return DocumentIndexingSuccess(
@@ -427,6 +438,7 @@ async def load_documents(
     tasks: Iterable[IndexingTask],
     index_storage: IndexStorage,
     dial_api_client: DialApiClient,
+    text_embeddings: EmbeddingsModel,
     config: Configuration,
 ) -> List[DocumentIndexingResult]:
     # TODO: Rewrite this function using TaskGroup to cancel all tasks if one of them fails
@@ -434,7 +446,12 @@ async def load_documents(
     return await asyncio.gather(
         *[
             load_document_task(
-                request_context, task, index_storage, dial_api_client, config
+                request_context,
+                task,
+                index_storage,
+                dial_api_client,
+                text_embeddings,
+                config,
             )
             for task in tasks
         ],
