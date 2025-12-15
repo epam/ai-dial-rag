@@ -2304,26 +2304,6 @@ files = [
 langchain-core = ">=0.3.75,<2.0.0"
 
 [[package]]
-name = "langchain-unstructured"
-version = "0.1.6"
-description = "An integration package connecting Unstructured and LangChain"
-optional = false
-python-versions = "<4.0,>=3.9"
-groups = ["main"]
-files = [
-    {file = "langchain_unstructured-0.1.6-py3-none-any.whl", hash = "sha256:ab3d230972409de3559effbc197931e1e3c96c002a4e848442630afdf5216d61"},
-    {file = "langchain_unstructured-0.1.6.tar.gz", hash = "sha256:0c571b9deb104b705d45cdd5be91483f5661503309d2325db7ad6fec54a54b68"},
-]
-
-[package.dependencies]
-langchain-core = ">=0.3.6,<0.4.0"
-onnxruntime = ">=1.17.0,<=1.19.2"
-unstructured-client = ">=0.27.0,<1"
-
-[package.extras]
-local = ["unstructured[all-docs] (>=0.15.7,<0.16.0) ; python_version < \"3.13\""]
-
-[[package]]
 name = "langdetect"
 version = "1.0.9"
 description = "Language detection library ported from Google's language-detection."
@@ -7322,4 +7302,4 @@ cffi = ["cffi (>=1.17) ; python_version >= \"3.13\" and platform_python_implemen
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "891228c8edfc80c912247e0e01b16eeb72090cf718f85e8bfd8f33b63f117936"
+content-hash = "ef84c3ee2b2d2c031fc115ad9cffcdd5cb5b3371cb8ade9ea4505e5e2ad4b7bd"
