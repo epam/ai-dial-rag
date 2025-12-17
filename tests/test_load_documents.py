@@ -46,3 +46,13 @@ async def test_load_pdf_with_image_and_no_text(local_server):
     assert chunks[0].page_content == ""
     assert chunks[0].metadata["filetype"] == "application/pdf"
     assert chunks[0].metadata["page_number"] == 1
+
+
+@pytest.mark.asyncio
+async def test_load_single_line_text(local_server):
+    chunks = await load_document("hello.txt")
+    assert len(chunks) == 1
+    assert chunks[0].page_content == "Hello, world!"
+    assert chunks[0].metadata["filetype"] == "text/plain"
+    assert "page_number" not in chunks[0].metadata
+    assert "orig_elements" not in chunks[0].metadata

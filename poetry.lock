@@ -1197,20 +1197,15 @@ standard-no-fastapi-cloud-cli = ["email-validator (>=2.0.0)", "fastapi-cli[stand
 
 [[package]]
 name = "filelock"
-version = "3.15.4"
+version = "3.20.1"
 description = "A platform independent file lock."
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 groups = ["main", "nox"]
 files = [
-    {file = "filelock-3.15.4-py3-none-any.whl", hash = "sha256:6ca1fffae96225dab4c6eaf1c4f4f28cd2568d3ec2a44e15a08520504de468e7"},
-    {file = "filelock-3.15.4.tar.gz", hash = "sha256:2207938cbc1844345cb01a5a95524dae30f0ce089eba5b00378295a17e3e90cb"},
+    {file = "filelock-3.20.1-py3-none-any.whl", hash = "sha256:15d9e9a67306188a44baa72f569d2bfd803076269365fdea0934385da4dc361a"},
+    {file = "filelock-3.20.1.tar.gz", hash = "sha256:b8360948b351b80f420878d8516519a2204b07aefcdcfd24912a5d33127f188c"},
 ]
-
-[package.extras]
-docs = ["furo (>=2023.9.10)", "sphinx (>=7.2.6)", "sphinx-autodoc-typehints (>=1.25.2)"]
-testing = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "diff-cover (>=8.0.1)", "pytest (>=7.4.3)", "pytest-asyncio (>=0.21)", "pytest-cov (>=4.1)", "pytest-mock (>=3.12)", "pytest-timeout (>=2.2)", "virtualenv (>=20.26.2)"]
-typing = ["typing-extensions (>=4.8) ; python_version < \"3.11\""]
 
 [[package]]
 name = "filetype"
@@ -2302,26 +2297,6 @@ files = [
 
 [package.dependencies]
 langchain-core = ">=0.3.75,<2.0.0"
-
-[[package]]
-name = "langchain-unstructured"
-version = "0.1.6"
-description = "An integration package connecting Unstructured and LangChain"
-optional = false
-python-versions = "<4.0,>=3.9"
-groups = ["main"]
-files = [
-    {file = "langchain_unstructured-0.1.6-py3-none-any.whl", hash = "sha256:ab3d230972409de3559effbc197931e1e3c96c002a4e848442630afdf5216d61"},
-    {file = "langchain_unstructured-0.1.6.tar.gz", hash = "sha256:0c571b9deb104b705d45cdd5be91483f5661503309d2325db7ad6fec54a54b68"},
-]
-
-[package.dependencies]
-langchain-core = ">=0.3.6,<0.4.0"
-onnxruntime = ">=1.17.0,<=1.19.2"
-unstructured-client = ">=0.27.0,<1"
-
-[package.extras]
-local = ["unstructured[all-docs] (>=0.15.7,<0.16.0) ; python_version < \"3.13\""]
 
 [[package]]
 name = "langdetect"
@@ -7322,4 +7297,4 @@ cffi = ["cffi (>=1.17) ; python_version >= \"3.13\" and platform_python_implemen
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "891228c8edfc80c912247e0e01b16eeb72090cf718f85e8bfd8f33b63f117936"
+content-hash = "ef84c3ee2b2d2c031fc115ad9cffcdd5cb5b3371cb8ade9ea4505e5e2ad4b7bd"
