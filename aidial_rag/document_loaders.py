@@ -9,11 +9,11 @@ import aiohttp
 # The onnx module should be imported before any unstructured_inference imports to avoid the issue
 import onnx  # noqa: F401
 from langchain.schema import Document
-from langchain_unstructured import UnstructuredLoader
 from pdf2image.exceptions import PDFInfoNotInstalledError
 from pydantic import ByteSize, Field
+from unstructured.documents.elements import Element
 from unstructured.file_utils.model import FileType
-from unstructured_client import UnstructuredClient
+from unstructured.partition.auto import partition
 from unstructured_pytesseract.pytesseract import TesseractNotFoundError
 
 from aidial_rag.attachment_link import AttachmentLink
@@ -32,18 +32,6 @@ from aidial_rag.image_processor.extract_pages import (
 from aidial_rag.print_stats import print_documents_stats
 from aidial_rag.resources.cpu_pools import run_in_indexing_cpu_pool
 from aidial_rag.utils import format_size, get_bytes_length, timed_block
-
-# Create a stub for UnstructuredClient as a global object to avoid creating/destroying
-# it in every request.
-# We do not use unstructured api, but the langchain_unstructured will create the client
-# even for partition_via_api=False.
-# The UnstructuredClient registers close_clients as weakref.finalize which could be called
-# by garbage collector at any time. If close_clients will be called during submit in the
-# ThreadPoolExecutor, it could block the thread and cause a deadlock.
-_unstructured_client_stub = UnstructuredClient(
-    api_key_auth="-",
-    server_url="-",
-)
 
 
 class ParserConfig(BaseConfig):
@@ -173,6 +161,20 @@ def add_image_only_chunks(
     return result_chunks
 
 
+def _convert_chunk(unstructured_chunk: Element) -> Document:
+    chunk = Document(
+        page_content=unstructured_chunk.text,
+        metadata={},
+    )
+
+    if unstructured_chunk.metadata.filetype is not None:
+        chunk.metadata["filetype"] = unstructured_chunk.metadata.filetype
+
+    if unstructured_chunk.metadata.page_number is not None:
+        chunk.metadata["page_number"] = unstructured_chunk.metadata.page_number
+    return chunk
+
+
 def get_document_chunks(
     document_bytes: bytes,
     mime_type: str,
@@ -181,7 +183,7 @@ def get_document_chunks(
     parser_config: ParserConfig,
 ) -> List[Document]:
     try:
-        chunks = UnstructuredLoader(
+        unstructured_chunks = partition(
             file=BytesIO(document_bytes),
             metadata_filename=attachment_link.display_name,
             # Current version of unstructured library expect mime type instead of the full content type with encoding, etc.
@@ -195,10 +197,12 @@ def get_document_chunks(
             combine_text_under_n_chars=0,
             new_after_n_chars=parser_config.unstructured_chunk_size,
             max_characters=parser_config.unstructured_chunk_size,
-            # langchain_unstructured creates the client even for partition_via_api=False
-            client=_unstructured_client_stub,
-            partition_via_api=False,
-        ).load()
+        )
+        chunks = [
+            _convert_chunk(unstructured_chunk)
+            for unstructured_chunk in unstructured_chunks
+        ]
+
     except ValueError as e:
         raise InvalidDocumentError(
             "Unable to load document content. Try another document format.",
