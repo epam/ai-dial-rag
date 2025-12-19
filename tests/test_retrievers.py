@@ -12,6 +12,9 @@ from aidial_rag.document_record import (
     IndexSettings,
     build_chunks_list,
 )
+from aidial_rag.embeddings.local_embeddings import (
+    create_local_bge_embeddings_model,
+)
 from aidial_rag.retrievers.bm25_retriever import BM25Retriever
 from aidial_rag.retrievers.semantic_retriever import SemanticRetriever
 from aidial_rag.retrievers_postprocess import get_text_chunks
@@ -59,9 +62,13 @@ async def test_retrievers(local_server):
 
     assert len(text_chunks) == 177
 
+    text_embeddings = create_local_bge_embeddings_model()
+
     chunks = await build_chunks_list(text_chunks)
     text_index = await BM25Retriever.build_index(chunks)
-    embeddings_index = await SemanticRetriever.build_index(chunks)
+    embeddings_index = await SemanticRetriever.build_index(
+        chunks, text_embeddings
+    )
 
     doc_record = DocumentRecord(
         format_version=FORMAT_VERSION,
@@ -84,7 +91,9 @@ async def test_retrievers(local_server):
     assert res[0].metadata["chunk_id"] == 31
     assert "Colle di Cadibona" in res[0].page_content
 
-    semantic_retriever = SemanticRetriever.from_doc_records(doc_records, 7)
+    semantic_retriever = SemanticRetriever.from_doc_records(
+        text_embeddings, doc_records, 7
+    )
     res = await run_retrevier(
         semantic_retriever, doc_records, "what is the climate in the alps?"
     )

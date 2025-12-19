@@ -137,11 +137,9 @@ class MultimodalRetriever(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *args, **kwargs
     ) -> List[Document]:
-        multimodal_embeddings = MultimodalEmbeddings(
-            self.dial_config, self.index_config.embeddings_model
+        raise NotImplementedError(
+            "MultimodalRetriever only supports async retrieval."
         )
-        query_emb = np.array(multimodal_embeddings.embed_query(query))
-        return self._find_relevant_documents(query_emb)
 
     async def _aget_relevant_documents(self, query: str, *args, **kwargs):
         multimodal_embeddings = MultimodalEmbeddings(

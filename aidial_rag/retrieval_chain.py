@@ -13,6 +13,7 @@ from langchain_core.runnables import Runnable, chain
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_record import DocumentRecord
+from aidial_rag.embeddings.embeddings import EmbeddingsModel
 from aidial_rag.image_processor.base64 import pil_image_as_base64
 from aidial_rag.image_processor.extract_pages import (
     are_image_pages_supported,
@@ -194,13 +195,16 @@ def create_retriever(
     dial_config: DialConfig,
     document_records: List[DocumentRecord],
     indexing_config: IndexingConfig,
+    text_embeddings: EmbeddingsModel,
     make_retrieval_stage: Callable[
         [BaseRetriever, str], BaseRetriever
     ] = _make_retrieval_stage_default,
 ) -> BaseRetriever:
     if not AllDocumentsRetriever.is_within_limit(document_records):
         semantic_retriever = make_retrieval_stage(
-            SemanticRetriever.from_doc_records(document_records, 7),
+            SemanticRetriever.from_doc_records(
+                text_embeddings, document_records, 7
+            ),
             "Embeddings search",
         )
         retrievers: List[RetrieverLike] = [semantic_retriever]
@@ -230,7 +234,9 @@ def create_retriever(
 
         if DescriptionRetriever.has_index(document_records):
             description_retriever = make_retrieval_stage(
-                DescriptionRetriever.from_doc_records(document_records, 7),
+                DescriptionRetriever.from_doc_records(
+                    text_embeddings, document_records, 7
+                ),
                 "Page image search",
             )
             retrievers.append(description_retriever)
@@ -257,6 +263,7 @@ async def create_retrieval_chain(
     indexing_config: IndexingConfig,
     document_records: List[DocumentRecord],
     query_chain: Runnable[Dict[str, Any], str],
+    text_embeddings: EmbeddingsModel,
     make_retrieval_stage: Callable[
         [BaseRetriever, str], BaseRetriever
     ] = _make_retrieval_stage_default,
@@ -267,6 +274,7 @@ async def create_retrieval_chain(
         dial_config,
         document_records,
         indexing_config,
+        text_embeddings,
         make_retrieval_stage,
     )
 

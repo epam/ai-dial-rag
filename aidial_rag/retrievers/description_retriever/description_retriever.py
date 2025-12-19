@@ -15,7 +15,7 @@ from aidial_rag.base_config import BaseConfig
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_record import DocumentRecord, MultiEmbeddings
-from aidial_rag.embeddings.embeddings import bge_embedding, build_embeddings
+from aidial_rag.embeddings.embeddings import EmbeddingsModel
 from aidial_rag.index_record import RetrievalType
 from aidial_rag.llm import LlmConfig, create_llm
 from aidial_rag.resources.dial_limited_resources import (
@@ -90,10 +90,14 @@ class DescriptionIndexConfig(BaseConfig):
 
 class DescriptionRetriever(BaseRetriever):
     index: EmbeddingsIndex
+    text_embeddings: EmbeddingsModel
 
     @classmethod
     def from_doc_records(
-        cls, document_records: List[DocumentRecord], k: int = 4
+        cls,
+        text_embeddings: EmbeddingsModel,
+        document_records: List[DocumentRecord],
+        k: int = 4,
     ) -> "DescriptionRetriever":
         # description_embeddings_index is just a list of lists of embeddings by the page number
         # we need to convert it to index for chunks
@@ -107,7 +111,8 @@ class DescriptionRetriever(BaseRetriever):
                 retrieval_type=RetrievalType.IMAGE,
                 indexes=indexes,
                 limit=k,
-            )
+            ),
+            text_embeddings=text_embeddings,
         )
 
     def _find_relevant_documents(self, query_emb: np.ndarray) -> List[Document]:
@@ -116,11 +121,12 @@ class DescriptionRetriever(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *args, **kwargs
     ) -> List[Document]:
-        query_emb = np.array(bge_embedding.embed_query(query))
-        return self._find_relevant_documents(query_emb)
+        raise NotImplementedError(
+            "DescriptionRetriever only supports async retrieval."
+        )
 
     async def _aget_relevant_documents(self, query: str, *args, **kwargs):
-        query_emb = np.array(await bge_embedding.aembed_query(query))
+        query_emb = await self.text_embeddings.aembed_query(query)
         return await asyncio.get_running_loop().run_in_executor(
             None, self._find_relevant_documents, query_emb
         )
@@ -136,6 +142,7 @@ class DescriptionRetriever(BaseRetriever):
     async def build_index(
         dial_config: DialConfig,
         dial_limited_resources: DialLimitedResources,
+        text_embeddings: EmbeddingsModel,
         index_config: DescriptionIndexConfig,
         doc_bytes: bytes,
         mime_type: str,
@@ -158,6 +165,7 @@ class DescriptionRetriever(BaseRetriever):
             pages_embeddings = await _calculate_embeddings(
                 llm,
                 dial_limited_resources,
+                text_embeddings,
                 index_config,
                 extracted_images,
                 stageio,
@@ -169,6 +177,7 @@ class DescriptionRetriever(BaseRetriever):
 async def _calculate_embeddings(
     llm: BaseChatOpenAI,
     dial_limited_resources: DialLimitedResources,
+    text_embeddings: EmbeddingsModel,
     index_config: DescriptionIndexConfig,
     extracted_images: AsyncGeneratorWithTotal,
     stageio: SupportsWriteStr,
@@ -188,7 +197,9 @@ async def _calculate_embeddings(
 
     stageio.write("Calculate page embeddings\n")
     page_indexes, description_chunks = _extract_chunks(page_descriptions)
-    embeddings = await build_embeddings(description_chunks, stageio=stageio)
+    embeddings = await text_embeddings.aembed_documents(
+        description_chunks, stageio
+    )
     return pack_multi_embeddings(
         page_indexes, embeddings, extracted_images.total
     )

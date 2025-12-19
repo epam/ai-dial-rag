@@ -19,6 +19,9 @@ from aidial_rag.document_record import (
 )
 from aidial_rag.document_record_migration import MIN_FORMAT_VERSION
 from aidial_rag.documents import load_document
+from aidial_rag.embeddings.local_embeddings import (
+    create_local_bge_embeddings_model,
+)
 from aidial_rag.errors import (
     DocumentProcessingError,
     IndexMissingError,
@@ -166,7 +169,12 @@ async def test_new_dial_file(
         )
 
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()
@@ -200,7 +208,12 @@ async def test_dial_file_not_modified(
         "aidial_rag.documents.load_document_impl"
     ) as load_document_impl_mock:
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()
@@ -239,7 +252,12 @@ async def test_dial_file_modified(
         )
 
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()
@@ -280,7 +298,12 @@ async def test_dial_file_no_modification_metadata(
         )
 
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()
@@ -316,7 +339,12 @@ async def test_dial_file_modified_with_indexing_disabled(
     ) as load_document_impl_mock:
         with pytest.raises(DocumentProcessingError) as e:
             await load_document(
-                request_context, task, index_storage, dial_api_client, config
+                request_context,
+                task,
+                index_storage,
+                dial_api_client,
+                create_local_bge_embeddings_model(),
+                config,
             )
 
         index_storage.load.assert_called_once()
@@ -355,7 +383,12 @@ async def test_dial_file_force_indexing(
         )
 
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         # Do not check index_storage.load, because it depends on the implementation details
@@ -392,7 +425,12 @@ async def test_dial_file_ignore_file_modification(
         "aidial_rag.documents.load_document_impl"
     ) as load_document_impl_mock:
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()
@@ -423,7 +461,12 @@ async def test_dial_file_forbidden(
     ) as load_document_impl_mock:
         with pytest.raises(DocumentProcessingError) as e:
             await load_document(
-                request_context, task, index_storage, dial_api_client, config
+                request_context,
+                task,
+                index_storage,
+                dial_api_client,
+                create_local_bge_embeddings_model(),
+                config,
             )
 
         index_storage.load.assert_not_called()
@@ -460,7 +503,12 @@ async def test_new_external_file(
         )
 
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()
@@ -568,7 +616,12 @@ async def test_external_file_modified(
             )
 
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()
@@ -639,6 +692,7 @@ async def test_incompatible_index_settings(
             task,
             index_storage,
             dial_api_client,
+            create_local_bge_embeddings_model(),
             new_config,
         )
 
@@ -695,7 +749,12 @@ async def test_old_index_format(
         )
 
         result_doc_record = await load_document(
-            request_context, task, index_storage, dial_api_client, config
+            request_context,
+            task,
+            index_storage,
+            dial_api_client,
+            create_local_bge_embeddings_model(),
+            config,
         )
 
         index_storage.load.assert_called_once()

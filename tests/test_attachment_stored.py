@@ -14,6 +14,9 @@ from aidial_rag.document_record_migration import (
     deserialize_and_migrate_document_record,
 )
 from aidial_rag.documents import load_document
+from aidial_rag.embeddings.local_embeddings import (
+    create_local_bge_embeddings_model,
+)
 from aidial_rag.errors import DocumentProcessingError, InvalidDocumentError
 from aidial_rag.index_storage import IndexStorageHolder
 from aidial_rag.indexing_config import IndexingConfig
@@ -136,6 +139,7 @@ async def test_load_document_success(
         indexing_task,
         index_storage,
         dial_api_client,
+        text_embeddings=create_local_bge_embeddings_model(),
         config=configuration,
     )
     assert isinstance(doc_record, DocumentRecord)
@@ -184,6 +188,7 @@ async def test_load_document_invalid_document(
             ),
             index_storage,
             dial_api_client,
+            text_embeddings=create_local_bge_embeddings_model(),
             config=configuration,
         )
     assert isinstance(exc_info.value.__cause__, InvalidDocumentError)

@@ -38,10 +38,9 @@ class RetrieverStage(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
-        with timed_stage(self.choice, self.stage_name) as stage:
-            attached_docs = self.retriever.get_relevant_documents(query)
-            self._report_stage(stage, attached_docs)
-            return attached_docs
+        raise NotImplementedError(
+            "RetrieverStage only supports async retrieval."
+        )
 
     async def _aget_relevant_documents(
         self, query: str, *, run_manager: AsyncCallbackManagerForRetrieverRun
