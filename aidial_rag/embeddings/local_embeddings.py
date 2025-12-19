@@ -30,7 +30,7 @@ BGE_EMBEDDINGS_DEVICE = detect_device(
     os.environ.get("BGE_EMBEDDINGS_DEVICE", DeviceType.AUTO)
 )
 
-MODEL_KWARGS_BY_DEVICE: Dict[str, Any] = {
+SENTENCE_TRANSFORMERS_KWARGS_BY_DEVICE: Dict[str, Any] = {
     DeviceType.CPU: {
         "device": "cpu",
         "backend": "openvino",
@@ -38,8 +38,10 @@ MODEL_KWARGS_BY_DEVICE: Dict[str, Any] = {
     DeviceType.CUDA: {
         "device": "cuda",
         "backend": "torch",
-        "torch_dtype": "float16",
-        "attn_implementation": "sdpa",
+        "model_kwargs": {
+            "torch_dtype": "float16",
+            "attn_implementation": "sdpa",
+        },
     },
 }
 
@@ -54,11 +56,11 @@ class LocalEmbeddingsConfig(BaseConfig):
 
 class LocalEmbeddingsModel(EmbeddingsModel):
     def __init__(self, config: LocalEmbeddingsConfig) -> None:
-        model_kwargs = MODEL_KWARGS_BY_DEVICE[config.device]
+        kwargs = SENTENCE_TRANSFORMERS_KWARGS_BY_DEVICE[config.device]
         self._config = config
         self._model = SentenceTransformer(
             config.model_name_or_path,
-            **model_kwargs,
+            **kwargs,
         )
 
     def _embed_query(self, text: str) -> np.ndarray:
