@@ -5,10 +5,11 @@
 The Dial RAG answers user questions using information from the documents provided by user. It supports the following document formats: PDF, DOC/DOCX, PPT/PPTX, TXT and other plain text formats such as code files. Also, it supports PDF and JPEG, PNG and other image formats for the image understanding.
 
 The Dial RAG implements several retrieval methods to find the relevant information:
-* **Description retriever** - uses vision model to generate page images descriptions and perform search on them. Supports different vision models, like `gpt-4o-mini`, `gemini-1.5-flash-002` or `anthropic.claude-v3-haiku`.
-* **Multimodal retriever** - uses multimodal embedding models for pages images search. Supports different multimodal models, like [`azure-ai-vision-embeddings`](https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-image-retrieval), [Google `multimodalembedding@001`](https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-multimodal-embeddings) or [`amazon.titan-embed-image-v1`](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-multiemb-models.html)
-* **Semantic retriever** - uses [text embedding model](https://huggingface.co/epam/bge-small-en) to find the relevant information in the documents.
-* **Keyword retriever** - uses [Okapi BM25](https://en.wikipedia.org/wiki/Okapi_BM25) algorithm to find the relevant information in the documents.
+
+- **Description retriever** - uses vision model to generate page images descriptions and perform search on them. Supports different vision models, like `gpt-4o-mini`, `gemini-1.5-flash-002` or `anthropic.claude-v3-haiku`.
+- **Multimodal retriever** - uses multimodal embedding models for pages images search. Supports different multimodal models, like [`azure-ai-vision-embeddings`](https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-image-retrieval), [Google `multimodalembedding@001`](https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-multimodal-embeddings) or [`amazon.titan-embed-image-v1`](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-multiemb-models.html)
+- **Semantic retriever** - uses [text embedding model](https://huggingface.co/epam/bge-small-en) to find the relevant information in the documents.
+- **Keyword retriever** - uses [Okapi BM25](https://en.wikipedia.org/wiki/Okapi_BM25) algorithm to find the relevant information in the documents.
 
 The Dial RAG is intended to be used in the [Dial](https://github.com/epam/ai-dial) environment. It uses the [Dial Core](https://github.com/epam/ai-dial-core) to access the LLMs and other services.
 
@@ -18,10 +19,10 @@ The Dial RAG is intended to be used in the [Dial](https://github.com/epam/ai-dia
 
 Following environment variables are required to set for the deployment configuration:
 
-|Variable|Description|
-|---|---|
-|`DIAL_URL`| url to the dial core |
-|`DIAL_RAG__INDEX_STORAGE__USE_DIAL_FILE_STORAGE`| set to **True** to store indexes in the Dial File Storage instead of the local file storage |
+| Variable                                         | Description                                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `DIAL_URL`                                       | url to the dial core                                                                        |
+| `DIAL_RAG__INDEX_STORAGE__USE_DIAL_FILE_STORAGE` | set to **True** to store indexes in the Dial File Storage instead of the local file storage |
 
 ### Configuration files
 
@@ -29,6 +30,7 @@ The Dial RAG provides a set of configuration files with predefined settings for 
 You can set the environment variable `DIAL_RAG__CONFIG_PATH` to point to the required configuration file depending on the Dial environment and available models.
 
 The following configuration files are available in the `config` directory:
+
 - `config/aws_description.yaml` - AWS environment with description retriever, which uses `Claude Haiku 4.5` model for page images descriptions and `Claude Sonnet 3.5` for the answer generation.
 - `config/aws_embedding.yaml` - AWS environment with multimodal retriever, which uses `amazon.titan-embed-image-v1` model for page images embeddings and `Claude Sonnet 3.5` for the answer generation.
 - `config/azure_description.yaml` - Azure environment with description retriever, which uses `GPT-4.1 mini` model for page images descriptions and `GPT-4.1` for the answer generation.
@@ -39,14 +41,12 @@ The following configuration files are available in the `config` directory:
 
 If you are running the Dial RAG in a different environment, you can create your own configuration file based on one of the provided files and set the `DIAL_RAG__CONFIG_PATH` environment variable to point to it. If you need a small change in the configuration (for example to change the model name), you can point the `DIAL_RAG__CONFIG_PATH` to the existing file and override the required settings using the environment variables. See the [Additional environment variables](#additional-environment-variables) section for the list of available settings.
 
-
 ### Logging configuration environment variables
 
-|Variable|Default|Description|
-|---|---|---|
-|`LOG_LEVEL`| `INFO` | Log level for the application. |
-|`LOG_LEVEL_OVERRIDE`| `{}` | Allows to override log level for specific modules. Example: `LOG_LEVEL_OVERRIDE='{"dial_rag": "DEBUG", "urllib3": "ERROR" }'`|
-
+| Variable             | Default | Description                                                                                                                   |
+| -------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `LOG_LEVEL`          | `INFO`  | Log level for the application.                                                                                                |
+| `LOG_LEVEL_OVERRIDE` | `{}`    | Allows to override log level for specific modules. Example: `LOG_LEVEL_OVERRIDE='{"dial_rag": "DEBUG", "urllib3": "ERROR" }'` |
 
 ### Additional environment variables
 
@@ -247,19 +247,17 @@ Dial RAG supports following commands in messages:
 
 ### Attach
 
-`/attach <url>` - allows to provide an url to the attached document in the message body. Is equivalent to the setting `messages[i].custom_content.attachments[j].url` in the [Dial API](https://epam-rail.com/dial_api#/paths/~1openai~1deployments~1%7BDeployment%20Name%7D~1chat~1completions/post).
+`/attach <url>` - allows to provide an url to the attached document in the message body. Is equivalent to the setting `messages[i].custom_content.attachments[j].url` in the [Dial API](https://dialx.ai/dial_api).
 
 The `/attach` command is useful to attach the document which is available in the Internet and is not uploaded to the Dial File Storage.
-
 
 ### Debug commands
 
 Dial RAG supports following debug commands if the option `ENABLE_DEBUG_COMMANDS` is set to `true`.
 
- * `/model <model>` - allows to override the chat model used for the answer generation. Should be a deployment name of a chat model in available the Dial.
- * `/query_model <model>` - allows to override the model used to summarize the chat history to the standalone question. Should be a deployment name of a chat model in available the Dial. The model should support `tool calls`.
- * `/profile` - generates CPU profile report for the request. The report will be available as an attachment in the `Profiler` stage.
-
+- `/model <model>` - allows to override the chat model used for the answer generation. Should be a deployment name of a chat model in available the Dial.
+- `/query_model <model>` - allows to override the model used to summarize the chat history to the standalone question. Should be a deployment name of a chat model in available the Dial. The model should support `tool calls`.
+- `/profile` - generates CPU profile report for the request. The report will be available as an attachment in the `Profiler` stage.
 
 ## Developer environment
 
@@ -274,7 +272,6 @@ poetry install
 ```
 
 This will install all requirements for running the package, linting, formatting and tests.
-
 
 Alternatively, if you have [uv](https://docs.astral.sh/uv/) installed, you can use it to create the environment with required version of Python and poetry:
 
@@ -291,14 +288,12 @@ If you want to use poetry from the uv with make commands, you can set the `POETR
 POETRY="uvx poetry@2.2.1" make install
 ```
 
-
 ### IDE configuration
 
 The recommended IDE is [VSCode](https://code.visualstudio.com/).
 Open the project in VSCode and install the recommended extensions.
 
-This project uses [Ruff](https://docs.astral.sh/ruff/) as a linter and formatter. To configure it for your IDE follow the instructions in https://docs.astral.sh/ruff/editors/setup/.
-
+This project uses [Ruff](https://docs.astral.sh/ruff/) as a linter and formatter. To configure it for your IDE follow the instructions in <https://docs.astral.sh/ruff/editors/setup/>.
 
 ### Make on Windows
 
@@ -314,7 +309,7 @@ The command definitions inside Makefile should be cross-platform to keep the dev
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and customize it for your environment for the development process. See the [Configuration](#Configuration) section for the list of environment variables.
+Copy `.env.example` to `.env` and customize it for your environment for the development process. See the [Configuration](#configuration) section for the list of environment variables.
 
 ## Run
 
@@ -360,8 +355,6 @@ The `docker_compose_local` folder contains the Docker Compose file and auxiliary
     docker-compose up --build dial-rag
     ```
 
-
-
 ## Lint
 
 Run the linting before committing:
@@ -395,11 +388,11 @@ make docker_test
 Some of the tests marked with the `@e2e_test` decorator utilize cached results located in the `./tests/cache` directory. By default, these tests will use cached values. During test execution, you may encounter warning or failure messages such as `Failed: There is no response found in cache, use environment variable REFRESH=True to update` This indicates that some logic has changed and that the cached responses are out of date.
 
 These tests can be executed using environment variables, or nox sessions:
+
 - `make test` (or `nox -s test`) - usual test run, executed on CI. The test uses *ONLY* the cached responses from LLM. If cache missing, test throws an exception.
 - `REFRESH=True make test` (or `nox -s test -- --refresh`) - This flag will delete all unused cache files, and stores new ones required by the executed tests.
 
 To use the `REFRESH` flag, you need to have running dial-core on `DIAL_CORE_HOST` (default "localhost:8080") with `DIAL_CORE_API_KEY` (default "dial_api_key").
-
 
 ## Clean
 
@@ -411,10 +404,9 @@ make clean
 
 ## Update docs
 
-This project uses [settings-doc](https://github.com/radeklat/settings-doc) to generate the [Configuration](#Configuration) section of this documentation from the Pydantic settings.
+This project uses [settings-doc](https://github.com/radeklat/settings-doc) to generate the [Configuration](#configuration) section of this documentation from the Pydantic settings.
 To update the documentation run:
 
 ```sh
 make docs
 ```
-

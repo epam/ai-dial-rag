@@ -10,7 +10,9 @@ concurrency:
 
 jobs:
   release:
-    uses: epam/ai-dial-ci/.github/workflows/python_docker_release.yml@3.0.2
+    uses: epam/ai-dial-ci/.github/workflows/python_docker_release.yml@3.1.0
     secrets: inherit
     with:
+      python-version: 3.11
+      poetry-version: 2.2.1
       maximize-build-space: true
