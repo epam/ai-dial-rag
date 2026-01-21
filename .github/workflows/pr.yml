@@ -12,5 +12,7 @@ jobs:
   run_tests:
     uses: epam/ai-dial-ci/.github/workflows/python_docker_pr.yml@3.1.0
     with:
+      python-version: 3.11
+      poetry-version: 2.2.1
       maximize-build-space: true
     secrets: inherit
