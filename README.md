@@ -247,7 +247,7 @@ Dial RAG supports following commands in messages:
 
 ### Attach
 
-`/attach <url>` - allows to provide an url to the attached document in the message body. Is equivalent to the setting `messages[i].custom_content.attachments[j].url` in the [Dial API](https://epam-rail.com/dial_api#/paths/~1openai~1deployments~1%7BDeployment%20Name%7D~1chat~1completions/post).
+`/attach <url>` - allows to provide an url to the attached document in the message body. Is equivalent to the setting `messages[i].custom_content.attachments[j].url` in the [Dial API](https://dialx.ai/dial_api).
 
 The `/attach` command is useful to attach the document which is available in the Internet and is not uploaded to the Dial File Storage.
 

@@ -12,7 +12,7 @@ class TokenStats(BaseModel):
 class UserLimitsForModel(BaseModel):
     """Implementation of the response from the /v1/deployments/{deployment_name}/limits endpoint
 
-    See https://epam-rail.com/dial_api#tag/Limits for the API documentation.
+    See https://dialx.ai/dial_api#tag/Limits for the API documentation.
     """
 
     minute_token_stats: TokenStats = Field(alias="minuteTokenStats")
@@ -24,7 +24,7 @@ async def get_user_limits_for_model(
 ) -> UserLimitsForModel:
     """Returns the user limits for the specified model deployment.
 
-    See https://epam-rail.com/dial_api#tag/Limits for the API documentation.
+    See https://dialx.ai/dial_api#tag/Limits for the API documentation.
     """
     headers = {"Api-Key": dial_config.api_key.get_secret_value()}
     limits_url = (
