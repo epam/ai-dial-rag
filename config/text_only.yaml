@@ -1,0 +1,20 @@
+# Example of ai-dial-rag config with text-only models
+#
+# Both image-based retrievers are disabled
+# The num_page_images_to_use is set to 0 to avoid passing images to LLM
+# Can be used with the LLMs which do not support images
+#
+request:
+  indexing:
+    description_index: null
+    multimodal_index: null
+  qa_chain:
+    chat_chain:
+      llm:
+        deployment_name: gpt-4.1-2025-04-14
+        max_prompt_tokens: 16000
+      num_page_images_to_use: 0
+    query_chain:
+      llm:
+        deployment_name: gpt-4.1-2025-04-14
+        max_prompt_tokens: 8000

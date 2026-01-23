@@ -38,6 +38,7 @@ The following configuration files are available in the `config` directory:
 - `config/gcp_description.yaml` - GCP environment with description retriever, which uses `Gemini 2.5 Flash` model for page images descriptions and `Gemini 2.5 Pro` for the answer generation.
 - `config/gcp_embedding.yaml` - GCP environment with multimodal retriever, which uses Google `multimodalembedding@001` model for page images embeddings and `Gemini 2.5 Pro` for the answer generation.
 - `config/azure_with_gcp_embedding.yaml` - mixed environment which assumes that you have and access to both Azure and GCP models in the Dial. It uses Google `multimodalembedding@001` model for page images embeddings and `GPT-4.1` for the answer generation.
+- `config/text_only.yaml` - example of config with text-only mode, where the image-based retrievers are disabled. This config can be used with LLMs which do not support image inputs. Uses `GPT-4.1` for the answer generation by default.
 
 If you are running the Dial RAG in a different environment, you can create your own configuration file based on one of the provided files and set the `DIAL_RAG__CONFIG_PATH` environment variable to point to it. If you need a small change in the configuration (for example to change the model name), you can point the `DIAL_RAG__CONFIG_PATH` to the existing file and override the required settings using the environment variables. See the [Additional environment variables](#additional-environment-variables) section for the list of available settings.
 
