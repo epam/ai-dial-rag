@@ -580,18 +580,6 @@ files = [
 pycparser = "*"
 
 [[package]]
-name = "chardet"
-version = "5.2.0"
-description = "Universal encoding detector for Python 3"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "chardet-5.2.0-py3-none-any.whl", hash = "sha256:e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970"},
-    {file = "chardet-5.2.0.tar.gz", hash = "sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7"},
-]
-
-[[package]]
 name = "charset-normalizer"
 version = "3.3.2"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
@@ -2750,6 +2738,22 @@ develop = ["codecov", "pycodestyle", "pytest (>=4.6)", "pytest-cov", "wheel"]
 docs = ["sphinx"]
 gmpy = ["gmpy2 (>=2.1.0a4) ; platform_python_implementation != \"PyPy\""]
 tests = ["pytest (>=4.6)"]
+
+[[package]]
+name = "msoffcrypto-tool"
+version = "6.0.0"
+description = "Python tool and library for decrypting and encrypting MS Office files using a password or other keys"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "msoffcrypto_tool-6.0.0-py3-none-any.whl", hash = "sha256:46c394ed5d9641e802fc79bf3fb0666a53748b23fa8c4aa634ae9d30d46fe397"},
+    {file = "msoffcrypto_tool-6.0.0.tar.gz", hash = "sha256:9a5ebc4c0096b42e5d7ebc2350afdc92dc511061e935ca188468094fdd032bbe"},
+]
+
+[package.dependencies]
+cryptography = ">=39.0"
+olefile = ">=0.46"
 
 [[package]]
 name = "multidict"
@@ -6778,20 +6782,20 @@ files = [
 
 [[package]]
 name = "unstructured"
-version = "0.16.16"
+version = "0.18.18"
 description = "A library that prepares raw documents for downstream ML tasks."
 optional = false
-python-versions = "<3.13,>=3.9.0"
+python-versions = ">=3.10.0"
 groups = ["main"]
 files = [
-    {file = "unstructured-0.16.16-py3-none-any.whl", hash = "sha256:832cacd62a3258b0d6bd0fbedd1233d75f7855ef8cf062b8f02466a0d0396332"},
-    {file = "unstructured-0.16.16.tar.gz", hash = "sha256:0147dc3b53f7f0888ed608c9c454b5fca1a41925a09b7884c121239a60c9d8fa"},
+    {file = "unstructured-0.18.18-py3-none-any.whl", hash = "sha256:d5189bdd5e2a1c5ed3cc289cfb4fb483c6f2dd544b42744bdc5b81d3388ea527"},
+    {file = "unstructured-0.18.18.tar.gz", hash = "sha256:cfe6c84a36d374e5767930e13cfc10622357b3b68a5b7c735fdb1eeca08c6b57"},
 ]
 
 [package.dependencies]
 backoff = "*"
 beautifulsoup4 = "*"
-chardet = "*"
+charset-normalizer = "*"
 dataclasses-json = "*"
 effdet = {version = "*", optional = true, markers = "extra == \"pdf\""}
 emoji = "*"
@@ -6800,15 +6804,17 @@ google-cloud-vision = {version = "*", optional = true, markers = "extra == \"pdf
 html5lib = "*"
 langdetect = "*"
 lxml = "*"
+msoffcrypto-tool = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 networkx = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 nltk = "*"
-numpy = "<2"
-onnx = {version = "*", optional = true, markers = "extra == \"pdf\""}
+numpy = "*"
+onnx = {version = ">=1.17.0", optional = true, markers = "extra == \"pdf\""}
+onnxruntime = {version = ">=1.19.0", optional = true, markers = "extra == \"pdf\""}
 openpyxl = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 pandas = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 pdf2image = {version = "*", optional = true, markers = "extra == \"pdf\""}
 "pdfminer.six" = {version = "*", optional = true, markers = "extra == \"pdf\""}
-pi-heif = {version = "*", optional = true, markers = "extra == \"pdf\""}
+pi_heif = {version = "*", optional = true, markers = "extra == \"pdf\""}
 pikepdf = {version = "*", optional = true, markers = "extra == \"pdf\""}
 psutil = "*"
 pypdf = {version = "*", optional = true, markers = "extra == \"pdf\""}
@@ -6822,31 +6828,31 @@ requests = "*"
 tqdm = "*"
 typing-extensions = "*"
 unstructured-client = "*"
-unstructured-inference = {version = ">=0.8.6", optional = true, markers = "extra == \"pdf\""}
+unstructured-inference = {version = ">=1.0.5", optional = true, markers = "extra == \"pdf\""}
 "unstructured.pytesseract" = {version = ">=0.3.12", optional = true, markers = "extra == \"pdf\""}
 wrapt = "*"
 xlrd = {version = "*", optional = true, markers = "extra == \"xlsx\""}
 
 [package.extras]
-all-docs = ["effdet", "google-cloud-vision", "markdown", "networkx", "onnx", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
+all-docs = ["effdet", "google-cloud-vision", "markdown", "msoffcrypto-tool", "networkx", "onnx (>=1.17.0)", "onnxruntime (>=1.19.0)", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi_heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (>=1.0.5)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
 csv = ["pandas"]
 doc = ["python-docx (>=1.1.2)"]
 docx = ["python-docx (>=1.1.2)"]
 epub = ["pypandoc"]
 huggingface = ["langdetect", "sacremoses", "sentencepiece", "torch", "transformers"]
-image = ["effdet", "google-cloud-vision", "onnx", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypdf", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)"]
-local-inference = ["effdet", "google-cloud-vision", "markdown", "networkx", "onnx", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
+image = ["effdet", "google-cloud-vision", "onnx (>=1.17.0)", "onnxruntime (>=1.19.0)", "pdf2image", "pdfminer.six", "pi_heif", "pikepdf", "pypdf", "unstructured-inference (>=1.0.5)", "unstructured.pytesseract (>=0.3.12)"]
+local-inference = ["effdet", "google-cloud-vision", "markdown", "msoffcrypto-tool", "networkx", "onnx (>=1.17.0)", "onnxruntime (>=1.19.0)", "openpyxl", "pandas", "pdf2image", "pdfminer.six", "pi_heif", "pikepdf", "pypandoc", "pypdf", "python-docx (>=1.1.2)", "python-pptx (>=1.0.1)", "unstructured-inference (>=1.0.5)", "unstructured.pytesseract (>=0.3.12)", "xlrd"]
 md = ["markdown"]
 odt = ["pypandoc", "python-docx (>=1.1.2)"]
 org = ["pypandoc"]
-paddleocr = ["paddlepaddle (==3.0.0b1)", "unstructured.paddleocr (==2.8.1.0)"]
-pdf = ["effdet", "google-cloud-vision", "onnx", "pdf2image", "pdfminer.six", "pi-heif", "pikepdf", "pypdf", "unstructured-inference (>=0.8.6)", "unstructured.pytesseract (>=0.3.12)"]
+paddleocr = ["paddlepaddle (>=3.0.0b1)", "unstructured.paddleocr (==2.10.0)"]
+pdf = ["effdet", "google-cloud-vision", "onnx (>=1.17.0)", "onnxruntime (>=1.19.0)", "pdf2image", "pdfminer.six", "pi_heif", "pikepdf", "pypdf", "unstructured-inference (>=1.0.5)", "unstructured.pytesseract (>=0.3.12)"]
 ppt = ["python-pptx (>=1.0.1)"]
 pptx = ["python-pptx (>=1.0.1)"]
 rst = ["pypandoc"]
 rtf = ["pypandoc"]
 tsv = ["pandas"]
-xlsx = ["networkx", "openpyxl", "pandas", "xlrd"]
+xlsx = ["msoffcrypto-tool", "networkx", "openpyxl", "pandas", "xlrd"]
 
 [[package]]
 name = "unstructured-client"
@@ -7329,4 +7335,4 @@ cffi = ["cffi (>=1.17) ; python_version >= \"3.13\" and platform_python_implemen
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "9581a8b93a5b145dd922d8b4d0e150df95cc1ad20ec588ca9463a2598b905038"
+content-hash = "29690b3f78f31134c23568735022f1ec71a410c14726e3e287e21c4027d74411"
