@@ -28,13 +28,18 @@ FROM base AS builder
 # Getting uv from distroless docker
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-ENV VIRTUAL_ENV=/opt/venv
-
 # Ubuntu 24.04 has python 3.12 by default
 # We do not want to upgrade unstructured library for now,
 # so we use uv to get python 3.11 while creating venv
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
-RUN uv venv "$VIRTUAL_ENV" --python 3.11
+RUN uv python install 3.11
+
+# Remove setuptools from uv managed python since we do not use it
+# The older versions of setuptools may trigger the image checks
+RUN /opt/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11 -m pip uninstall -y setuptools --break-system-packages
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN uv venv "$VIRTUAL_ENV" --python 3.11 --relocatable --no-seed
 
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 

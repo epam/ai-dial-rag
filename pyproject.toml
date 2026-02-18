@@ -29,7 +29,7 @@ rank-bm25 = "0.2.2"
 sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
 tiktoken = "^0.7.0"
 cachetools = "5.3.1"
-unstructured = {version = "0.16.16", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
+unstructured = {version = "0.18.32", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 nltk = "^3.9.1"
 humanfriendly = "10.0"
@@ -40,7 +40,6 @@ torch = "^2.7.0"
 onnx = "^1.17.0"
 jinja2 = "^3.1.6"
 aiohttp = "^3.13.3"
-cryptography = "^44.0.1"
 python-multipart = "^0.0.22"
 transformers = "^4.53.0"
 openvino = "^2025.2.0"
