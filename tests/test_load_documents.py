@@ -49,6 +49,19 @@ async def test_load_pdf_with_image_and_no_text(local_server):
 
 
 @pytest.mark.asyncio
+async def test_load_pdf_with_broken_xref(local_server):
+    """Test loading a PDF with broken xref table
+
+    Some pdf libraries will unable to load this pdf, because they unable to find pages catalog using broken xref table and return empty document. But the PDF can be loaded successfully via sequential file scanning when the xref table is broken.
+    """
+    chunks = await load_document("test_pdf_with_image_broken_xref.pdf")
+    # Should successfully load at least 1 chunk (1 page with image)
+    assert len(chunks) >= 1
+    assert chunks[0].metadata.get("page_number") == 1
+    assert chunks[0].metadata["filetype"] == "application/pdf"
+
+
+@pytest.mark.asyncio
 async def test_load_single_line_text(local_server):
     chunks = await load_document("hello.txt")
     assert len(chunks) == 1

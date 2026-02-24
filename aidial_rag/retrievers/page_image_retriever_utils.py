@@ -27,7 +27,9 @@ async def extract_page_images(
         )
         return None
 
-    number_of_pages = extract_number_of_pages(mime_type, original_document)
+    number_of_pages = await extract_number_of_pages(
+        mime_type, original_document
+    )
 
     stageio.write("Extracting page images\n")
     stageio.write(f"Number of pages: {number_of_pages}\n")

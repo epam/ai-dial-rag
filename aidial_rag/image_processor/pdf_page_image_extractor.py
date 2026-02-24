@@ -1,11 +1,10 @@
 import asyncio
-import io
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from typing import AsyncGenerator, Iterable, List, Optional
 
-import pdfplumber
-from pdfplumber.page import Page
+import pypdfium2 as pdfium
 from PIL.Image import Image
 
 from aidial_rag.image_processor.document_image_extractor import (
@@ -13,6 +12,50 @@ from aidial_rag.image_processor.document_image_extractor import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _calculate_scale(
+    width: float, height: float, scaled_size: Optional[int]
+) -> float:
+    """Calculate scale factor to scale the larger dimension to scaled_size."""
+    if not scaled_size:
+        return 1.0
+
+    if width > height:
+        return scaled_size / width
+    else:
+        return scaled_size / height
+
+
+def _get_number_of_pages(file_bytes: bytes) -> int:
+    # Not thread safe because of pypdfium2
+    with closing(pdfium.PdfDocument(file_bytes)) as pdf:
+        return len(pdf)
+
+
+def _render_page(
+    file_bytes: bytes,
+    page_number: int,
+    scaled_size: Optional[int] = None,
+) -> Image:
+    # Not thread safe because of pypdfium2
+    with closing(pdfium.PdfDocument(file_bytes)) as pdf:
+        page = pdf[page_number - 1]  # pypdfium2 uses 0-based indexing
+
+        scale = _calculate_scale(
+            page.get_width(), page.get_height(), scaled_size
+        )
+
+        bitmap = page.render(
+            # scale is float, but default value make pyright think it's int
+            scale=scale,  # pyright: ignore [reportArgumentType]
+            no_smoothtext=True,
+            no_smoothpath=True,
+            no_smoothimage=True,
+            prefer_bgrx=True,
+        )
+
+        return bitmap.to_pil().convert("RGB")
 
 
 class PdfPageImageExtractor(DocumentPageImageExtractor):
@@ -24,22 +67,11 @@ class PdfPageImageExtractor(DocumentPageImageExtractor):
         thread_name_prefix="pdf_page_image_extractor",
     )
 
-    def get_number_of_pages(self, file_bytes: bytes) -> int:
-        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-            return len(pdf.pages)
-
-    def __get_page_image(
-        self, page: Page, scaled_size: Optional[int] = None
-    ) -> Image:
-        width = None
-        height = None
-        if page.width > page.height:
-            width = scaled_size
-        else:
-            height = scaled_size
-
-        # __get_page_image is not thread safe, because to_image is not thread safe
-        return page.to_image(width=width, height=height).original
+    async def get_number_of_pages(self, file_bytes: bytes) -> int:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self._thread_pool, _get_number_of_pages, file_bytes
+        )
 
     async def extract_pages_gen(
         self,
@@ -48,19 +80,23 @@ class PdfPageImageExtractor(DocumentPageImageExtractor):
         scaled_size: Optional[int] = None,
     ) -> AsyncGenerator[Image, None]:
         loop = asyncio.get_running_loop()
-        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-            total_pages = len(pdf.pages)
-            for page_number in page_numbers:
-                if not (1 <= page_number <= total_pages):
-                    raise RuntimeError(
-                        f"Invalid page number: {page_number}. Page number is ordinal number of the page. The document has {total_pages} pages."
-                    )
 
-                logger.debug(f"Extracting page {page_number}...")
-                page = pdf.pages[page_number - 1]
-
-                image = await loop.run_in_executor(
-                    self._thread_pool, self.__get_page_image, page, scaled_size
+        total_pages = await self.get_number_of_pages(file_bytes)
+        for page_number in page_numbers:
+            if not (1 <= page_number <= total_pages):
+                raise RuntimeError(
+                    f"Invalid page number: {page_number}. Page number is ordinal number of the page. The document has {total_pages} pages."
                 )
-                logger.debug(f"Extracted page {page_number} as image")
-                yield image
+
+            logger.debug(f"Extracting page {page_number}...")
+
+            # Render in thread pool, because pypdfium2 is not thread safe
+            image = await loop.run_in_executor(
+                self._thread_pool,
+                _render_page,
+                file_bytes,
+                page_number,
+                scaled_size,
+            )
+            logger.debug(f"Extracted page {page_number} as image")
+            yield image
