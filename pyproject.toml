@@ -31,7 +31,7 @@ tiktoken = "^0.7.0"
 cachetools = "5.3.1"
 unstructured = {version = "0.18.32", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
-nltk = "^3.9.1"
+nltk = "^3.9.3"
 humanfriendly = "10.0"
 pyinstrument = "4.6.1"
 more-itertools = "^10.1.0"
