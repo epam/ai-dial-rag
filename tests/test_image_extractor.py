@@ -71,7 +71,7 @@ async def test_attachment_image_invalid_page2():
 
 
 @pytest.mark.asyncio
-async def test_attachment_pptx():
+async def test_presentation_converted():
     with open("tests/data/test_presentation_converted.pdf", "rb") as pdf_file:
         pdf_bytes = pdf_file.read()
 

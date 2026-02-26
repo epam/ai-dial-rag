@@ -90,7 +90,7 @@ class PdfPageImageExtractor(DocumentPageImageExtractor):
 
             logger.debug(f"Extracting page {page_number}...")
 
-            # Render in thread pool, because pypdfium2 is not thread safe
+            # Render in thread pool with a single thread, because pypdfium2 is not thread safe
             image = await loop.run_in_executor(
                 self._thread_pool,
                 _render_page,
