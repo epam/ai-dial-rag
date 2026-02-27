@@ -16,7 +16,7 @@ class DocumentPageImageExtractor(ABC):
         return check_mime_type(mime, self.supported_mime_types)
 
     @abstractmethod
-    def get_number_of_pages(self, file_bytes: bytes) -> int:
+    async def get_number_of_pages(self, file_bytes: bytes) -> int:
         """
         Get number of pages for given document
         Parameters:

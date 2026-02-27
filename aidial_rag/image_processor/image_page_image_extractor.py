@@ -13,7 +13,7 @@ from aidial_rag.image_processor.resize import resize_image
 class ImagePageImageExtractor(DocumentPageImageExtractor):
     supported_mime_types: List[str] = ["image/*"]
 
-    def get_number_of_pages(self, file_bytes: bytes) -> int:
+    async def get_number_of_pages(self, file_bytes: bytes) -> int:
         return 1
 
     async def extract_pages_gen(

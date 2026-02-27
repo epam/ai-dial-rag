@@ -61,8 +61,8 @@ async def extract_pages(
     ]
 
 
-def extract_number_of_pages(mime_type: str, document_bytes: bytes) -> int:
-    return get_extractor(mime_type).get_number_of_pages(document_bytes)
+async def extract_number_of_pages(mime_type: str, document_bytes: bytes) -> int:
+    return await get_extractor(mime_type).get_number_of_pages(document_bytes)
 
 
 def are_image_pages_supported(mime: str) -> bool:
