@@ -7,9 +7,13 @@ from aidial_rag.image_processor.extract_pages import (
 )
 
 
-def test_number_of_pages():
+@pytest.mark.asyncio
+async def test_number_of_pages():
     with open("tests/data/test_pdf_with_image_and_text.pdf", "rb") as pdf_bytes:
-        num_pages = extract_number_of_pages("application/pdf", pdf_bytes.read())
+        num_pages = await extract_number_of_pages(
+            "application/pdf",
+            pdf_bytes.read(),
+        )
 
     assert num_pages == 1
 
