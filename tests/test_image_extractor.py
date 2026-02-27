@@ -1,6 +1,9 @@
 import pytest
 
-from aidial_rag.image_processor.extract_pages import extract_pages
+from aidial_rag.image_processor.extract_pages import (
+    extract_number_of_pages,
+    extract_pages,
+)
 
 
 @pytest.mark.asyncio
@@ -65,3 +68,25 @@ async def test_attachment_image_invalid_page2():
                 file_bytes=pdf_bytes.read(),
                 page_numbers=[1, 1],
             )
+
+
+@pytest.mark.asyncio
+async def test_presentation_converted():
+    with open("tests/data/test_presentation_converted.pdf", "rb") as pdf_file:
+        pdf_bytes = pdf_file.read()
+
+    page_numbers = await extract_number_of_pages("application/pdf", pdf_bytes)
+    assert page_numbers == 2
+
+    images = await extract_pages(
+        mime_type="application/pdf",
+        file_bytes=pdf_bytes,
+        page_numbers=[1, 2],
+        scaled_size=800,
+    )
+
+    assert len(images) == 2
+    assert images[0].height == 450
+    assert images[0].width == 800
+    assert images[1].height == 450
+    assert images[1].width == 800

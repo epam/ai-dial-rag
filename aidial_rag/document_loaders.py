@@ -118,7 +118,7 @@ async def load_attachment(
     )
 
 
-def add_image_only_chunks(
+async def add_image_only_chunks(
     document_bytes: bytes,
     mime_type: str,
     existing_chunks: List[Document],
@@ -129,7 +129,7 @@ def add_image_only_chunks(
         for i in range(len(existing_chunks) - 1)
     )
 
-    number_of_pages = extract_number_of_pages(mime_type, document_bytes)
+    number_of_pages = await extract_number_of_pages(mime_type, document_bytes)
     assert all(
         1 <= existing_chunk.metadata["page_number"] <= number_of_pages
         for existing_chunk in existing_chunks
@@ -179,7 +179,6 @@ def get_document_chunks(
     document_bytes: bytes,
     mime_type: str,
     attachment_link: AttachmentLink,
-    attachment_mime_type: str,
     parser_config: ParserConfig,
 ) -> List[Document]:
     try:
@@ -210,24 +209,8 @@ def get_document_chunks(
     except (PDFInfoNotInstalledError, TesseractNotFoundError):
         # TODO: Update unstructured library to avoid attempts to use ocr
         logging.warning("PDF file without text. Trying to extract images.")
-        chunks = None
-
-    if chunks is None:
         chunks = []
 
-    if are_image_pages_supported(mime_type):
-        # We will not have chunks from unstructured for the pages which does not contain text
-        # So we need to add them manually
-        chunks = add_image_only_chunks(document_bytes, mime_type, chunks)
-
-    if not chunks:
-        raise InvalidDocumentError("The document is empty")
-
-    attachment_filetype = FileType.from_mime_type(attachment_mime_type)
-    if attachment_filetype == FileType.PDF:
-        chunks = add_pdf_source_metadata(chunks, attachment_link)
-    else:
-        chunks = add_source_metadata(chunks, attachment_link)
     return chunks
 
 
@@ -249,9 +232,26 @@ async def parse_document(
             document_bytes,
             mime_type,
             attachment_link,
-            attachment_mime_type,
             parser_config,
         )
+
+        if are_image_pages_supported(mime_type):
+            # We will not have chunks from unstructured for the pages which does not contain text
+            # So we need to add them manually
+            chunks = await add_image_only_chunks(
+                document_bytes, mime_type, chunks
+            )
+
+        if not chunks:
+            raise InvalidDocumentError("The document is empty")
+
+        # Use attachment_mime_type, not mime_type, because the source
+        # would point to the original attachment, not the converted document
+        attachment_filetype = FileType.from_mime_type(attachment_mime_type)
+        if attachment_filetype == FileType.PDF:
+            chunks = add_pdf_source_metadata(chunks, attachment_link)
+        else:
+            chunks = add_source_metadata(chunks, attachment_link)
 
         # Unstructured does not set filetype for some document types
         stageio.write(f"File type: {chunks[0].metadata.get('filetype')}\n")
