@@ -3,7 +3,7 @@ IMAGE_NAME ?= ai-dial-rag
 PLATFORM ?= linux/amd64
 POETRY ?= poetry
 DOCKER ?= docker
-LIBREOFFICE_UBUNTU_VERSION ?= 4:24.2.7-0ubuntu0.24.04.4
+LIBREOFFICE_UBUNTU_VERSION ?= 4:25.2.7-0ubuntu0.25.04.1~bpo24.04.1
 ARGS ?=
 
 # Check for CI environment
@@ -43,7 +43,7 @@ format: install_nox
 install_libreoffice:
 	@echo "Installing LibreOffice..."
 	sudo apt-get update
-	sudo apt-get install --no-install-recommends -y libreoffice=$(LIBREOFFICE_UBUNTU_VERSION)
+	sudo apt-get install --no-install-recommends -y -t noble-backports libreoffice=$(LIBREOFFICE_UBUNTU_VERSION)
 
 test: install_nox $(if $(CI), install_libreoffice)
 	$(POETRY) run nox -- -s test -- $(ARGS)

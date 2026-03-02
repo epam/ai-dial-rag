@@ -13,11 +13,13 @@ ENV BGE_EMBEDDINGS_MODEL_PATH=/embeddings_model/bge-small-en
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
         ca-certificates \
-        # Libreoffice is required for MS office documents
-        libreoffice=4:24.2.7-0ubuntu0.24.04.4 \
         libmagic1 \
         # Dependency for opencv library
         libgl1 \
+        && \
+    apt-get install --no-install-recommends -y -t noble-backports \
+        # Libreoffice is required for MS office documents
+        libreoffice=4:25.2.7-0ubuntu0.25.04.1~bpo24.04.1 \
         && \
     # Cleanup apt cache in the same command to reduce size
     apt-get clean && rm -rf /var/lib/apt/lists/*
