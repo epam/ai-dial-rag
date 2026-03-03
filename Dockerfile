@@ -55,9 +55,8 @@ RUN uvx "$POETRY" install --no-interaction --no-ansi --no-cache --only main --no
 
 FROM builder AS builder_download_nltk
 
-# nltk 3.9 actually uses punkt_tab and averaged_perceptron_tagger_eng
-# but we have to download punkt and averaged_perceptron_tagger as well, because unstructured will try to download it if missing
-RUN python -m nltk.downloader -d /usr/share/nltk_data stopwords punkt punkt_tab averaged_perceptron_tagger averaged_perceptron_tagger_eng
+# nltk stopwords and punkt_tab data is required for keywords search
+RUN python -m nltk.downloader -d /usr/share/nltk_data stopwords punkt_tab
 
 
 FROM builder AS builder_download_model

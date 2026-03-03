@@ -32,10 +32,7 @@ def test(session):
         "-m",
         "nltk.downloader",
         "stopwords",
-        "punkt",
         "punkt_tab",
-        "averaged_perceptron_tagger",
-        "averaged_perceptron_tagger_eng",
     )
     session.run("pytest", *args, env=session.env)
 
@@ -49,10 +46,7 @@ def eval(session):
         "-m",
         "nltk.downloader",
         "stopwords",
-        "punkt",
         "punkt_tab",
-        "averaged_perceptron_tagger",
-        "averaged_perceptron_tagger_eng",
     )
     session.run("python", "./eval/eval_retriever.py")
 
