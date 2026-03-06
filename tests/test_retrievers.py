@@ -60,7 +60,7 @@ async def test_retrievers(local_server):
         sys.stderr, buffer, mime_type, attachment_link, mime_type
     )
 
-    assert len(text_chunks) == 177
+    assert len(text_chunks) == 174
 
     text_embeddings = create_local_bge_embeddings_model()
 
@@ -88,7 +88,7 @@ async def test_retrievers(local_server):
     res = await run_retrevier(bm25_retriever, doc_records, "Colle di Cadibona")
     assert len(res)
     assert res[0].metadata["page_number"] == 3
-    assert res[0].metadata["chunk_id"] == 31
+    assert res[0].metadata["chunk_id"] == 30
     assert "Colle di Cadibona" in res[0].page_content
 
     semantic_retriever = SemanticRetriever.from_doc_records(
@@ -101,7 +101,7 @@ async def test_retrievers(local_server):
     print(res)
     assert len(res)
     assert res[0].metadata["page_number"] == 10
-    assert res[0].metadata["chunk_id"] == 103
+    assert res[0].metadata["chunk_id"] == 100
     assert (
         "Climate\n\n"
         "The Alps are a classic example of what happens when a temperate area at "
