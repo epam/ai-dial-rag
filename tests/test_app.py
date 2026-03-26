@@ -1,10 +1,18 @@
 import json
 
 import pytest
+import respx
 from fastapi.testclient import TestClient
 
 from aidial_rag.app import create_app
 from aidial_rag.app_config import AppConfig
+from aidial_rag.configuration_endpoint import RequestConfig
+from aidial_rag.indexing_config import IndexingConfig
+from aidial_rag.llm import LlmConfig
+from aidial_rag.retrievers.description_retriever.description_retriever import (
+    DescriptionIndexConfig,
+)
+from aidial_rag.retrievers.multimodal_retriever import MultimodalIndexConfig
 from tests.utils.config_override import (
     description_index_retries_override,  # noqa: F401
 )
@@ -354,3 +362,74 @@ async def test_mix_of_image_and_non_image_formats(attachments):
     ]["attachments"]
     assert len(result_attachments) == 1
     assert result_attachments[0]["title"] == "[1] test_image.png"
+
+
+@pytest.mark.asyncio
+@e2e_test(filenames=["test_image.png"])
+async def test_header_proxying(attachments):
+    app_config = AppConfig(
+        dial_url=middleware_host,
+        headers_to_proxy=["x-conversation-id"],
+        request=RequestConfig(
+            indexing=IndexingConfig(
+                # Enable both retrievers to check that headers are proxied for both of them
+                multimodal_index=MultimodalIndexConfig(
+                    embeddings_model="multimodalembedding@001",
+                    min_time_limit_sec=30,
+                ),
+                description_index=DescriptionIndexConfig(
+                    llm=LlmConfig(
+                        deployment_name="gpt-4.1-mini-2025-04-14",
+                        max_retries=1,
+                    ),
+                    min_time_limit_sec=30,
+                ),
+            )
+        ),
+    )
+
+    app = create_app(app_config=app_config)
+    client = TestClient(app)
+
+    def check_headers_and_forward_request(request):
+        assert "x-conversation-id" in request.headers
+        assert request.headers["x-conversation-id"] == "conversation-id"
+
+        # Return request for respx to forward it to the e2e_test middleware server
+        return request
+
+    with respx.mock(base_url=middleware_host) as mocked:
+        mocked.post(
+            "/openai/deployments/gpt-4.1-mini-2025-04-14/chat/completions"
+        ).mock(side_effect=check_headers_and_forward_request)
+        mocked.post(
+            "/openai/deployments/multimodalembedding@001/embeddings"
+        ).mock(side_effect=check_headers_and_forward_request)
+        mocked.post(
+            "/openai/deployments/gpt-4.1-2025-04-14/chat/completions"
+        ).mock(side_effect=check_headers_and_forward_request)
+
+        response = client.post(
+            "/openai/deployments/dial-rag/chat/completions",
+            headers={
+                "Api-Key": "api-key",
+                "x-conversation-id": "conversation-id",
+            },
+            json={
+                "model": "dial-rag",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Where is an infographic with a pencil?",
+                        "custom_content": {"attachments": attachments},
+                    }
+                ],
+            },
+            timeout=100.0,
+        )
+
+    assert response.status_code == 200
+    json_response = json.loads(response.text)
+    check_expected_text(
+        "pencil", json_response["choices"][0]["message"]["content"]
+    )

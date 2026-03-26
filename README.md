@@ -69,6 +69,12 @@ Path to the yaml configuration file.See config directory for examples.
 
 Url to the dial core.
 
+##### `DIAL_RAG__HEADERS_TO_PROXY`
+
+*Optional*
+
+List of headers to proxy from the request to the back to the dial core.
+
 ##### `ENABLE_DEBUG_COMMANDS`
 
 *Optional*, default value: `False`

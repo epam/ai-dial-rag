@@ -52,5 +52,6 @@ def create_llm(dial_config: DialConfig, llm_config: LlmConfig):
         streaming=True,
         max_retries=llm_config.max_retries,
         extra_body=extra_body,
+        default_headers=dial_config.extra_headers,
     )
     return llm

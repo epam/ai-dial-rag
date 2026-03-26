@@ -5,6 +5,7 @@ from aidial_sdk.chat_completion import Choice
 from pydantic import SecretStr
 
 from aidial_rag.attachment_link import AttachmentLink
+from aidial_rag.dial_config import DialConfig
 from aidial_rag.errors import InvalidAttachmentError
 from aidial_rag.request_context import RequestContext
 from aidial_rag.resources.dial_limited_resources import DialLimitedResources
@@ -14,8 +15,10 @@ from tests.utils.user_limits_mock import user_limits_mock
 @pytest.fixture
 def request_context():
     return RequestContext(
-        dial_url="http://core.dial",
-        api_key=SecretStr(""),
+        dial_config=DialConfig(
+            dial_url="http://core.dial",
+            api_key=SecretStr(""),
+        ),
         choice=Choice(queue=MagicMock(), choice_index=0),
         dial_limited_resources=DialLimitedResources(user_limits_mock()),
     )

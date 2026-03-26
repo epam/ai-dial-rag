@@ -7,6 +7,7 @@ from pydantic import SecretStr
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.configuration_endpoint import Configuration
 from aidial_rag.dial_api_client import DialApiClient
+from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_loaders import load_attachment
 from aidial_rag.document_metadata import FileMetadata
 from aidial_rag.document_record import DocumentRecord
@@ -33,8 +34,10 @@ configuration = Configuration(
 @pytest.fixture
 def request_context():
     return RequestContext(
-        dial_url="http://localhost:8080",
-        api_key=SecretStr("ABRAKADABRA"),
+        dial_config=DialConfig(
+            dial_url="http://localhost:8080",
+            api_key=SecretStr("ABRAKADABRA"),
+        ),
         choice=Choice(queue=MagicMock(), choice_index=0),
         dial_limited_resources=DialLimitedResources(user_limits_mock()),
     )
