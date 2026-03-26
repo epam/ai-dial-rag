@@ -22,7 +22,7 @@ docarray = "0.39.1"
 langchain = "^0.3.21"
 langchain-community = "^0.3.29"
 langchain-openai = "^0.3.11"
-aidial-sdk = {extras = ["telemetry"], version = "^0.21.0"}
+aidial-sdk = {extras = ["telemetry"], version = "^0.33.1"}
 pypdf = "^6.9.1"
 rank-bm25 = "0.2.2"
 sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
