@@ -9,6 +9,7 @@ from pydantic import SecretStr
 
 from aidial_rag.configuration_endpoint import Configuration
 from aidial_rag.dial_api_client import DialApiClient
+from aidial_rag.dial_config import DialConfig
 from aidial_rag.document_metadata import parse_last_modified
 from aidial_rag.document_record import (
     FORMAT_VERSION,
@@ -40,8 +41,10 @@ def request_context():
     choice = Choice(queue=asyncio.Queue(), choice_index=0)
     choice.open()
     return RequestContext(
-        dial_url="http://localhost:8080",
-        api_key=SecretStr("api-key"),
+        dial_config=DialConfig(
+            dial_url="http://localhost:8080",
+            api_key=SecretStr("api-key"),
+        ),
         choice=choice,
         dial_limited_resources=DialLimitedResources(user_limits_mock()),
     )

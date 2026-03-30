@@ -260,7 +260,10 @@ class DialRAGApplication(ChatCompletion):
     ) -> None:
         loop = asyncio.get_running_loop()
         with create_request_context(
-            self.app_config.dial_url, request, response
+            self.app_config.dial_url,
+            self.app_config.headers_to_proxy,
+            request,
+            response,
         ) as request_context:
             choice = request_context.choice
             assert choice is not None

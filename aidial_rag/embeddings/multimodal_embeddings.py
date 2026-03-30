@@ -22,6 +22,7 @@ class MultimodalEmbeddings(AzureOpenAIEmbeddings):
             check_embedding_ctx_length=False,
             model_kwargs={"encoding_format": "float"},
             max_retries=max_retries,
+            default_headers=dial_config.extra_headers,
         )
 
     async def aembed_image(self, image: str) -> np.ndarray:

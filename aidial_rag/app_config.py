@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List
 
 from pydantic import Field
 from pydantic_settings import (
@@ -26,6 +27,11 @@ class AppConfig(BaseSettings):
         default="http://dial-proxy.dial-proxy",
         validation_alias="dial_url",
         description="Url to the dial core.",
+    )
+
+    headers_to_proxy: List[str] = Field(
+        default_factory=list,
+        description="List of headers to proxy from the request to the dial core.",
     )
 
     enable_debug_commands: bool = Field(
