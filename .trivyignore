@@ -1,0 +1,3 @@
+# Vulnerability in langchain load_prompt and load_prompt_from_config: https://github.com/advisories/GHSA-qh6h-p6c9-ff54
+# We do not use load_prompt and load_prompt_from_config in this project.
+CVE-2026-34070 exp:2026-05-31
