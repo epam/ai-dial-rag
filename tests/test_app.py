@@ -390,6 +390,7 @@ async def test_header_proxying(attachments):
                 chat_chain=ChatChainConfig(
                     llm=LlmConfig(
                         deployment_name="gpt-4.1-2025-04-14",
+                        max_prompt_tokens=16000,
                         max_retries=1,
                     ),
                 ),
