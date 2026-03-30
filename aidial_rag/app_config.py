@@ -31,7 +31,7 @@ class AppConfig(BaseSettings):
 
     headers_to_proxy: List[str] = Field(
         default_factory=list,
-        description="List of headers to proxy from the request to the back to the dial core.",
+        description="List of headers to proxy from the request to the dial core.",
     )
 
     enable_debug_commands: bool = Field(

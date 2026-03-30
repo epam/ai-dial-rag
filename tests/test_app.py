@@ -9,6 +9,7 @@ from aidial_rag.app_config import AppConfig
 from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag.indexing_config import IndexingConfig
 from aidial_rag.llm import LlmConfig
+from aidial_rag.qa_chain_config import ChatChainConfig, QAChainConfig
 from aidial_rag.retrievers.description_retriever.description_retriever import (
     DescriptionIndexConfig,
 )
@@ -384,7 +385,15 @@ async def test_header_proxying(attachments):
                     ),
                     min_time_limit_sec=30,
                 ),
-            )
+            ),
+            qa_chain=QAChainConfig(
+                chat_chain=ChatChainConfig(
+                    llm=LlmConfig(
+                        deployment_name="gpt-4.1-2025-04-14",
+                        max_retries=1,
+                    ),
+                ),
+            ),
         ),
     )
 
@@ -394,6 +403,8 @@ async def test_header_proxying(attachments):
     def check_headers_and_forward_request(request):
         assert "x-conversation-id" in request.headers
         assert request.headers["x-conversation-id"] == "conversation-id"
+
+        assert "x-other-header" not in request.headers
 
         # Return request for respx to forward it to the e2e_test middleware server
         return request
@@ -414,6 +425,7 @@ async def test_header_proxying(attachments):
             headers={
                 "Api-Key": "api-key",
                 "x-conversation-id": "conversation-id",
+                "x-other-header": "other-header-value",
             },
             json={
                 "model": "dial-rag",

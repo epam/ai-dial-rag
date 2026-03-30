@@ -73,7 +73,7 @@ Url to the dial core.
 
 *Optional*
 
-List of headers to proxy from the request to the back to the dial core.
+List of headers to proxy from the request to the dial core.
 
 ##### `ENABLE_DEBUG_COMMANDS`
 
