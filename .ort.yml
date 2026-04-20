@@ -20,6 +20,14 @@ license_choices:
   repository_license_choices:
     - given: FTL OR GPL-2.0-or-later
       choice: FTL
+curations:
+  packages:
+    - id: "PyPI::pillow:(,13.0.0["
+      curations:
+        comment: |
+          Pillow is licensed under MIT-CMU, treated as MIT for SPDX purposes, see:
+          https://github.com/python-pillow/Pillow/blob/main/LICENSE
+        concluded_license: "MIT"
 resolutions:
   rule_violations:
     - message: ".*PyPI::aidial-sdk:0\\.33\\.1.*"
@@ -118,9 +126,6 @@ resolutions:
     - message: ".*PyPI::pikepdf:10\\.3\\.0.*"
       reason: "CANT_FIX_EXCEPTION"
       comment: "Mozilla Public License 2.0: https://github.com/pikepdf/pikepdf/blob/v10.3.0/LICENSE.txt"
-    - message: ".*PyPI::pillow:12\\.1\\.1.*"
-      reason: "CANT_FIX_EXCEPTION"
-      comment: "MIT License: https://github.com/python-pillow/Pillow/blob/12.1.1/LICENSE"
     - message: ".*PyPI::pdfminer-six:20251230.*"
       reason: "CANT_FIX_EXCEPTION"
       comment: "MIT License: https://github.com/pdfminer/pdfminer.six/blob/20251230/LICENSE"
