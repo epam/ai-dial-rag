@@ -19,7 +19,7 @@ RUN apt-get update && \
         && \
     apt-get install --no-install-recommends -y -t noble-backports \
         # Libreoffice is required for MS office documents
-        libreoffice=4:25.8.6-0ubuntu0.25.10.1~bpo24.04.1 \
+        libreoffice=4:25.8.7-0ubuntu0.25.10.1~bpo24.04.1 \
         && \
     # Cleanup apt cache in the same command to reduce size
     apt-get clean && rm -rf /var/lib/apt/lists/*
