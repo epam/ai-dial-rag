@@ -48,6 +48,13 @@ If you are running the Dial RAG in a different environment, you can create your 
 | -------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `LOG_LEVEL`          | `INFO`  | Log level for the application.                                                                                                |
 | `LOG_LEVEL_OVERRIDE` | `{}`    | Allows to override log level for specific modules. Example: `LOG_LEVEL_OVERRIDE='{"dial_rag": "DEBUG", "urllib3": "ERROR" }'` |
+| `DIAL_SDK_LOG_FORMAT` | `text`  | Logging format. Can be set to `text` or `json`. Implemented by the DIAL SDK.                                                 |
+| `DIAL_SDK_TEXT_LOG_FORMAT` | `'%(levelprefix)s | %(asctime)s | %(name)s | %(process)d | %(message)s'` | Logging format for text logs. Implemented by the DIAL SDK. |
+| `DIAL_SDK_JSON_LOG_FORMAT` | `'{"level": "%(levelname)s", "time": "%(asctime)s", "logger": "%(name)s", "process": "%(process)d", "message": "%(message)s"}'` | Logging format for JSON logs. Implemented by the DIAL SDK. |
+
+The logging format is configured by the DIAL SDK. By default, the logs are in text format. You can change the logging format to JSON by setting the `DIAL_SDK_LOG_FORMAT` environment variable to `json`. The logging format can be further customized using the `DIAL_SDK_TEXT_LOG_FORMAT` or `DIAL_SDK_JSON_LOG_FORMAT` environment variables.
+
+See the [full logging documentation](https://github.com/epam/ai-dial-sdk/blob/0.39.0/docs/logging.md) for the details on the logging configuration and available logging modes.
 
 ### Additional environment variables
 
