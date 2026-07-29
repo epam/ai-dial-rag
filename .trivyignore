@@ -1,3 +1,11 @@
 # Vulnerability in langchain load_prompt and load_prompt_from_config: https://github.com/advisories/GHSA-qh6h-p6c9-ff54
 # We do not use load_prompt and load_prompt_from_config in this project.
-CVE-2026-34070 exp:2026-05-31
+CVE-2026-34070 exp:2026-09-30
+
+# Vulnerability in transformers for arbitrary code execution:
+#   https://github.com/advisories/GHSA-29pf-2h5f-8g72
+#   https://github.com/advisories/GHSA-fgcw-684q-jj6r
+# Both vulnerabilities require to craft a malicious model and load it with transformers. We do not load any untrusted models in this project.
+# The fix requires transformers >= 5.5.0, but optimum-intel requires transformers < 5.1.0. We will upgrade transformers to >= 5.5.0 when optimum-intel supports it.
+CVE-2026-4372 exp:2026-09-30
+CVE-2026-5241 exp:2026-09-30
