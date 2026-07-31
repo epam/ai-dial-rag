@@ -22,7 +22,7 @@ docarray = "0.39.1"
 langchain = "^0.3.21"
 langchain-community = "^0.3.29"
 langchain-openai = "^0.3.11"
-aidial-sdk = {extras = ["telemetry"], version = "^0.33.1"}
+aidial-sdk = {extras = ["telemetry"], version = "^0.39.0"}
 pypdf = "^6.9.1"
 rank-bm25 = "0.2.2"
 sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
@@ -52,6 +52,10 @@ pdfplumber = "^0.11.9"
 # Data for spaCy, spaCy is used by unstructured.
 # Unstructured will try to download and install wheel on runtime if not installed
 en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
+
+# aidial-sdk=0.39.0 requires opentelemetry-instrumentation-logging=0.60b1 for combination of
+# OTEL_TRACES_EXPORTER=otlp and DIAL_SDK_LOG_FORMAT=json settings to work properly
+opentelemetry-instrumentation-logging = "0.60b1"
 
 
 [[tool.poetry.source]]

@@ -1,12 +1,11 @@
 import logging
-import sys
 from enum import StrEnum
 
+from aidial_sdk import configure_root_logger
 from aidial_sdk.telemetry.init import init_telemetry
 from aidial_sdk.telemetry.types import TelemetryConfig
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from uvicorn.logging import DefaultFormatter
 
 logger = logging.getLogger(__name__)
 
@@ -49,27 +48,10 @@ def configure_log_levels():
     uvicorn_logger.propagate = True
 
 
-def configure_root_logger_handler():
-    root = logging.getLogger()
-    formatter = DefaultFormatter(
-        fmt="%(levelprefix)s | %(asctime)s | %(name)s | %(process)d | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        use_colors=True,
-    )
-
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(formatter)
-    root.addHandler(handler)
-
-
 def init_logging_and_telemetry():
-    telemetry_config = TelemetryConfig()
-    if not telemetry_config.tracing or not telemetry_config.tracing.logging:
-        configure_root_logger_handler()
-    # else the root logger handler is configured by the aidial_sdk init_telemetry
-
     # We need to init telemetry before we configure logging because
     # aidial_sdk may have logging instrumented by opentelemetry
     # App instrumentation is done separately in the main.py
-    init_telemetry(app=None, config=telemetry_config)
+    init_telemetry(app=None, config=TelemetryConfig())
+    configure_root_logger()
     configure_log_levels()
