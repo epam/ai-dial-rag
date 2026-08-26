@@ -36,9 +36,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 RUN uv python install 3.11
 
-# Remove setuptools from uv managed python since we do not use it
-# The older versions of setuptools may trigger the image checks
-RUN /opt/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11 -m pip uninstall -y setuptools --break-system-packages
+# Remove pip and setuptools from the uv managed python since we do not use them.
+# The app runs from /opt/venv and uses uv/uvx, never pip, at runtime.
+# pip 26.2.1 ships an embedded CycloneDX SBOM (bom.cdx.json) listing its vendored
+# msgpack 1.1.2 and setuptools 70.3.0, which Trivy flags as HIGH
+# (GHSA-6v7p-g79w-8964, CVE-2025-47273). Uninstalling pip cleanly removes the
+# package, its dist-info, and the bin/pip* scripts in one step (plus the SBOM).
+RUN /opt/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11 -m pip uninstall -y pip setuptools --break-system-packages
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN uv venv "$VIRTUAL_ENV" --python 3.11 --relocatable --no-seed
