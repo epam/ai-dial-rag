@@ -21,3 +21,15 @@ excludes:
     - pattern: "eval"
       reason: "DEV_DEPENDENCY_OF"
       comment: "Packages for quality evaluation only."
+resolutions:
+  rule_violations:
+    - message: ".*LicenseRef-scancode-nvidia-cuda-supplement-2020.*"
+      reason: "LICENSE_ACQUIRED_EXCEPTION"
+      comment: >-
+        The affected packages are NVIDIA CUDA runtime libraries that ship the
+        redistributable object-code files explicitly listed in Attachment A
+        of the CUDA Toolkit Supplement to the NVIDIA SoftwareLicense Agreement
+        (https://docs.nvidia.com/cuda/eula/). Redistribution of these unmodified
+        Linux binaries, incorporated into this application which provides
+        material additional functionality, is permitted under sections 1.1.2,
+        2.3 and 2.6 of the EULA. Reviewed and approved.
