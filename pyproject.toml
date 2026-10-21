@@ -21,13 +21,23 @@ openai = "^1.42.0"
 docarray = "0.39.1"
 langchain = "^0.3.21"
 langchain-community = "^0.3.29"
-langchain-openai = "^0.3.11"
+# Temporarily pinned: langchain-openai >=0.3.35 auto-enables `stream_usage`, which
+# injects `stream_options={"include_usage": True}` into streaming requests. That
+# extra field changes the e2e LLM cache key (md5 of the request body) and breaks
+# every cached response. Unpin together with a cache refresh in a separate commit.
+langchain-openai = "0.3.11"
 aidial-sdk = {extras = ["telemetry"], version = "^0.39.0"}
 pypdf = "^6.9.1"
 rank-bm25 = "0.2.2"
-sentence-transformers = {version = "3.3.1", extras = ["openvino"]}
+sentence-transformers = {version = "^5.6.0", extras = ["openvino"]}
+# optimum-intel 2.x is required to run the OpenVINO backend on transformers 5.x:
+# 1.x imports transformers.onnx, which was removed in transformers 5.
+optimum-intel = "^2.2.0"
 tiktoken = "^0.7.0"
 cachetools = "5.3.1"
+# unstructured is pinned: >=0.24.1 requires wrapt>=2.1.1, which conflicts with the
+# exactly-pinned opentelemetry-instrumentation-logging==0.60b1 (wrapt<2.0.0) that
+# aidial-sdk needs for structured logging. Revisit when aidial-sdk relaxes it.
 unstructured = {version = "0.21.5", extras = ["doc", "docx", "pdf", "ppt", "pptx", "xlsx"]}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 nltk = "^3.9.4"
@@ -40,14 +50,26 @@ onnx = "^1.21.0"
 jinja2 = "^3.1.6"
 aiohttp = "^3.13.4"
 python-multipart = ">=0.0.22,<0.0.32"
-transformers = "^4.53.0"
-openvino = "^2025.2.0"
+# transformers 5.5.x clears CVE-2026-4372 and CVE-2026-5241. The upper bound is
+# dictated by optimum-intel (required by sentence-transformers[openvino]), which
+# caps transformers at <5.6.
+transformers = ">=5.5.0,<5.6"
+# openvino uses calendar versioning, so a caret constraint (^2025.2.0 =>
+# >=2025.2.0,<2026.0.0) wrongly caps it below 2026. optimum-intel 2.x requires
+# openvino>=2026.0. Bound by calendar year instead.
+openvino = ">=2026.0,<2027.0.0"
 starlette = "^1.3.1"
-virtualenv = "^20.36.1"
+virtualenv = "^21.7.13"
 langchain-huggingface = "^0.1.2"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
 pdfplumber = "^0.11.9"
+# httpx is pinned to 0.27.x: 0.28 changed JSON body serialization
+# (ensure_ascii=False, compact separators), which changes the raw request bytes and
+# therefore the e2e LLM cache key (md5 of the request body), breaking every cached
+# response. httpx>=0.28.1 is required by unstructured-client>=0.43.2, so the
+# unstructured-client upgrade is deferred to a separate commit with a cache refresh.
+httpx = "0.27.2"
 
 # Data for spaCy, spaCy is used by unstructured.
 # Unstructured will try to download and install wheel on runtime if not installed
