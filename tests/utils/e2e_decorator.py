@@ -120,8 +120,8 @@ def e2e_test(filenames=(), refresh=None):
         )
 
         async def wrapper(request, recwarn, caplog, *args, **kwargs):
-            if request is not None:
-                os.environ["TEST_NAME"] = request.node.name
+            assert request is not None
+            os.environ["TEST_NAME"] = request.node.name
             attachments = [
                 {
                     "type": mimetypes.guess_type(filename)[0],

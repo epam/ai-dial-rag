@@ -66,18 +66,25 @@ class LocalEmbeddingsModel(EmbeddingsModel):
     def _embed_query(self, text: str) -> np.ndarray:
         if self._config.query_instruction:
             text = self._config.query_instruction + text
-        return self._model.encode(
-            [text],
-            show_progress_bar=False,
-        )[0]
+        # sentence-transformers 5.x annotates encode() as returning a union that
+        # includes torch.Tensor; with the default convert_to_numpy=True it returns
+        # an ndarray at runtime, and np.asarray makes that explicit for type checkers.
+        return np.asarray(
+            self._model.encode(
+                [text],
+                show_progress_bar=False,
+            )[0]
+        )
 
     def _embed_documents_batch(self, texts: List[str]) -> np.ndarray:
         if self._config.document_instruction:
             texts = [self._config.document_instruction + text for text in texts]
-        return self._model.encode(
-            texts,
-            batch_size=EMBEDDINGS_BATCH_SIZE,
-            show_progress_bar=False,
+        return np.asarray(
+            self._model.encode(
+                texts,
+                batch_size=EMBEDDINGS_BATCH_SIZE,
+                show_progress_bar=False,
+            )
         )
 
     async def aembed_query(self, text: str) -> np.ndarray:
