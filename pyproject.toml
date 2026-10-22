@@ -70,6 +70,13 @@ pdfplumber = "^0.11.9"
 # response. httpx>=0.28.1 is required by unstructured-client>=0.43.2, so the
 # unstructured-client upgrade is deferred to a separate commit with a cache refresh.
 httpx = "0.27.2"
+# pillow is held at 12.3.0: 13.0.0 changes the encoder output, which alters the
+# base64 image bytes embedded in the LLM request body and therefore the e2e LLM
+# cache key (md5 of the request body), breaking the image/multimodal tests.
+# 13.0.0 also fixes advisories affecting 12.3.0 (GHSA-332p-7hrc-92wf CRITICAL and
+# others, all fixed in 13.0.0), so upgrade together with a cache refresh in the
+# deferred commit.
+pillow = "12.3.0"
 
 # Data for spaCy, spaCy is used by unstructured.
 # Unstructured will try to download and install wheel on runtime if not installed
