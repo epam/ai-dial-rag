@@ -63,7 +63,14 @@ virtualenv = "^21.7.13"
 langchain-huggingface = "^0.1.2"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
-pdfplumber = "^0.11.9"
+pdfplumber = "0.11.9"
+# pypdfium2 is held at 5.5.0 and pdfplumber at 0.11.9: pypdfium2 5.14.0 renders PDF
+# pages slightly differently (different pixel bytes on some pages), which changes the
+# base64 image bytes embedded in the LLM request body and therefore the e2e LLM cache
+# key (md5 of the request body), breaking the image/multimodal tests.
+# pdfplumber 0.11.10 requires pypdfium2>=5.9.0, so pdfplumber must be held back too.
+# Neither bump fixes a CVE; upgrade both together with a cache refresh.
+pypdfium2 = "5.5.0"
 # httpx is pinned to 0.27.x: 0.28 changed JSON body serialization
 # (ensure_ascii=False, compact separators), which changes the raw request bytes and
 # therefore the e2e LLM cache key (md5 of the request body), breaking every cached
