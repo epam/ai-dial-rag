@@ -3,7 +3,7 @@ IMAGE_NAME ?= ai-dial-rag
 PLATFORM ?= linux/amd64
 POETRY ?= poetry
 DOCKER ?= docker
-LIBREOFFICE_UBUNTU_VERSION ?= 4:25.8.7-0ubuntu0.25.10.1~bpo24.04.1
+LIBREOFFICE_UBUNTU_VERSION ?= 4:26.2.5.2-0ubuntu0.26.04.1~bpo24.04.1
 ARGS ?=
 
 # Check for CI environment
