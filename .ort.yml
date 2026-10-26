@@ -123,7 +123,7 @@ resolutions:
       comment: "Mozilla Public License 2.0: https://github.com/pikepdf/pikepdf/blob/v10.17.0/LICENSE.txt"
     - message: ".*PyPI::pillow:13\\.0\\.0.*"
       reason: "CANT_FIX_EXCEPTION"
-      comment: "MIT License: https://github.com/python-pillow/Pillow/blob/12.2.0/LICENSE"
+      comment: "MIT License: https://github.com/python-pillow/Pillow/blob/13.0.0/LICENSE"
     - message: ".*PyPI::pdfminer-six:20260107.*"
       reason: "CANT_FIX_EXCEPTION"
       comment: "MIT License: https://github.com/pdfminer/pdfminer.six/blob/20260107/LICENSE"
