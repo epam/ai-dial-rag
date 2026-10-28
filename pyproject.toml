@@ -21,11 +21,7 @@ openai = "^1.42.0"
 docarray = "0.39.1"
 langchain = "^0.3.21"
 langchain-community = "^0.3.29"
-# Temporarily pinned: langchain-openai >=0.3.35 auto-enables `stream_usage`, which
-# injects `stream_options={"include_usage": True}` into streaming requests. That
-# extra field changes the e2e LLM cache key (md5 of the request body) and breaks
-# every cached response. Unpin together with a cache refresh in a separate commit.
-langchain-openai = "0.3.11"
+langchain-openai = "^0.3.11"
 aidial-sdk = {extras = ["telemetry"], version = "^0.39.0"}
 pypdf = "^6.9.1"
 rank-bm25 = "0.2.2"
@@ -63,20 +59,7 @@ virtualenv = "^21.7.13"
 langchain-huggingface = "^0.1.2"
 pydantic-settings = "^2.8.1"
 deepmerge = "^2.0"
-pdfplumber = "0.11.9"
-# pypdfium2 is held at 5.5.0 and pdfplumber at 0.11.9: pypdfium2 5.14.0 renders PDF
-# pages slightly differently (different pixel bytes on some pages), which changes the
-# base64 image bytes embedded in the LLM request body and therefore the e2e LLM cache
-# key (md5 of the request body), breaking the image/multimodal tests.
-# pdfplumber 0.11.10 requires pypdfium2>=5.9.0, so pdfplumber must be held back too.
-# Neither bump fixes a CVE; upgrade both together with a cache refresh.
-pypdfium2 = "5.5.0"
-# httpx is pinned to 0.27.x: 0.28 changed JSON body serialization
-# (ensure_ascii=False, compact separators), which changes the raw request bytes and
-# therefore the e2e LLM cache key (md5 of the request body), breaking every cached
-# response. httpx>=0.28.1 is required by unstructured-client>=0.43.2, so the
-# unstructured-client upgrade is deferred to a separate commit with a cache refresh.
-httpx = "0.27.2"
+pdfplumber = "^0.11.9"
 pillow = "^13.0.0"
 
 # Data for spaCy, spaCy is used by unstructured.
