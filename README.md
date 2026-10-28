@@ -406,7 +406,7 @@ These tests can be executed using environment variables, or nox sessions:
 - `make test` (or `nox -s test`) - usual test run, executed on CI. The test uses *ONLY* the cached responses from LLM. If cache missing, test throws an exception.
 - `REFRESH=True make test` (or `nox -s test -- --refresh`) - This flag will delete all unused cache files, and stores new ones required by the executed tests.
 
-To use the `REFRESH` flag, you need to have running dial-core on `DIAL_CORE_HOST` (default "localhost:8080") with `DIAL_CORE_API_KEY` (default "dial_api_key").
+To use the `REFRESH` flag, you need to have running dial-core on `DIAL_CORE_HOST` (default "http://localhost:8080") with `DIAL_CORE_API_KEY` (default "dial_api_key"). The `DIAL_CORE_HOST` value must include the scheme, e.g. `http://localhost:8080` or `https://core.example.com`.
 
 ## Clean
 

@@ -6,6 +6,7 @@ import mimetypes
 import warnings
 from pathlib import Path
 from typing import Dict
+from urllib.parse import urlsplit
 
 import httpx
 import pytest
@@ -32,7 +33,9 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CacheMiddlewareConfig:
-    dial_core_host: str = "localhost:8080"
+    # Full base URL of the dial core, including the scheme, e.g.
+    # "http://localhost:8080" or "https://core.example.com".
+    dial_core_host: str = "http://localhost:8080"
     dial_core_api_key: str = "dial_api_key"
     base_path: str = "./tests"
     module_name: str = ""
@@ -61,7 +64,7 @@ class CacheMiddlewareApp(FastAPI):
         self.llm_cache = LlmCache(
             cache_dir=f"{self.base_path / 'cache'}", enable_cache=True
         )
-        self.target_url = f"http://{self.dial_core_host}"
+        self.target_url = self.dial_core_host
 
         self.unused_cache = self.get_cache_files(
             f"{self.module_name}/{self.test_name}"
@@ -227,7 +230,7 @@ class CacheMiddlewareApp(FastAPI):
             for key in request.headers.keys()
             if key in allowed_headers
         }
-        headers["host"] = self.dial_core_host
+        headers["host"] = urlsplit(self.dial_core_host).netloc
         headers["api-key"] = self.dial_core_api_key
         return headers
 

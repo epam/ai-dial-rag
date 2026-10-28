@@ -88,6 +88,7 @@ async def test_description_retriever_gcp(attachments):
     assert "page 13" in json_response["choices"][0]["message"]["content"]
 
 
+@pytest.mark.skip("Refresh fails with HTTP 404 error")
 @pytest.mark.asyncio
 @e2e_test(filenames=["alps_wiki.pdf"])
 async def test_description_retriever_aws(attachments):
@@ -120,6 +121,7 @@ async def test_description_retriever_aws(attachments):
     assert "page 13" in json_response["choices"][0]["message"]["content"]
 
 
+@pytest.mark.skip("Refresh fails with Forbidden deployment: gpt-5-2025-08-07")
 @pytest.mark.asyncio
 @e2e_test(filenames=["alps_wiki.pdf"])
 async def test_description_retriever_gpt5(attachments):
