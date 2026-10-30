@@ -4,7 +4,8 @@ import sys
 from typing import Annotated, List
 
 import numpy as np
-from langchain.schema import BaseRetriever, Document
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 from pydantic import Field
 
 from aidial_rag.base_config import BaseConfig, IndexRebuildTrigger

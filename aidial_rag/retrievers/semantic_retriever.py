@@ -4,7 +4,8 @@ import sys
 from typing import List
 
 import numpy as np
-from langchain.schema import BaseRetriever, Document
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.document_record import Chunk, DocumentRecord, MultiEmbeddings

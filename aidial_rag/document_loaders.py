@@ -8,7 +8,7 @@ import aiohttp
 #  https://github.com/onnx/onnx/issues/6267
 # The onnx module should be imported before any unstructured_inference imports to avoid the issue
 import onnx  # noqa: F401
-from langchain.schema import Document
+from langchain_core.documents import Document
 from pdf2image.exceptions import PDFInfoNotInstalledError
 from pydantic import ByteSize, Field
 from unstructured.documents.elements import Element

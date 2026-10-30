@@ -2,18 +2,18 @@ import logging
 import re
 from typing import Any, AsyncIterator, Callable, Dict, List, cast
 
-from langchain.prompts.chat import (
-    ChatPromptTemplate,
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder,
-    SystemMessagePromptTemplate,
-)
-from langchain.schema import Document
-from langchain.schema.output_parser import StrOutputParser
+from langchain_core.documents import Document
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
     merge_content,
+)
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    MessagesPlaceholder,
+    SystemMessagePromptTemplate,
 )
 from langchain_core.runnables import Runnable, chain
 
