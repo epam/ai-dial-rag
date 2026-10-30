@@ -1,19 +1,23 @@
 from operator import itemgetter
 
 import pytest
-from langchain.schema import Document
-from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
-from langchain_community.chat_models import FakeListChatModel
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 from aidial_rag.qa_chain import get_reference_documents
+from tests.utils.fake_chunks_chat_model import FakeChunksChatModel
 
 
 async def run_qa_chain(documents, response, query="query for fake model"):
+    # The response may be a single string or a list of pre-split chunks that
+    # FakeChunksChatModel streams verbatim (to exercise chunk boundaries).
+    chunks = [response] if isinstance(response, str) else response
+
     qa_chain_mock = RunnablePassthrough().assign(
         answer=(
             itemgetter("query")
-            | FakeListChatModel(responses=[response])
+            | FakeChunksChatModel(chunks=chunks)
             | StrOutputParser()
         )
     )

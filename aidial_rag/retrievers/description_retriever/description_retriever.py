@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import sys
 import time
@@ -234,6 +235,21 @@ def _build_prompt(
     return content
 
 
+def _get_raw_tool_call_args(raw_response) -> str:
+    """Extract the tool call arguments as text for the fallback description.
+
+    Covers both tool calls that failed schema validation (`tool_calls`, whose
+    arguments are already parsed into dicts) and tool calls whose arguments are
+    not valid JSON (`invalid_tool_calls`, whose arguments are kept as raw
+    strings).
+    """
+    parts = []
+    for tool_call in raw_response.tool_calls + raw_response.invalid_tool_calls:
+        args = tool_call.get("args", "")
+        parts.append(args if isinstance(args, str) else json.dumps(args))
+    return "\n".join(parts)
+
+
 async def _invoke_image_list_prompt(
     llm: BaseChatOpenAI,
     prompt: MessageContent,
@@ -259,24 +275,34 @@ async def _invoke_image_list_prompt(
         f"{usage['total_tokens']=} ({usage['input_tokens']=}, {usage['output_tokens']=})"
     )
 
-    if (parsing_error := response.get("parsing_error")) is not None:
-        # Some models, like Claude Haiku, may break the tool calls format in rare cases.
-        # Fall back to using the raw tool calls output as a page description.
+    # Some models, like Claude Haiku, may break the tool calls format in rare
+    # cases. Fall back to using the raw tool calls output as a page description.
+    # There are two distinct failure modes to handle:
+    #   - the arguments are valid JSON but fail schema validation, which is
+    #     surfaced via `parsing_error`;
+    #   - the arguments are not valid JSON at all, in which case langchain-openai
+    #     keeps them in `invalid_tool_calls` and does NOT set `parsing_error`
+    #     in langchain >= 1.x.
+    parsing_error = response.get("parsing_error")
+    invalid_tool_calls = getattr(raw_response, "invalid_tool_calls", None)
+    if parsing_error is not None or (
+        response["parsed"] is None and invalid_tool_calls
+    ):
         logger.warning(
             "Failed to parse PageDescription tool calls response. Falling back to raw tool calls output."
         )
 
         # We do not want to log user data outside of DEBUG log level
         # parsing_error contains parts of JSON with user data
-        logger.debug("Parsing error: %s", parsing_error)
-
-        raw_tool_call_args = "\n".join(
-            str(tool_call.get("function", {}).get("arguments", ""))
-            for tool_call in raw_response.additional_kwargs.get(
-                "tool_calls", []
-            )
+        logger.debug(
+            "Parsing error: %s; invalid tool calls: %s",
+            parsing_error,
+            invalid_tool_calls,
         )
-        return PageDescription(page_summary=raw_tool_call_args, keyfact="")
+
+        return PageDescription(
+            page_summary=_get_raw_tool_call_args(raw_response), keyfact=""
+        )
 
     return response["parsed"]
 

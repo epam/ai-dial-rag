@@ -1,7 +1,7 @@
 from typing import List
 
 from docarray import DocList
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 
 from aidial_rag.content_stream import SupportsWriteStr
 from aidial_rag.document_record import Chunk
