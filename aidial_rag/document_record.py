@@ -4,7 +4,7 @@ from typing import List, TypeAlias
 from docarray import BaseDoc, DocList
 from docarray.typing import ID, NdArray
 from google.protobuf.message import DecodeError
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from aidial_rag.errors import IndexIncompatibleError
 from aidial_rag.index_record import TextIndexItem

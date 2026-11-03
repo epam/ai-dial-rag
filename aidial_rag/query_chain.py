@@ -2,12 +2,12 @@ import logging
 from operator import attrgetter
 from typing import List
 
-from langchain.prompts.chat import (
+from langchain_core.messages import BaseMessage
+from langchain_core.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
     SystemMessagePromptTemplate,
 )
-from langchain_core.messages import BaseMessage
 from langchain_core.runnables import chain
 from pydantic import BaseModel, Field
 

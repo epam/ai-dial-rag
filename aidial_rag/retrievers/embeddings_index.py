@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 from docarray import DocList
 from docarray.typing import NdArray
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from aidial_rag.document_record import Chunk, ItemEmbeddings, MultiEmbeddings
 from aidial_rag.index_record import RetrievalType, to_metadata_doc

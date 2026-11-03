@@ -1,26 +1,16 @@
 from typing import Callable, List
 
 from aidial_sdk.chat_completion import Choice, Stage
-from langchain.callbacks.base import BaseCallbackHandler
-from langchain.callbacks.manager import (
+from langchain_core.callbacks import (
     AsyncCallbackManagerForRetrieverRun,
     CallbackManagerForRetrieverRun,
 )
-from langchain.schema import BaseRetriever, Document
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 from pydantic import Field
 
 from aidial_rag.document_record import DocumentRecord
 from aidial_rag.utils import timed_stage
-
-
-class ContentCallbackHandler(BaseCallbackHandler):
-    def __init__(self, content_callback) -> None:
-        super().__init__()
-        self.callback = content_callback
-
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        if token:
-            self.callback(content=token)
 
 
 class RetrieverStage(BaseRetriever):

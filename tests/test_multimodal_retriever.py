@@ -4,7 +4,7 @@ from operator import itemgetter
 
 import pytest
 from fastapi.testclient import TestClient
-from langchain.schema.runnable import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough
 from pydantic import SecretStr
 
 from aidial_rag.app import create_app

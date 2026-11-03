@@ -3,7 +3,7 @@ from typing import List, TypedDict
 
 from docarray import BaseDoc
 from docarray.typing import ID
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 
 class IndexItem(BaseDoc):

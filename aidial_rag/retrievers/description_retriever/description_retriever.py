@@ -1,12 +1,13 @@
 import asyncio
+import json
 import logging
 import sys
 import time
-from typing import Dict, List, Literal, Sequence, Tuple, TypeAlias
+from typing import Dict, List, Literal, Sequence, Tuple, TypeAlias, cast
 
 import numpy as np
 from langchain_core.documents import Document
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.retrievers import BaseRetriever
 from langchain_openai.chat_models.base import BaseChatOpenAI
 from pydantic import Field
@@ -234,6 +235,21 @@ def _build_prompt(
     return content
 
 
+def _get_raw_tool_call_args(raw_response: AIMessage) -> str:
+    """Extract the tool call arguments as text for the fallback description.
+
+    Covers both tool calls that failed schema validation (`tool_calls`, whose
+    arguments are already parsed into dicts) and tool calls whose arguments are
+    not valid JSON (`invalid_tool_calls`, whose arguments are kept as raw
+    strings).
+    """
+    parts = []
+    for tool_call in raw_response.tool_calls + raw_response.invalid_tool_calls:
+        args = tool_call.get("args", "")
+        parts.append(args if isinstance(args, str) else json.dumps(args))
+    return "\n".join(parts)
+
+
 async def _invoke_image_list_prompt(
     llm: BaseChatOpenAI,
     prompt: MessageContent,
@@ -251,34 +267,41 @@ async def _invoke_image_list_prompt(
     end_time = time.perf_counter()
     logger.debug(f"LLM Time ({llm}): {end_time - start_time:.2f}s")
 
-    raw_response = response["raw"]
+    raw_response = cast(AIMessage, response["raw"])
     logger.debug("LLM Response: %s", raw_response)
 
     usage = raw_response.usage_metadata
-    logger.debug(
-        f"{usage['total_tokens']=} ({usage['input_tokens']=}, {usage['output_tokens']=})"
+    if usage is not None:
+        logger.debug(
+            f"{usage['total_tokens']=} ({usage['input_tokens']=}, {usage['output_tokens']=})"
+        )
+
+    if (parsed := response["parsed"]) is not None:
+        return parsed
+
+    # Some models, like Claude Haiku, may break the tool calls format in rare
+    # cases. Fall back to using the raw tool calls output as a page description.
+    # There are two distinct failure modes to handle:
+    #   - the arguments are valid JSON but fail schema validation, which is
+    #     surfaced via `parsing_error`;
+    #   - the arguments are not valid JSON at all, in which case langchain-openai
+    #     keeps them in `invalid_tool_calls` and does NOT set `parsing_error`
+    #     in langchain >= 1.x.
+    logger.warning(
+        "Failed to parse PageDescription tool calls response. Falling back to raw tool calls output."
     )
 
-    if (parsing_error := response.get("parsing_error")) is not None:
-        # Some models, like Claude Haiku, may break the tool calls format in rare cases.
-        # Fall back to using the raw tool calls output as a page description.
-        logger.warning(
-            "Failed to parse PageDescription tool calls response. Falling back to raw tool calls output."
-        )
+    # We do not want to log user data outside of DEBUG log level
+    # parsing_error contains parts of JSON with user data
+    logger.debug(
+        "Parsing error: %s; invalid tool calls: %s",
+        response["parsing_error"],
+        raw_response.invalid_tool_calls,
+    )
 
-        # We do not want to log user data outside of DEBUG log level
-        # parsing_error contains parts of JSON with user data
-        logger.debug("Parsing error: %s", parsing_error)
-
-        raw_tool_call_args = "\n".join(
-            str(tool_call.get("function", {}).get("arguments", ""))
-            for tool_call in raw_response.additional_kwargs.get(
-                "tool_calls", []
-            )
-        )
-        return PageDescription(page_summary=raw_tool_call_args, keyfact="")
-
-    return response["parsed"]
+    return PageDescription(
+        page_summary=_get_raw_tool_call_args(raw_response), keyfact=""
+    )
 
 
 async def _get_page_description(

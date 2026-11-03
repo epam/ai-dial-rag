@@ -12,8 +12,8 @@ import onnx  # noqa: F401
 import pandas as pd
 from aidial_rag.configuration_endpoint import RequestConfig
 from aidial_rag_eval.evaluate import evaluate
-from langchain.schema import BaseRetriever
-from langchain.schema.runnable import RunnablePassthrough
+from langchain_core.retrievers import BaseRetriever
+from langchain_core.runnables import RunnablePassthrough
 from pydantic import SecretStr
 
 from aidial_rag.app_config import IndexingConfig
