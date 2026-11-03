@@ -3,11 +3,11 @@ import json
 import logging
 import sys
 import time
-from typing import Dict, List, Literal, Sequence, Tuple, TypeAlias
+from typing import Dict, List, Literal, Sequence, Tuple, TypeAlias, cast
 
 import numpy as np
 from langchain_core.documents import Document
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.retrievers import BaseRetriever
 from langchain_openai.chat_models.base import BaseChatOpenAI
 from pydantic import Field
@@ -235,7 +235,7 @@ def _build_prompt(
     return content
 
 
-def _get_raw_tool_call_args(raw_response) -> str:
+def _get_raw_tool_call_args(raw_response: AIMessage) -> str:
     """Extract the tool call arguments as text for the fallback description.
 
     Covers both tool calls that failed schema validation (`tool_calls`, whose
@@ -267,13 +267,17 @@ async def _invoke_image_list_prompt(
     end_time = time.perf_counter()
     logger.debug(f"LLM Time ({llm}): {end_time - start_time:.2f}s")
 
-    raw_response = response["raw"]
+    raw_response = cast(AIMessage, response["raw"])
     logger.debug("LLM Response: %s", raw_response)
 
     usage = raw_response.usage_metadata
-    logger.debug(
-        f"{usage['total_tokens']=} ({usage['input_tokens']=}, {usage['output_tokens']=})"
-    )
+    if usage is not None:
+        logger.debug(
+            f"{usage['total_tokens']=} ({usage['input_tokens']=}, {usage['output_tokens']=})"
+        )
+
+    if (parsed := response["parsed"]) is not None:
+        return parsed
 
     # Some models, like Claude Haiku, may break the tool calls format in rare
     # cases. Fall back to using the raw tool calls output as a page description.
@@ -283,28 +287,21 @@ async def _invoke_image_list_prompt(
     #   - the arguments are not valid JSON at all, in which case langchain-openai
     #     keeps them in `invalid_tool_calls` and does NOT set `parsing_error`
     #     in langchain >= 1.x.
-    parsing_error = response.get("parsing_error")
-    invalid_tool_calls = getattr(raw_response, "invalid_tool_calls", None)
-    if parsing_error is not None or (
-        response["parsed"] is None and invalid_tool_calls
-    ):
-        logger.warning(
-            "Failed to parse PageDescription tool calls response. Falling back to raw tool calls output."
-        )
+    logger.warning(
+        "Failed to parse PageDescription tool calls response. Falling back to raw tool calls output."
+    )
 
-        # We do not want to log user data outside of DEBUG log level
-        # parsing_error contains parts of JSON with user data
-        logger.debug(
-            "Parsing error: %s; invalid tool calls: %s",
-            parsing_error,
-            invalid_tool_calls,
-        )
+    # We do not want to log user data outside of DEBUG log level
+    # parsing_error contains parts of JSON with user data
+    logger.debug(
+        "Parsing error: %s; invalid tool calls: %s",
+        response["parsing_error"],
+        raw_response.invalid_tool_calls,
+    )
 
-        return PageDescription(
-            page_summary=_get_raw_tool_call_args(raw_response), keyfact=""
-        )
-
-    return response["parsed"]
+    return PageDescription(
+        page_summary=_get_raw_tool_call_args(raw_response), keyfact=""
+    )
 
 
 async def _get_page_description(
