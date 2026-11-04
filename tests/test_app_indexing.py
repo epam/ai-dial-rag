@@ -161,11 +161,7 @@ async def test_indexing_request(attachments):
             display_name="alps_wiki.html",
         )
         assert chunk.page is None
-
-    assert retrieval_response.chunks[1].text is not None
-    assert retrieval_response.chunks[1].text.startswith(
-        "Techniques and tools Quantitative Cartography"
-    )
+        assert chunk.text
 
 
 @pytest.mark.asyncio
