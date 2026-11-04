@@ -1,3 +1,27 @@
-# Vulnerability in langchain load_prompt and load_prompt_from_config: https://github.com/advisories/GHSA-qh6h-p6c9-ff54
-# We do not use load_prompt and load_prompt_from_config in this project.
-CVE-2026-34070 exp:2026-09-30
+# Vulnerabilities that cannot be fixed yet because they are capped by
+# transitive dependencies. Each entry documents the blocker and why the
+# vulnerable code path is not reachable from this project.
+
+# filelock: Arbitrary file overwrite via insecure database file reopening
+# https://avd.aquasec.com/nvd/cve-2026-112940
+# Fixed in 4.2.1, but every version of `unstructured` (incl. the latest) pins
+# filelock<4.0.0, so the fix cannot be pulled in. We do not use filelock
+# directly, and the affected database file reopening is not exercised.
+CVE-2026-112940 exp:2027-04-30
+
+# transformers: save_pretrained path traversal allows arbitrary file writes
+# through chat template names
+# https://avd.aquasec.com/nvd/cve-2026-9856
+# Fixed in 5.10.0, but the version is capped at <5.6 by optimum-intel 2.2.0
+# (required by sentence-transformers[openvino]), so the fix cannot be pulled in.
+# We do not call save_pretrained with user-controlled chat template names.
+CVE-2026-9856 exp:2027-04-30
+
+# transformers: unauthorized file write via
+# GenerativePreTrainedModel.load_custom_generate()
+# https://avd.aquasec.com/nvd/cve-2026-80047
+# No fixed version is published yet, and the version is in any case capped at
+# <5.6 by optimum-intel 2.2.0 (required by sentence-transformers[openvino]).
+# We never call load_custom_generate / GenerativePreTrainedModel.
+CVE-2026-80047 exp:2027-04-30
+

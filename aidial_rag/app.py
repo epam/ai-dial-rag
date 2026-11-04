@@ -11,7 +11,8 @@ from aidial_sdk.chat_completion import (
     Request,
     Response,
 )
-from langchain.schema import BaseRetriever, Document
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 from langchain_core.runnables import Runnable
 
 from aidial_rag.app_config import AppConfig

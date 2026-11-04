@@ -1,6 +1,7 @@
 from typing import ClassVar, List
 
-from langchain.schema import BaseRetriever, Document
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 
 from aidial_rag.document_record import Chunk, DocumentRecord
 from aidial_rag.index_record import RetrievalType, to_metadata_doc

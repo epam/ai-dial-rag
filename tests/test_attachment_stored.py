@@ -77,8 +77,8 @@ def attachment_link(request_context):
 
 
 class MockStage(Stage):
-    def __init__(self, queue, index, last_stage_index, name=None):
-        super().__init__(queue, index, last_stage_index, name)
+    def __init__(self, choice, stage_index, name=None, parent=None):
+        super().__init__(choice, stage_index, name, parent)
         self.content = []
 
     def append_content(self, content):
@@ -128,7 +128,7 @@ async def test_load_document_success(
     )
 
     mock_create_stage.side_effect = lambda name=None: MockStage(
-        MagicMock(), 0, 0, name
+        MagicMock(), 0, name
     )
 
     indexing_task = IndexingTask(
@@ -176,7 +176,7 @@ async def test_load_document_invalid_document(
     mock_download_attachment.return_value = None, None
 
     mock_create_stage.side_effect = lambda name=None: MockStage(
-        MagicMock(), 0, 0, name
+        MagicMock(), 0, name
     )
 
     dial_api_client = MockDialApiClient()

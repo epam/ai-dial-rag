@@ -2,7 +2,7 @@ import sys
 from operator import itemgetter
 
 import pytest
-from langchain.schema.runnable import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough
 
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.document_loaders import load_attachment, parse_document

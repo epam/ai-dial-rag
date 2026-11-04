@@ -4,11 +4,10 @@ from itertools import groupby
 from operator import itemgetter
 from typing import Any, Callable, Dict, List, Set
 
-from langchain.retrievers import EnsembleRetriever
-from langchain.schema import BaseRetriever, Document
-from langchain.schema.runnable import RunnablePassthrough
-from langchain_core.retrievers import RetrieverLike
-from langchain_core.runnables import Runnable, chain
+from langchain_classic.retrievers import EnsembleRetriever
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever, RetrieverLike
+from langchain_core.runnables import Runnable, RunnablePassthrough, chain
 
 from aidial_rag.attachment_link import AttachmentLink
 from aidial_rag.dial_config import DialConfig

@@ -5,7 +5,8 @@ from typing import Generator, List, Tuple
 
 import numpy as np
 from docarray import DocList
-from langchain.schema import BaseRetriever, Document
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 from pydantic import Field
 from rank_bm25 import BM25Okapi
 
